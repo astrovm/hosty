@@ -1,0 +1,2 @@
+#!/bin/bash
+bash <(wget -qO- https://github.com/juankfree/hosty/raw/master/hosty.sh)
