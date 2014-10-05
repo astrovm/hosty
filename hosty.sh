@@ -56,13 +56,13 @@ fi
 # Pass all this through sort with the unique flag to remove duplicates and save the result
 echo
 echo "Parsing, cleaning, de-duplicating, sorting..."
-sed -e 's/\r//' -e '/^127.0.0.1\|0.0.0.0/!d' -e '/da.feedsportal.com/d' -e '/shorte.st/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -e '/localhost/d' -e 's/127.0.0.1/0.0.0.0/' -e 's/ \+/\t/' -e 's/#.*$//' -e 's/[ \t]*$//' < $temphosts1 | sort -u > $temphosts2
+sed -e '/^127.0.0.1\|0.0.0.0/!d' -e '/da.feedsportal.com/d' -e '/shorte.st/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -e '/localhost/d' -e 's/127.0.0.1/0.0.0.0/' -e 's/#.*$//' < $temphosts1 | sort -u > $temphosts2
 
 # Combine system hosts with adblocks
 echo
 echo "Merging with original system hosts..."
 echo -e "\n# Ad blocking hosts generated "$(date) | cat /etc/hosts.original - $temphosts2 > $temphosts3
-sudo bash -c "sed -e '/^$/d' -e '/./!d' $temphosts3 > /etc/hosts"
+sudo bash -c "sed -e 's/\r//' -e '/^$/d' -e '/./!d' -e 's/[[:space:]]\+/ /g' -e 's/[ \t]*$//' $temphosts3 > /etc/hosts"
 # Clean up temp files and reminds the user how to restore the original hosts file
 echo
 echo "Cleaning up..."
