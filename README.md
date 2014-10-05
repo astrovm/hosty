@@ -4,7 +4,7 @@ hosty
 Ad blocker script for Linux.
 
 ## How to install
-$ cd /usr/local/bin ; sudo wget -c https://github.com/juankfree/hosty/raw/master/hosty -O hosty ; sudo chmod +x hosty ; cd ~
+$ sudo rm /usr/local/bin/hosty ; sudo wget -c https://github.com/juankfree/hosty/raw/master/hosty -O /usr/local/bin/hosty ; sudo chmod +x /usr/local/bin/hosty
 
 ## How to run
 $ hosty
