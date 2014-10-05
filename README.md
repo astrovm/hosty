@@ -7,7 +7,7 @@ Ad blocker script for Linux.
 * cURL
 * Wget
 
-### How to install:
+#### How to install:
 
 * Ubuntu/Mint/Debian:
 $ sudo apt-get install curl wget
