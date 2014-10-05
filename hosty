@@ -1,2 +1,2 @@
 #!/bin/bash
-bash <(wget -qO- https://github.com/juankfree/hosty/raw/master/hosty.sh)
+bash <(curl -s https://github.com/juankfree/hosty/raw/master/hosty.sh)
