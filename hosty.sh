@@ -56,7 +56,7 @@ fi
 # Pass all this through sort with the unique flag to remove duplicates and save the result
 echo
 echo "Parsing, cleaning, de-duplicating, sorting..."
-sed -e 's/\r//' -e '/^127.0.0.1\|0.0.0.0/!d' -e '/da.feedsportal.com/d' -e '/localhost/d' -e 's/127.0.0.1/0.0.0.0/' -e 's/ \+/\t/' -e 's/#.*$//' -e 's/[ \t]*$//' < $temphosts1 | sort -u > $temphosts2
+sed -e 's/\r//' -e '/^127.0.0.1\|0.0.0.0/!d' -e '/da.feedsportal.com/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -e '/localhost/d' -e 's/127.0.0.1/0.0.0.0/' -e 's/ \+/\t/' -e 's/#.*$//' -e 's/[ \t]*$//' < $temphosts1 | sort -u > $temphosts2
 
 # Combine system hosts with adblocks
 echo
