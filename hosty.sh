@@ -20,7 +20,7 @@ echo "Downloading ad-blocking hosts files..."
 
 adaway=$(curl -s --head -w %{http_code} http://adaway.org/hosts.txt -o /dev/null)
 winhelp2002=$(curl -s --head -w %{http_code} http://winhelp2002.mvps.org/hosts.txt -o /dev/null)
-hosts-file=$(curl -s --head -w %{http_code} http://hosts-file.net/ad_servers.asp -o /dev/null)
+hostsfile=$(curl -s --head -w %{http_code} http://hosts-file.net/ad_servers.asp -o /dev/null)
 someonewhocares=$(curl -s --head -w %{http_code} http://someonewhocares.org/hosts/hosts -o /dev/null)
 pgl=$(curl -s --head -w %{http_code} "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" -o /dev/null)
 
@@ -32,7 +32,7 @@ if [[ $winhelp2002 -lt 400 && $winhelp2002 -gt 000 ]]
 then
   wget -nv -O - http://winhelp2002.mvps.org/hosts.txt >> $temphosts1
 fi
-if [[ $hosts-file -lt 400 && $hosts-file -gt 000 ]]
+if [[ $hostsfile -lt 400 && $hostsfile -gt 000 ]]
 then
   wget -nv -O - http://hosts-file.net/ad_servers.asp >> $temphosts1
 fi
