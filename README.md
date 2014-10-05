@@ -11,3 +11,6 @@ $ hosty
 
 ## How to restore your original hosts file
 $ sudo cp /etc/hosts.original /etc/hosts
+
+## How to uninstall
+$ sudo rm /usr/local/bin/hosty
