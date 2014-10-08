@@ -24,6 +24,7 @@ winhelp2002=$(curl -s --head -w %{http_code} http://winhelp2002.mvps.org/hosts.t
 hostsfile=$(curl -s --head -w %{http_code} http://hosts-file.net/ad_servers.asp -o /dev/null)
 someonewhocares=$(curl -s --head -w %{http_code} http://someonewhocares.org/hosts/hosts -o /dev/null)
 pgl=$(curl -s --head -w %{http_code} "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" -o /dev/null)
+publicidadchile=$(curl -s --head -w %{http_code} https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt -o /dev/null)
 
 if [[ $adaway -lt 400 && $adaway -gt 000 ]]
 then
@@ -44,6 +45,10 @@ fi
 if [[ $pgl -lt 400 && $pgl -gt 000 ]]
 then
   wget -nv -O - "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" >> $temphosts1
+fi
+if [[ $publicidadchile -lt 400 && $publicidadchile -gt 000 ]]
+then
+  wget -nv -O - https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt >> $temphosts1
 fi
 
 # Do some work on the file:
