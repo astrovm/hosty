@@ -11,10 +11,21 @@ then
   echo
 fi
 
+# If this is our first run, create a whitelist file and set to read-only for safety
+if [ ! -f /etc/hosts.whitelist ]
+then
+  echo "Creating whitelist file..."
+  sudo touch /etc/hosts.whitelist
+  sudo chmod 444 /etc/hosts.whitelist
+  echo
+fi
+
 # Perform work in temporary files
 temphosts1=$(mktemp)
 temphosts2=$(mktemp)
 temphosts3=$(mktemp)
+tempwhitelist=$(mktemp)
+tempwhitelistd=$(mktemp -d)
 
 # Obtain various hosts files and merge into one
 echo "Downloading ad-blocking hosts files..."
@@ -63,18 +74,41 @@ fi
 
 echo
 echo "Parsing, cleaning, de-duplicating, sorting..."
-sed -e 's/\r//' -e '/^$/d' -e '/./!d' -e 's/[[:space:]]\+/ /g' -e 's/[ \t]*$//' -e '/^127.0.0.1\|0.0.0.0/!d' -e '/da.feedsportal.com/d' -e '/rpxnow.com/d' -e '/google-analytics.com/d' -e '/shorte.st/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -e '/localhost/d' -e 's/127.0.0.1/0.0.0.0/' -e 's/#.*$//' < $temphosts1 | sort > $temphosts2
+sed -e 's/\r//' -e 's/[[:space:]]\+/ /g' -e 's/[ \t]*$//' -e '/^127.0.0.1\|0.0.0.0/!d' -e '/da.feedsportal.com/d' -e '/rpxnow.com/d' -e '/google-analytics.com/d' -e '/shorte.st/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -e '/localhost/d' -e 's/127.0.0.1/0.0.0.0/' -e 's/#.*$//' -e '/^$/d' -e '/./!d' < $temphosts1 | sort > $temphosts2
+
+# Applies whitelist
+echo
+echo "Applying whitelist..."
+
+wlc1=0
+wlc2=1
+
+cat $temphosts2 > $tempwhitelistd/1
+sed -e 's/\r//' -e 's/[[:space:]]\+/ /g' -e 's/[ \t]*$//' -e 's/127.0.0.1/0.0.0.0/' -e 's/#.*$//' -e '/^$/d' -e '/./!d' < /etc/hosts.whitelist | sort | uniq > $tempwhitelist
+
+cat $tempwhitelist |
+{
+  while read -r line
+  do
+    wlc1=$((wlc1 + 1))
+    wlc2=$((wlc2 + 1))
+    echo "Deleting all lines that contain '"$line"'..."
+    sed -e "/$line/d" $tempwhitelistd/$wlc1 > $tempwhitelistd/$wlc2
+  done
+  cat $tempwhitelistd/$wlc2 > $tempwhitelist ;
+}
 
 # Combine system hosts with adblocks
 echo
 echo "Merging with original system hosts..."
-echo -e "\n# Ad blocking hosts generated "$(date) | cat /etc/hosts.original - $temphosts2 > $temphosts3
-sudo bash -c "sed -e 's/\r//' -e '/^$/d' -e '/./!d' -e 's/[[:space:]]\+/ /g' -e 's/[ \t]*$//' $temphosts3 | uniq > /etc/hosts"
+echo -e "\n# Ad blocking hosts generated "$(date) | cat /etc/hosts.original - $tempwhitelist > $temphosts3
+sudo bash -c "sed -e 's/\r//' -e 's/[[:space:]]\+/ /g' -e 's/[ \t]*$//' -e '/^$/d' -e '/./!d' < $temphosts3 | uniq > /etc/hosts"
 
 # Clean up temp files and reminds the user how to restore the original hosts file
 echo
 echo "Cleaning up..."
-rm $temphosts1 $temphosts2 $temphosts3
+rm $temphosts1 $temphosts2 $temphosts3 $tempwhitelist
+rm -R $tempwhitelistd
 echo
 echo "Done."
 echo
