@@ -95,7 +95,7 @@ cat $tempwhitelist |
     echo "Deleting all lines that contain '"$line"'..."
     sed -e "/$line/d" $tempwhitelistd/$wlc1 > $tempwhitelistd/$wlc2
   done
-  sed -e 's/\r//' -e 's/[[:space:]]\+/ /g' -e 's/[ \t]*$//' -e '/^127.0.0.1\|0.0.0.0/!d' -e 's/#.*$//' -e '/^$/d' -e '/./!d' < $tempwhitelistd/$wlc2 | sort > $tempwhitelist
+  sed -e 's/\r//' -e 's/[[:space:]]\+/ /g' -e 's/[ \t]*$//' -e '/^127.0.0.1\|0.0.0.0/!d' -e 's/#.*$//' -e '/^$/d' -e '/./!d' < $tempwhitelistd/$wlc2 | sort > $tempwhitelist ;
 }
 
 # Combine system hosts with adblocks
