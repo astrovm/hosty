@@ -7,9 +7,11 @@ Ad blocker script for Linux.
 
 ## AUR
 
-### If you have Arch Linux or Arch based distribution compatible with AUR (Manjaro, Antergos, ArchBang, Bridge Linux) then you can simply install hosty from the AUR:
+#### If you have Arch Linux or Arch based distribution compatible with AUR (Manjaro, Antergos, ArchBang, Bridge Linux) then you can simply install hosty from the AUR:
 
-#### $ yaourt -S hosty
+##### $ yaourt -S hosty
+
+https://aur.archlinux.org/packages/hosty
 
 ## Manual instalation
 
