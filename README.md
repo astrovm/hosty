@@ -9,7 +9,7 @@ Ad blocker script for Linux.
 * cURL
 * Wget
 
-##### How to install the requirements:
+##### How to install the requirements
 
 * Ubuntu/Mint/Debian:
 $ sudo apt-get install curl wget
@@ -28,6 +28,20 @@ $ sudo rm /usr/local/bin/hosty ; sudo wget -c https://github.com/juankfree/hosty
 
 ## How to run hosty
 $ hosty
+
+## Whitelist
+You can include exceptions editing the file /etc/hosts.whitelist (with root permissions), one per line.
+Valid examples:
+
+example.com (All lines containing this text will be removed.)
+
+www.example.com 
+
+0.0.0.0 example.com 
+
+127.0.0.1 www.example.com 
+
+example (If you just put a word also works but careful because any page might have that word.)
 
 ## How to restore your original hosts file
 $ sudo cp /etc/hosts.original /etc/hosts
