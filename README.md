@@ -30,7 +30,8 @@ $ sudo rm /usr/local/bin/hosty ; sudo wget -c https://github.com/juankfree/hosty
 $ hosty
 
 ## Whitelist
-You can include exceptions editing the file /etc/hosts.whitelist (with root permissions), one per line.
+You can include exceptions editing the file /etc/hosts.whitelist (With root permissions), one per line.
+
 Valid examples:
 
 example.com (All lines containing this text will be removed.)
