@@ -18,23 +18,24 @@ https://aur.archlinux.org/packages/hosty
 ### Requires
 * cURL
 * Wget
+* sudo
 
 #### How to install the requirements
 
 * Ubuntu/Mint/Debian:
-$ sudo apt-get install curl wget
+$ sudo apt-get install curl wget sudo
 
 * Arch/Manjaro/Antergos:
-$ sudo pacman -S curl wget
+$ sudo pacman -S curl wget sudo
 
 * Fedora/RHEL/CentOS:
-$ sudo yum install curl wget
+$ sudo yum install curl wget sudo
 
 * SUSE:
-$ sudo zypper in curl wget
+$ sudo zypper in curl wget sudo
 
 ### How to install hosty
-$ sudo rm /usr/local/bin/hosty ; sudo wget -c https://github.com/juankfree/hosty/raw/master/hosty -O /usr/local/bin/hosty ; sudo chmod +x /usr/local/bin/hosty
+$ curl -L git.io/hosty | sh
 
 ## How to run hosty
 $ hosty
