@@ -24,11 +24,13 @@ host=$(mktemp)
 aux=$(mktemp)
 white=$(mktemp)
 
+# Obtain various hosts files and merge into one
+echo "Downloading ad-blocking hosts files..."
 for i in "${ARR[@]}"
 do
 	wget --no-cache -nv -O $aux $i
 	if [ $? != 0 ]; then
-		echo "Error descargando $i"
+		echo "Error downloading $i"
 	else
 		cat $aux >> $host
 	fi
