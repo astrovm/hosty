@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Add ad-blocking hosts files in this array
 ARR=("http://adaway.org/hosts.txt" "http://winhelp2002.mvps.org/hosts.txt" "http://hosts-file.net/ad_servers.asp" "http://someonewhocares.org/hosts/hosts" "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt")
 
 # If this is our first run, save a copy of the system's original hosts file and set to read-only for safety
