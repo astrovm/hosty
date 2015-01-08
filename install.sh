@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo wget -c https://raw.githubusercontent.com/cyttorak/hosty/master/hosty.sh -O /usr/local/bin/hosty && sudo chmod +x /usr/local/bin/hosty
+sudo wget -c https://github.com/juankfree/hosty/raw/master/hosty -O /usr/local/bin/hosty && sudo chmod +x /usr/local/bin/hosty
