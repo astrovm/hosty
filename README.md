@@ -19,20 +19,21 @@ https://aur.archlinux.org/packages/hosty
 * cURL
 * Wget
 * sudo
+* Gawk
 
 #### How to install the requirements
 
 * Ubuntu/Mint/Debian:
-$ sudo apt-get install curl wget sudo
+$ sudo apt-get install curl wget sudo gawk
 
 * Arch/Manjaro/Antergos:
-$ sudo pacman -S curl wget sudo
+$ sudo pacman -S curl wget sudo gawk
 
 * Fedora/RHEL/CentOS:
-$ sudo yum install curl wget sudo
+$ sudo yum install curl wget sudo gawk
 
 * SUSE:
-$ sudo zypper in curl wget sudo
+$ sudo zypper in curl wget sudo gawk
 
 ### How to install hosty
 $ curl -L git.io/hosty | sh
