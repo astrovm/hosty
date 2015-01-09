@@ -45,15 +45,9 @@ You can include exceptions editing the file /etc/hosts.whitelist (With root perm
 
 #### Valid examples:
 
-* example.com (All lines containing this text will be removed.)
+* example.com
 
 * www.example.com 
-
-* 0.0.0.0 example.com 
-
-* 127.0.0.1 www.example.com 
-
-* example (If you just put a word also works but careful because any page might have that word.)
 
 ## How to restore your original hosts file
 $ sudo cp /etc/hosts.original /etc/hosts
