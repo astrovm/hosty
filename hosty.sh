@@ -37,14 +37,17 @@ do
 	fi
 done
 
+echo
 echo "Parsing, cleaning, de-duplicating..."
 sed -e 's/\r//' -e 's/[[:space:]]\+/ /g' -e 's/[ \t]*$//' -e '/^127.0.0.1\|0.0.0.0/!d' -e '/da.feedsportal.com/d' -e '/pixel.everesttech.net/d' -e '/www.googleadservices.com/d' -e '/maxcdn.com/d' -e '/static.addtoany.com/d' -e '/addthis.com/d' -e '/googletagmanager.com/d' -e '/addthiscdn.com/d' -e '/sharethis.com/d' -e '/twitter.com/d' -e '/pinterest.com/d' -e '/ojrq.net/d' -e '/rpxnow.com/d' -e '/google-analytics.com/d' -e '/shorte.st/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -e '/localhost/d' -e 's/127.0.0.1/0.0.0.0/' -e 's/#.*$//' -e '/^$/d' -e '/./!d' $host > $aux
 
+echo
 echo "Applying whitelist..."
 cat /etc/hosts.whitelist > $white
 awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' /etc/hosts.original >> $white
 awk 'FNR==NR {a[$1]++} FNR!=NR {if ($0 && !a[$2]++) print $0}' $white $aux > $host
 
+echo
 echo "Building /etc/hosts..."
 cat /etc/hosts.original > $aux
 echo "" >> $aux
@@ -54,7 +57,9 @@ cat $host >> $aux
 sudo bash -c "cat $aux > /etc/hosts"
 ln=$(grep -c "0.0.0.0" /etc/hosts)
 
-echo "Done. $ln websites blocked"
+echo
+echo "Done, $ln websites blocked."
+echo
 echo "You can always restore your original hosts file with this command:"
 echo "    sudo cp /etc/hosts.original /etc/hosts"
 echo "So don't delete that file! (It's saved read-only for your protection.)"
