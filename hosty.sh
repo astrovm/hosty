@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Add ad-blocking hosts files in this array
-ARR=("http://adaway.org/hosts.txt" "http://winhelp2002.mvps.org/hosts.txt" "http://hosts-file.net/ad_servers.asp" "http://someonewhocares.org/hosts/hosts" "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt")
+HOSTS=("http://adaway.org/hosts.txt" "http://winhelp2002.mvps.org/hosts.txt" "http://hosts-file.net/ad_servers.asp" "http://someonewhocares.org/hosts/hosts" "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt")
+# Add AdBlock Plus rules files in this array
+RULES=("https://easylist-downloads.adblockplus.org/easylist.txt" "https://data.getadblock.com/filters/adblock_custom.txt" "https://easylist-downloads.adblockplus.org/easyprivacy.txt")
 
 # If this is our first run, save a copy of the system's original hosts file and set to read-only for safety
 if [ ! -f /etc/hosts.original ]
@@ -27,13 +29,22 @@ white=$(mktemp)
 
 # Obtain various hosts files and merge into one
 echo "Downloading ad-blocking hosts files..."
-for i in "${ARR[@]}"
+for i in "${HOSTS[@]}"
 do
 	wget --no-cache -nv -O $aux $i
 	if [ $? != 0 ]; then
 		echo "Error downloading $i"
 	else
 		cat $aux >> $host
+	fi
+done
+for i in "${RULES[@]}"
+do
+	wget --no-cache -nv -O $aux $i
+	if [ $? != 0 ]; then
+		echo "Error downloading $i"
+	else
+		awk '/^\|\|[a-z][a-z0-9\-_.]+\.[a-z]{2,3}\^$/ {print "0.0.0.0",substr($0,3,length($0)-3)}' $aux >> $host
 	fi
 done
 
