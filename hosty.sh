@@ -44,7 +44,7 @@ do
 	if [ $? != 0 ]; then
 		echo "Error downloading $i"
 	else
-		awk '/^\|\|[a-z][a-z0-9\-_.]+\.[a-z]{2,3}\^$/ {print "0.0.0.0",substr($0,3,length($0)-3)}' $aux >> $host
+		awk '/^\|\|[a-z][a-z0-9\-_.]+\.[a-z]+\^$/ {print "0.0.0.0",substr($0,3,length($0)-3)}' $aux >> $host
 	fi
 done
 
