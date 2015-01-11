@@ -3,15 +3,21 @@
 # Add ad-blocking hosts files in this array
 HOSTS=("http://adaway.org/hosts.txt" "http://winhelp2002.mvps.org/hosts.txt" "http://hosts-file.net/ad_servers.asp" "http://someonewhocares.org/hosts/hosts" "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt")
 # Add AdBlock Plus rules files in this array
-RULES=("https://easylist-downloads.adblockplus.org/easylist.txt" "https://data.getadblock.com/filters/adblock_custom.txt" "https://easylist-downloads.adblockplus.org/easyprivacy.txt")
+RULES=("https://easylist-downloads.adblockplus.org/easylist.txt" "https://data.getadblock.com/filters/adblock_custom.txt" "https://easylist-downloads.adblockplus.org/easyprivacy.txt" "http://abp.mozilla-hispano.org/nauscopio/filtros.txt" "https://easylist-downloads.adblockplus.org/malwaredomains_full.txt")
 
-# If this is our first run, save a copy of the system's original hosts file and set to read-only for safety
-if [ ! -f /etc/hosts.original ]
-then
-  echo "Saving copy of system's original hosts file..."
-  sudo cp /etc/hosts /etc/hosts.original
-  sudo chmod 444 /etc/hosts.original
-  echo
+host=$(mktemp)
+
+if [ "$1" == "--restore" ]; then
+	ln=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
+	if [ -z $ln ]; then
+		echo "There is nothing to restore"
+	else
+		let ln-=1
+		head -n $ln /etc/hosts > $host
+		sudo bash -c "cat $host > /etc/hosts"
+		echo "Restore completed"
+	fi
+	exit 0
 fi
 
 # If this is our first run, create a whitelist file and set to read-only for safety
@@ -23,12 +29,11 @@ then
   echo
 fi
 
-host=$(mktemp)
 aux=$(mktemp)
 white=$(mktemp)
 
 # Obtain various hosts files and merge into one
-echo "Downloading ad-blocking hosts files..."
+echo "Downloading ad-blocking files..."
 for i in "${HOSTS[@]}"
 do
 	wget --no-cache -nv -O $aux $i
@@ -38,6 +43,7 @@ do
 		cat $aux >> $host
 	fi
 done
+# Obtain various AdBlock Plus rules files and merge into one
 for i in "${RULES[@]}"
 do
 	wget --no-cache -nv -O $aux $i
@@ -57,15 +63,25 @@ awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' /etc/hosts.original >> $wh
 awk 'FNR==NR {a[$1]++} FNR!=NR {if ($0 && !a[$2]++) print $0}' $white $aux > $host
 
 echo "Building /etc/hosts..."
-cat /etc/hosts.original > $aux
-echo "" >> $aux
+ln=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
+if [ -z $ln ]; then
+	cat /etc/hosts > $aux
+else
+	let ln-=1
+	head -n $ln /etc/hosts > $aux
+fi
 echo "# Ad blocking hosts generated $(date)" >> $aux
 cat $host >> $aux
+echo "# Don't write below this line. It will be lost if you run hosty again" >> $aux
 
-sudo bash -c "cat $aux > /etc/hosts"
-ln=$(grep -c "0.0.0.0" /etc/hosts)
+ln=$(grep -c "0.0.0.0" $aux)
+
+if [ "$1" == "--debug" ]; then
+	echo "You can see the results in $aux"
+else
+	sudo bash -c "cat $aux > /etc/hosts"
+fi
 
 echo "Done. $ln websites blocked"
 echo "You can always restore your original hosts file with this command:"
-echo "    sudo cp /etc/hosts.original /etc/hosts"
-echo "So don't delete that file! (It's saved read-only for your protection.)"
+echo "    sudo hosty --restore"
