@@ -1,23 +1,28 @@
 #!/bin/bash
 
 # Add ad-blocking hosts files in this array
-HOSTS=("http://adaway.org/hosts.txt" "http://winhelp2002.mvps.org/hosts.txt" "http://hosts-file.net/ad_servers.asp" "http://someonewhocares.org/hosts/hosts" "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt")
+HOSTS=("http://15hack.tomalaplaza.net/files/aede.txt" "http://adaway.org/hosts.txt" "http://winhelp2002.mvps.org/hosts.txt" "http://hosts-file.net/ad_servers.asp" "http://someonewhocares.org/hosts/hosts" "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt")
 # Add AdBlock Plus rules files in this array
 RULES=("https://easylist-downloads.adblockplus.org/easylist.txt" "https://data.getadblock.com/filters/adblock_custom.txt" "https://easylist-downloads.adblockplus.org/easyprivacy.txt" "http://abp.mozilla-hispano.org/nauscopio/filtros.txt" "https://easylist-downloads.adblockplus.org/malwaredomains_full.txt")
+# Set IP to redirect
+IP="0.0.0.0"
 
-host=$(mktemp)
-
-if [ "$1" == "--restore" ]; then
-	ln=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
-	if [ -z $ln ]; then
+orig=$(mktemp)
+ln=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
+if [ -z $ln ]; then
+	if [ "$1" == "--restore" ]; then
 		echo "There is nothing to restore"
-	else
-		let ln-=1
-		head -n $ln /etc/hosts > $host
-		sudo bash -c "cat $host > /etc/hosts"
-		echo "Restore completed"
+		exit 0
 	fi
-	exit 0
+	cat /etc/hosts > $orig
+else
+	let ln-=1
+	head -n $ln /etc/hosts > $orig
+	if [ "$1" == "--restore" ]; then
+		sudo bash -c "cat $orig > /etc/hosts"
+		echo "/etc/hosts restore completed"
+		exit 0
+	fi
 fi
 
 # If this is our first run, create a whitelist file and set to read-only for safety
@@ -29,6 +34,7 @@ then
   echo
 fi
 
+host=$(mktemp)
 aux=$(mktemp)
 white=$(mktemp)
 
@@ -40,7 +46,7 @@ do
 	if [ $? != 0 ]; then
 		echo "Error downloading $i"
 	else
-		cat $aux >> $host
+		awk '/^[ \t]*(127\.0\.0\.1|0\.0\.0\.0|255\.255\.255\.0)/ {print $2}' $aux >> $host
 	fi
 done
 # Obtain various AdBlock Plus rules files and merge into one
@@ -50,36 +56,33 @@ do
 	if [ $? != 0 ]; then
 		echo "Error downloading $i"
 	else
-		awk '/^\|\|[a-z][a-z0-9\-_.]+\.[a-z]+\^$/ {print "0.0.0.0",substr($0,3,length($0)-3)}' $aux >> $host
+		awk '/^\|\|[a-z][a-z0-9\-_.]+\.[a-z]+\^$/ {substr($0,3,length($0)-3)}' $aux >> $host
 	fi
 done
 
-echo "Parsing, cleaning, de-duplicating..."
-sed -e 's/\r//' -e 's/[[:space:]]\+/ /g' -e 's/[ \t]*$//' -e '/^127.0.0.1\|0.0.0.0/!d' -e '/da.feedsportal.com/d' -e '/pixel.everesttech.net/d' -e '/www.googleadservices.com/d' -e '/maxcdn.com/d' -e '/static.addtoany.com/d' -e '/addthis.com/d' -e '/googletagmanager.com/d' -e '/addthiscdn.com/d' -e '/sharethis.com/d' -e '/twitter.com/d' -e '/pinterest.com/d' -e '/ojrq.net/d' -e '/rpxnow.com/d' -e '/google-analytics.com/d' -e '/shorte.st/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -e '/localhost/d' -e 's/127.0.0.1/0.0.0.0/' -e 's/#.*$//' -e '/^$/d' -e '/./!d' $host > $aux
+if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
+	echo "Appling internal whitelist (run hosty --all to avoid this step)"
+	sed -e '/da.feedsportal.com/d' -e '/pixel.everesttech.net/d' -e '/www.googleadservices.com/d' -e '/maxcdn.com/d' -e '/static.addtoany.com/d' -e '/addthis.com/d' -e '/googletagmanager.com/d' -e '/addthiscdn.com/d' -e '/sharethis.com/d' -e '/twitter.com/d' -e '/pinterest.com/d' -e '/ojrq.net/d' -e '/rpxnow.com/d' -e '/google-analytics.com/d' -e '/shorte.st/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -i $host
+fi
 
-echo "Applying whitelist..."
+echo "Applying user whitelist and de-duplicating..."
 cat /etc/hosts.whitelist > $white
-awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' /etc/hosts.original >> $white
-awk 'FNR==NR {a[$1]++} FNR!=NR {if ($0 && !a[$2]++) print $0}' $white $aux > $host
+awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $orig >> $white
+awk -v ip=$IP 'FNR==NR {a[$1]++} FNR!=NR {if (!a[$1]++) print ip, $1}' $white $host > $aux
 
 echo "Building /etc/hosts..."
-ln=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
-if [ -z $ln ]; then
-	cat /etc/hosts > $aux
-else
-	let ln-=1
-	head -n $ln /etc/hosts > $aux
-fi
-echo "# Ad blocking hosts generated $(date)" >> $aux
-cat $host >> $aux
-echo "# Don't write below this line. It will be lost if you run hosty again" >> $aux
+cat $orig > $host
 
-ln=$(grep -c "0.0.0.0" $aux)
+echo "# Ad blocking hosts generated $(date)" >> $host
+cat $aux >> $host
+echo "# Don't write below this line. It will be lost if you run hosty again" >> $host
+
+ln=$(grep -c "$IP" $host)
 
 if [ "$1" == "--debug" ]; then
-	echo "You can see the results in $aux"
+	echo "You can see the results in $host"
 else
-	sudo bash -c "cat $aux > /etc/hosts"
+	sudo bash -c "cat $host > /etc/hosts"
 fi
 
 echo "Done. $ln websites blocked"
