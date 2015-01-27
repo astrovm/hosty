@@ -24,16 +24,16 @@ https://aur.archlinux.org/packages/hosty
 #### How to install the requirements
 
 * Ubuntu/Mint/Debian:
-$ sudo apt-get install curl wget sudo gawk
+$ sudo apt-get install curl wget gawk
 
 * Arch/Manjaro/Antergos:
-$ sudo pacman -S curl wget sudo gawk
+$ sudo pacman -S curl wget gawk
 
 * Fedora/RHEL/CentOS:
-$ sudo yum install curl wget sudo gawk
+$ sudo yum install curl wget gawk
 
 * SUSE:
-$ sudo zypper in curl wget sudo gawk
+$ sudo zypper in curl wget gawk
 
 ### How to install hosty
 $ curl -L git.io/hosty | sh
@@ -50,8 +50,15 @@ You can include exceptions editing the file /etc/hosts.whitelist (With root perm
 
 * www.example.com 
 
+Besides, hosty apply a internal whitelist for safety. If you want only use your custom whitelist and avoid the internal whitelis run:
+
+$ hosty --all
+
 ## How to restore your original hosts file
-$ sudo cp /etc/hosts.original /etc/hosts
+$ hosty --restore
+
+## How to see the result without changing the file
+$ hosty --debug
 
 ## How to uninstall hosty
 $ sudo rm /usr/local/bin/hosty
