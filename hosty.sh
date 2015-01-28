@@ -76,8 +76,8 @@ echo
 echo "Building /etc/hosts..."
 cat $orig > $host
 
-echo "# Don't write below this line. It will be lost if you run hosty again." >> $host
 echo "# Ad blocking hosts generated $(date)" >> $host
+echo "# Don't write below this line. It will be lost if you run hosty again." >> $host
 cat $aux >> $host
 
 ln=$(grep -c "$IP" $host)
