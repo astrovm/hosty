@@ -46,7 +46,7 @@ do
 	if [ $? != 0 ]; then
 		echo "Error downloading $i"
 	else
-		awk '/^[ \t]*(127\.0\.0\.1|0\.0\.0\.0|255\.255\.255\.0)/ {print $2}' $aux >> $host
+		sed -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $aux | awk '{print $2}' >> $host
 	fi
 done
 # Obtain various AdBlock Plus rules files and merge into one
@@ -68,7 +68,6 @@ fi
 
 echo
 echo "Applying user whitelist, cleaning and de-duplicating..."
-sed -e "/$IP localhost/d" -i $host
 cat /etc/hosts.whitelist > $white
 awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $orig >> $white
 awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' $white $host > $aux
@@ -94,4 +93,4 @@ echo
 echo "Done, $ln websites blocked."
 echo
 echo "You can always restore your original hosts file with this command:"
-echo "    $ sudo hosty --restore"
+echo "    sudo hosty --restore"
