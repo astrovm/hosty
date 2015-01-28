@@ -68,8 +68,7 @@ sed -e '/^\(localhost\|localhost\.localdomain\|local\|broadcasthost\ip6-localhos
 if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
 	echo
 	echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
-	sed -e '/smarturl.it/d' -e '/da.feedsportal.com/d' -e '/pixel.everesttech.net/d' -e '/www.googleadservices.com/d' -e '/maxcdn.com/d' -e '/static.addtoany.com/d' -e '/addthis.com/d' -e '/googletagmanager.com/d' -e '/addthiscdn.com/d' -e '/sharethis.com/d' -e '/twitter.com/d' -e '/pinterest.com/d' -e '/ojrq.net/d' -e '/rpxnow.com/d' -e '/google-analytics.com/d' -e '/shorte.st/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -i $host
-
+	sed -e '/\(smarturl\.it\|da\.feedsportal\.com\|pixel\.everesttech.net\|www\.googleadservices\.com\|maxcdn\.com\|static\.addtoany\.com\|addthis\.com\|googletagmanager\.com\|addthiscdn\.com\|sharethis\.com\|twitter\.com\|pinterest\.com\|ojrq\.net\|rpxnow\.com\|google-analytics\.com\|shorte\.st\|adf\.ly\|www\.linkbucks\.com\|static\.linkbucks\.com\)$/d' -i $host
 fi
 
 echo
