@@ -93,4 +93,4 @@ echo
 echo "Done, $ln websites blocked."
 echo
 echo "You can always restore your original hosts file with this command:"
-echo "    sudo hosty --restore"
+echo "    $ sudo hosty --restore"
