@@ -38,8 +38,8 @@ host=$(mktemp)
 aux=$(mktemp)
 white=$(mktemp)
 
-# Obtain various hosts files and merge into one
 echo "Downloading ad-blocking files..."
+# Obtain various hosts files and merge into one
 for i in "${HOSTS[@]}"
 do
 	wget --no-cache -nv -O $aux $i
@@ -68,7 +68,6 @@ fi
 
 echo
 echo "Applying user whitelist, cleaning and de-duplicating..."
-sed -e '/localhost/d' -i $host
 cat /etc/hosts.whitelist > $white
 awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $orig >> $white
 awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' $white $host > $aux
