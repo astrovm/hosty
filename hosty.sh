@@ -70,7 +70,7 @@ echo
 echo "Applying user whitelist and de-duplicating..."
 cat /etc/hosts.whitelist > $white
 awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $orig >> $white
-awk -v ip=$IP 'FNR==NR {a[$1]++} FNR!=NR {if (!a[$1]++) print ip, $1}' $white $host > $aux
+awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' $white $host > $aux
 
 echo
 echo "Building /etc/hosts..."
