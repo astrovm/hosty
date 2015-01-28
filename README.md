@@ -39,17 +39,17 @@ $ sudo zypper in wget curl gawk
 $ curl -L git.io/hosty | sh
 
 ## How to run hosty
-$ hosty
+$ sudo hosty
 
 ## Whitelist
 You can include exceptions editing the file /etc/hosts.whitelist (With root permissions), one domain name per line.
 
 Besides, hosty apply a internal whitelist for safety. If you want only use your custom whitelist and avoid the internal whitelis run:
 
-$ hosty --all
+$ sudo hosty --all
 
 ## How to restore your original hosts file
-$ hosty --restore
+$ sudo hosty --restore
 
 ## How to see the result without changing the file
 $ hosty --debug
