@@ -44,7 +44,7 @@ $ sudo hosty
 ## Whitelist
 You can include exceptions editing the file /etc/hosts.whitelist (With root permissions), one domain name per line.
 
-Besides, hosty apply a internal whitelist for safety. If you want only use your custom whitelist and avoid the internal whitelis run:
+Besides, hosty apply a internal whitelist for safety. If you want only use your custom whitelist and avoid the internal whitelist run:
 
 $ sudo hosty --all
 
