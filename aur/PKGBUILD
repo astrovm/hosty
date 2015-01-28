@@ -1,16 +1,16 @@
 # Maintainer: juankfree <juan77.sonic at gmail dot com>
 pkgname=hosty
-pkgver=1.2.2
+pkgver=1.3
 pkgrel=1
 pkgdesc="Ad blocker script"
 arch=('any')
 url="https://github.com/juankfree/hosty"
 license=('GPL2')
-depends=('wget' 'curl' 'sudo' 'gawk')
+depends=('sudo' 'wget' 'curl' 'gawk')
 options=('!strip')
 install="hosty.install"
-source=('hosty.sh')
-md5sums=('a815093ec969906edd6ef13daae566a9')
+source=('https://github.com/juankfree/hosty/raw/6bdfe0cd06ac119dd766df3c95471b2742c92f22/hosty')
+md5sums=('6604fa5d83ed54ff06c5146093048404')
 package() {
-  install -Dm755 "${srcdir}/hosty.sh" "${pkgdir}/usr/bin/hosty"
+  install -Dm755 "${srcdir}/hosty" "${pkgdir}/usr/bin/hosty"
 }
