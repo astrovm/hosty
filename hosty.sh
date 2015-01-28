@@ -11,7 +11,7 @@ orig=$(mktemp)
 ln=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
 if [ -z $ln ]; then
 	if [ "$1" == "--restore" ]; then
-		echo "There is nothing to restore"
+		echo "There is nothing to restore."
 		exit 0
 	fi
 	cat /etc/hosts > $orig
@@ -20,7 +20,7 @@ else
 	head -n $ln /etc/hosts > $orig
 	if [ "$1" == "--restore" ]; then
 		sudo bash -c "cat $orig > /etc/hosts"
-		echo "/etc/hosts restore completed"
+		echo "/etc/hosts restore completed."
 		exit 0
 	fi
 fi
@@ -46,7 +46,7 @@ do
 	if [ $? != 0 ]; then
 		echo "Error downloading $i"
 	else
-		awk '/^[ \t]*(127\.0\.0\.1|0\.0\.0\.0|255\.255\.255\.0)/ {print $2}' $aux >> $host
+		sed -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $aux | awk '{print $2}' >> $host
 	fi
 done
 # Obtain various AdBlock Plus rules files and merge into one
@@ -61,34 +61,37 @@ do
 done
 
 if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
-	echo	
-	echo "Appling internal whitelist (run hosty --all to avoid this step)"
-	sed -e '/da.feedsportal.com/d' -e '/pixel.everesttech.net/d' -e '/www.googleadservices.com/d' -e '/maxcdn.com/d' -e '/static.addtoany.com/d' -e '/addthis.com/d' -e '/googletagmanager.com/d' -e '/addthiscdn.com/d' -e '/sharethis.com/d' -e '/twitter.com/d' -e '/pinterest.com/d' -e '/ojrq.net/d' -e '/rpxnow.com/d' -e '/google-analytics.com/d' -e '/shorte.st/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -i $host
+	echo
+	echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
+	sed -e '/smarturl.it/d' -e '/da.feedsportal.com/d' -e '/pixel.everesttech.net/d' -e '/www.googleadservices.com/d' -e '/maxcdn.com/d' -e '/static.addtoany.com/d' -e '/addthis.com/d' -e '/googletagmanager.com/d' -e '/addthiscdn.com/d' -e '/sharethis.com/d' -e '/twitter.com/d' -e '/pinterest.com/d' -e '/ojrq.net/d' -e '/rpxnow.com/d' -e '/google-analytics.com/d' -e '/shorte.st/d' -e '/adf.ly/d' -e '/www.linkbucks.com/d' -e '/static.linkbucks.com/d' -i $host
 fi
 
 echo
-echo "Applying user whitelist and de-duplicating..."
+echo "Applying user whitelist, cleaning and de-duplicating..."
+sed -e '/localhost/d' -i $host
 cat /etc/hosts.whitelist > $white
 awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $orig >> $white
-awk -v ip=$IP 'FNR==NR {a[$1]++} FNR!=NR {if (!a[$1]++) print ip, $1}' $white $host > $aux
+awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' $white $host > $aux
 
 echo
 echo "Building /etc/hosts..."
 cat $orig > $host
 
 echo "# Ad blocking hosts generated $(date)" >> $host
+echo "# Don't write below this line. It will be lost if you run hosty again." >> $host
 cat $aux >> $host
-echo "# Don't write below this line. It will be lost if you run hosty again" >> $host
-echo
+
+ln=$(grep -c "$IP" $host)
 
 if [ "$1" == "--debug" ]; then
+	echo
 	echo "You can see the results in $host"
 else
 	sudo bash -c "cat $host > /etc/hosts"
 fi
 
-ln=$(grep -c "$IP" $host)
-echo "Done, $ln websites blocked"
+echo
+echo "Done, $ln websites blocked."
 echo
 echo "You can always restore your original hosts file with this command:"
-echo "    sudo hosty --restore"
+echo "    $ sudo hosty --restore"
