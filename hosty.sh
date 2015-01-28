@@ -67,7 +67,8 @@ if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
 fi
 
 echo
-echo "Applying user whitelist and de-duplicating..."
+echo "Applying user whitelist, cleaning and de-duplicating..."
+sed -e "/$IP localhost/d" -i $host
 cat /etc/hosts.whitelist > $white
 awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $orig >> $white
 awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' $white $host > $aux
