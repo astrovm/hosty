@@ -1,7 +1,7 @@
 post_install() {
 	echo
 	echo "	How to run hosty:"
-	echo "	$ hosty"
+	echo "	$ sudo hosty"
 	echo
 	echo "	https://github.com/juankfree/hosty"
 	echo

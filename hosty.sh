@@ -28,10 +28,10 @@ fi
 # If this is our first run, create a whitelist file and set to read-only for safety
 if [ ! -f /etc/hosts.whitelist ]
 then
-  echo "Creating whitelist file..."
-  sudo touch /etc/hosts.whitelist
-  sudo chmod 444 /etc/hosts.whitelist
-  echo
+	echo "Creating whitelist file..."
+	sudo touch /etc/hosts.whitelist
+	sudo chmod 444 /etc/hosts.whitelist
+	echo
 fi
 
 host=$(mktemp)
@@ -98,4 +98,4 @@ echo
 echo "Done, $ln websites blocked."
 echo
 echo "You can always restore your original hosts file with this command:"
-echo "    $ sudo hosty --restore"
+echo "	$ sudo hosty --restore"
