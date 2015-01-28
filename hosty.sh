@@ -87,11 +87,11 @@ cat $aux >> $host
 
 ln=$(grep -c "$IP" $host)
 
-if [ "$1" == "--debug" ]; then
+if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
+	sudo bash -c "cat $host > /etc/hosts"
+else
 	echo
 	echo "You can see the results in $host"
-else
-	sudo bash -c "cat $host > /etc/hosts"
 fi
 
 echo
