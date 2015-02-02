@@ -68,7 +68,7 @@ sed -e '/^\(localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-localho
 if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
 	echo
 	echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
-	sed -e '/\(smarturl\.it\|da\.feedsportal\.com\|pixel\.everesttech.net\|www\.googleadservices\.com\|maxcdn\.com\|static\.addtoany\.com\|addthis\.com\|googletagmanager\.com\|addthiscdn\.com\|sharethis\.com\|twitter\.com\|pinterest\.com\|ojrq\.net\|rpxnow\.com\|google-analytics\.com\|shorte\.st\|adf\.ly\|www\.linkbucks\.com\|static\.linkbucks\.com\)$/d' -i $host
+	sed -e '/\(smarturl\.it\|da\.feedsportal\.com\|any\.gs\|pixel\.everesttech\.net\|www\.googleadservices\.com\|maxcdn\.com\|static\.addtoany\.com\|addthis\.com\|googletagmanager\.com\|addthiscdn\.com\|sharethis\.com\|twitter\.com\|pinterest\.com\|ojrq\.net\|rpxnow\.com\|google-analytics\.com\|shorte\.st\|adf\.ly\|www\.linkbucks\.com\|static\.linkbucks\.com\)$/d' -i $host
 fi
 
 echo
