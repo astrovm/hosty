@@ -20,20 +20,22 @@ https://aur.archlinux.org/packages/hosty
 * Wget
 * cURL
 * Gawk
+* 7z
+* zcat
 
 #### How to install the requirements
 
 * Ubuntu/Mint/Debian:
-$ sudo apt-get install wget curl gawk
+$ sudo apt-get install wget curl gawk p7zip
 
 * Arch/Manjaro/Antergos:
-$ sudo pacman -S wget curl gawk
+$ sudo pacman -S wget curl gawk p7zip
 
 * Fedora/RHEL/CentOS:
-$ sudo yum install wget curl gawk
+$ sudo yum install wget curl gawk p7zip
 
 * SUSE:
-$ sudo zypper in wget curl gawk
+$ sudo zypper in wget curl gawk p7zip
 
 ### How to install hosty
 $ curl -L git.io/hosty | sh
@@ -56,3 +58,10 @@ $ hosty --debug
 
 ## How to uninstall hosty
 $ sudo rm /usr/local/bin/hosty
+
+## Add host files sources
+
+If you want to feed hosty with additional sources you just have to create a text file in `~/.hosty` and write in it one url per line.
+
+$ echo "http://15hack.tomalaplaza.net/files/aede.txt" > ~/.hosty
+$ echo "http://datasaver.orgfree.com/hosts.zip" >> ~/.hosty
