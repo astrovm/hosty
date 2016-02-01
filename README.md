@@ -64,4 +64,5 @@ $ sudo rm /usr/local/bin/hosty
 If you want to feed hosty with additional sources you just have to create a text file in `~/.hosty` and write in it one url per line.
 
 $ echo "http://15hack.tomalaplaza.net/files/aede.txt" > ~/.hosty
+
 $ echo "http://datasaver.orgfree.com/hosts.zip" >> ~/.hosty
