@@ -7,9 +7,9 @@ Ad blocker script for Linux.
 
 ## AUR
 
-#### If you have Arch Linux or Arch based distribution compatible with AUR (Manjaro, Antergos, ArchBang, Bridge Linux) then you can simply install hosty from the AUR:
+If you have Arch Linux or Arch based distribution compatible with AUR (Manjaro, Antergos, ArchBang, Bridge Linux) then you can simply install hosty from the AUR:
 
-##### $ yaourt -S hosty
+$ yaourt -S hosty
 
 https://aur.archlinux.org/packages/hosty
 
@@ -25,39 +25,30 @@ https://aur.archlinux.org/packages/hosty
 
 #### How to install the requirements
 
-* Ubuntu/Mint/Debian:
+* Ubuntu/Mint/Debian:  
 $ sudo apt-get install wget curl gawk p7zip
-
-* Arch/Manjaro/Antergos:
+* Arch/Manjaro/Antergos:  
 $ sudo pacman -S wget curl gawk p7zip
-
-* Fedora/RHEL/CentOS:
+* Fedora/RHEL/CentOS:  
 $ sudo yum install wget curl gawk p7zip
-
-* SUSE:
+* SUSE:  
 $ sudo zypper in wget curl gawk p7zip
 
 ### How to install hosty
+
 $ curl -L git.io/hosty | sh
 
 ## How to run hosty
+
 $ sudo hosty
 
 ## Whitelist
+
 You can include exceptions editing the file /etc/hosts.whitelist (With root permissions), one domain name per line.
 
 Besides, hosty apply a internal whitelist for safety. If you want only use your custom whitelist and avoid the internal whitelist run:
 
 $ sudo hosty --all
-
-## How to restore your original hosts file
-$ sudo hosty --restore
-
-## How to see the result without changing the file
-$ hosty --debug
-
-## How to uninstall hosty
-$ sudo rm /usr/local/bin/hosty
 
 ## Add host files sources
 
@@ -65,3 +56,15 @@ If you want to feed hosty with additional sources you just have to create a text
 
 $ echo "http://15hack.tomalaplaza.net/files/aede.txt" > ~/.hosty  
 $ echo "http://datasaver.orgfree.com/hosts.zip" >> ~/.hosty
+
+## How to restore your original hosts file
+
+$ sudo hosty --restore
+
+## How to see the result without changing the file
+
+$ hosty --debug
+
+## How to uninstall hosty
+
+$ sudo rm /usr/local/bin/hosty
