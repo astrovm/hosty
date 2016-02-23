@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Add ad-blocking hosts files in this array
-HOSTS=("http://adaway.org/hosts.txt" "http://winhelp2002.mvps.org/hosts.txt" "http://hosts-file.net/ad_servers.asp" "http://someonewhocares.org/hosts/hosts" "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt" "http://rlwpx.free.fr/WPFF/hmis.7z" "http://rlwpx.free.fr/WPFF/hrsk.7z" "http://rlwpx.free.fr/WPFF/hpub.7z" "http://rlwpx.free.fr/WPFF/htrc.7z" "http://rlwpx.free.fr/WPFF/hblc.7z" "http://rlwpx.free.fr/WPFF/hsex.7z" "http://datasaver.orgfree.com/hosts.zip" "http://15hack.tomalaplaza.net/files/aede.txt")
+HOSTS=("http://adaway.org/hosts.txt" "http://winhelp2002.mvps.org/hosts.txt" "http://hosts-file.net/ad_servers.asp" "http://someonewhocares.org/hosts/hosts" "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt")
 # Add AdBlock Plus rules files in this array
 RULES=("https://easylist-downloads.adblockplus.org/easylist.txt" "https://data.getadblock.com/filters/adblock_custom.txt" "https://easylist-downloads.adblockplus.org/easyprivacy.txt" "http://abp.mozilla-hispano.org/nauscopio/filtros.txt" "https://easylist-downloads.adblockplus.org/malwaredomains_full.txt")
 # Set IP to redirect
