@@ -7,6 +7,33 @@ RULES=("https://easylist-downloads.adblockplus.org/easylist.txt" "https://data.g
 # Set IP to redirect
 IP="0.0.0.0"
 
+if [ -f "~/.hosty" ]; then
+	while read -r line
+	do
+		HOSTS+=("$line")
+	done < "~/.hosty"
+fi
+
+dwn() {
+	wget --no-cache -nv -O $aux $1
+	if [ $? != 0 ]; then
+		return $?
+	fi
+	if [[ $1 == *.zip ]]; then
+		zcat "$aux" > "$tmp"
+		cat "$tmp" > "$aux"
+		if [ $? != 0 ]; then
+			return $?
+		fi
+	elif [[ $1 == *.7z ]]; then
+		7z e -so -bd "$aux" 2>/dev/null > $1
+		if [ $? != 0 ]; then
+			return $?
+		fi
+	fi
+	return 0
+}
+
 orig=$(mktemp)
 ln=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
 if [ -z $ln ]; then
@@ -33,16 +60,24 @@ then
 	sudo chmod 444 /etc/hosts.whitelist
 	echo
 fi
+if [ ! -f /etc/hosts.blacklist ]
+then
+	echo "Creating blacklist file..."
+	sudo touch /etc/hosts.blacklist
+	sudo chmod 444 /etc/hosts.blacklist
+	echo
+fi
 
 host=$(mktemp)
 aux=$(mktemp)
+tmp=$(mktemp)
 white=$(mktemp)
 
 echo "Downloading ad-blocking files..."
 # Obtain various hosts files and merge into one
 for i in "${HOSTS[@]}"
 do
-	wget --no-cache -nv -O $aux $i
+	dwn $i
 	if [ $? != 0 ]; then
 		echo "Error downloading $i"
 	else
@@ -52,7 +87,7 @@ done
 # Obtain various AdBlock Plus rules files and merge into one
 for i in "${RULES[@]}"
 do
-	wget --no-cache -nv -O $aux $i
+	dwn $i
 	if [ $? != 0 ]; then
 		echo "Error downloading $i"
 	else
@@ -70,6 +105,10 @@ if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
 	echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
 	sed -e '/\(smarturl\.it\|da\.feedsportal\.com\|any\.gs\|pixel\.everesttech\.net\|www\.googleadservices\.com\|maxcdn\.com\|static\.addtoany\.com\|addthis\.com\|googletagmanager\.com\|addthiscdn\.com\|sharethis\.com\|twitter\.com\|pinterest\.com\|ojrq\.net\|rpxnow\.com\|google-analytics\.com\|shorte\.st\|adf\.ly\|www\.linkbucks\.com\|static\.linkbucks\.com\)$/d' -i $host
 fi
+
+echo
+echo "Applying user blacklist..."
+cat "/etc/hosts.blacklist" >> $host
 
 echo
 echo "Applying user whitelist, cleaning and de-duplicating..."
