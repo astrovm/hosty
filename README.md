@@ -18,19 +18,19 @@ Ad blocker script for all Unix and Unix-like operating systems (Linux, GNU, BSD,
 
 #### How to install the requirements
 
-* Ubuntu/Mint/Debian:  
+* **Ubuntu/Mint/Debian:**  
 $ sudo apt-get install wget curl gawk p7zip
 
-* Arch/Manjaro/Antergos:  
+* **Arch/Manjaro/Antergos:**  
 $ sudo pacman -S wget curl gawk p7zip
 
-* Fedora/RHEL/CentOS:  
+* **Fedora/RHEL/CentOS:**  
 $ sudo yum install wget curl gawk p7zip
 
-* SUSE:  
+* **SUSE:**  
 $ sudo zypper in wget curl gawk p7zip
 
-* Mac OS X:  
+* **Mac OS X:**  
 First install Homebrew if you didn't before:  
 $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"  
 Once installed:  
