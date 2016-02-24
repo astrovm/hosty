@@ -4,7 +4,7 @@ pkgbase = hosty
 	pkgdesc = Ad blocker script
 	pkgver = 1.3.1
 	pkgrel = 1
-	url = https://github.com/juankfree/hosty
+	url = https://github.com/astrolince/hosty
 	install = hosty.install
 	arch = any
 	license = GPL2
@@ -13,7 +13,7 @@ pkgbase = hosty
 	depends = curl
 	depends = gawk
 	options = !strip
-	source = https://github.com/juankfree/hosty/raw/5564c7fa544b4484bb23913359159e070c8abd47/hosty
+	source = https://github.com/astrolince/hosty/raw/5564c7fa544b4484bb23913359159e070c8abd47/hosty
 	md5sums = 6604fa5d83ed54ff06c5146093048404
 
 pkgname = hosty

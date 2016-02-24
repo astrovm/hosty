@@ -3,7 +3,7 @@ post_install() {
 	echo "	How to run hosty:"
 	echo "	$ sudo hosty"
 	echo
-	echo "	https://github.com/juankfree/hosty"
+	echo "	https://github.com/astrolince/hosty"
 	echo
 }
 post_upgrade() {
