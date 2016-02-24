@@ -25,7 +25,7 @@ $ sudo apt-get install wget curl gawk p7zip
 $ sudo pacman -S wget curl gawk p7zip
 
 * **Fedora/RHEL/CentOS:**  
-$ sudo yum install wget curl gawk p7zip
+$ sudo dnf install wget curl gawk p7zip
 
 * **SUSE:**  
 $ sudo zypper in wget curl gawk p7zip
