@@ -32,7 +32,7 @@ $ sudo zypper in wget curl gawk p7zip
 
 * Mac OS X:  
 First install Homebrew if you didn't before:  
-$ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+$ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"  
 Once installed:  
 $ brew install coreutils gnu-sed wget curl gawk p7zip
 
