@@ -14,6 +14,14 @@ if [ -f "~/.hosty" ]; then
 	done < "~/.hosty"
 fi
 
+gnused() {
+    if hash gsed 2>/dev/null; then
+        gsed "$@"
+    else
+        sed "$@"
+    fi
+}
+
 dwn() {
 	wget --no-cache -nv -O $aux $1
 	if [ $? != 0 ]; then
@@ -35,7 +43,7 @@ dwn() {
 }
 
 orig=$(mktemp)
-ln=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
+ln=$(gnused -n '/^# Ad blocking hosts generated/=' /etc/hosts)
 if [ -z $ln ]; then
 	if [ "$1" == "--restore" ]; then
 		echo "There is nothing to restore."
@@ -81,7 +89,7 @@ do
 	if [ $? != 0 ]; then
 		echo "Error downloading $i"
 	else
-		sed -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $aux | awk '$2~/^[^# ]/ {print $2}' >> $host
+		gnused -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $aux | awk '$2~/^[^# ]/ {print $2}' >> $host
 	fi
 done
 # Obtain various AdBlock Plus rules files and merge into one
@@ -98,12 +106,12 @@ done
 
 echo
 echo "Excluding localhost and similar domains..."
-sed -e '/^\(localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-localhost\|ip6-loopback\|ip6-localnet\|ip6-mcastprefix\|ip6-allnodes\|ip6-allrouters\)$/d' -i $host
+gnused -e '/^\(localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-localhost\|ip6-loopback\|ip6-localnet\|ip6-mcastprefix\|ip6-allnodes\|ip6-allrouters\)$/d' -i $host
 
 if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
 	echo
 	echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
-	sed -e '/\(smarturl\.it\|da\.feedsportal\.com\|any\.gs\|pixel\.everesttech\.net\|www\.googleadservices\.com\|maxcdn\.com\|static\.addtoany\.com\|addthis\.com\|googletagmanager\.com\|addthiscdn\.com\|sharethis\.com\|twitter\.com\|pinterest\.com\|ojrq\.net\|rpxnow\.com\|google-analytics\.com\|shorte\.st\|adf\.ly\|www\.linkbucks\.com\|static\.linkbucks\.com\)$/d' -i $host
+	gnused -e '/\(smarturl\.it\|da\.feedsportal\.com\|any\.gs\|pixel\.everesttech\.net\|www\.googleadservices\.com\|maxcdn\.com\|static\.addtoany\.com\|addthis\.com\|googletagmanager\.com\|addthiscdn\.com\|sharethis\.com\|twitter\.com\|pinterest\.com\|ojrq\.net\|rpxnow\.com\|google-analytics\.com\|shorte\.st\|adf\.ly\|www\.linkbucks\.com\|static\.linkbucks\.com\)$/d' -i $host
 fi
 
 echo

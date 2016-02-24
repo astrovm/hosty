@@ -1,7 +1,7 @@
 hosty
 =====
 
-Ad blocker script for Linux.
+Ad blocker script for all Unix and Unix-like operating systems (Linux, GNU, BSD, Mac OS X, FreeBSD, OpenBSD).
 
 ![Comparison of total memory usage](http://chart.apis.google.com/chart?chs=450x150&cht=bhs&chtt=Comparison%20of%20total%20memory%20usage&chd=s:0489&chxl=0:|AdBlock%20(849.8%20MB)|Adblock%20Plus%20(838.7%20MB)|No%20ad%20blocker%20(775.3%20MB)|Hosty%20(725.6%20MB)|&chxt=y)
 
@@ -12,22 +12,29 @@ Ad blocker script for Linux.
 * Wget
 * cURL
 * Gawk
+* Gsed
 * 7z
 * zcat
 
 #### How to install the requirements
 
-* Ubuntu/Mint/Debian:  
+* **Ubuntu/Mint/Debian:**  
 $ sudo apt-get install wget curl gawk p7zip
 
-* Arch/Manjaro/Antergos:  
+* **Arch/Manjaro/Antergos:**  
 $ sudo pacman -S wget curl gawk p7zip
 
-* Fedora/RHEL/CentOS:  
+* **Fedora/RHEL/CentOS:**  
 $ sudo yum install wget curl gawk p7zip
 
-* SUSE:  
+* **SUSE:**  
 $ sudo zypper in wget curl gawk p7zip
+
+* **Mac OS X:**  
+First install Homebrew if you didn't before:  
+$ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"  
+Once installed:  
+$ brew install coreutils gnu-sed wget curl gawk p7zip
 
 ### How to install hosty
 
