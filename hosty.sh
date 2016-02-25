@@ -7,11 +7,11 @@ RULES=("https://easylist-downloads.adblockplus.org/easylist.txt" "https://data.g
 # Set IP to redirect
 IP="0.0.0.0"
 
-if [ -f "~/.hosty" ]; then
+if [ -f ~/.hosty ]; then
 	while read -r line
 	do
 		HOSTS+=("$line")
-	done < "~/.hosty"
+	done < ~/.hosty
 fi
 
 gnused() {
