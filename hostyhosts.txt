@@ -1,2 +1,0 @@
-127.0.0.1 aa.trafficjunky.net
-127.0.0.1 cdn11.trafficjunky.net

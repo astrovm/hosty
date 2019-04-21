@@ -1,12 +1,29 @@
 #!/bin/bash
 
 # Add ad-blocking hosts files in this array
-HOSTS=("http://adaway.org/hosts.txt" "http://winhelp2002.mvps.org/hosts.txt" "http://hosts-file.net/ad_servers.asp" "http://someonewhocares.org/hosts/hosts" "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext" "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt" "https://raw.githubusercontent.com/astrolince/hosty/master/hostyhosts.txt")
+HOSTS=( "http://adaway.org/hosts.txt"
+        "http://winhelp2002.mvps.org/hosts.txt"
+        "http://hosts-file.net/ad_servers.asp"
+        "http://someonewhocares.org/hosts/hosts"
+        "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext"
+        "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt"
+        "https://raw.githubusercontent.com/astrolince/hosty/master/hostyhosts.txt"
+        "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
+
 # Add AdBlock Plus rules files in this array
-RULES=("https://easylist-downloads.adblockplus.org/easylist.txt" "https://data.getadblock.com/filters/adblock_custom.txt" "https://easylist-downloads.adblockplus.org/easyprivacy.txt" "http://abp.mozilla-hispano.org/nauscopio/filtros.txt" "https://easylist-downloads.adblockplus.org/malwaredomains_full.txt" "https://adguard.com/en/filter-rules.html?id=2" "https://adguard.com/en/filter-rules.html?id=3" "https://adguard.com/en/filter-rules.html?id=9")
+RULES=( "https://easylist-downloads.adblockplus.org/easylist.txt"
+        "https://data.getadblock.com/filters/adblock_custom.txt"
+        "https://easylist-downloads.adblockplus.org/easyprivacy.txt"
+        "http://abp.mozilla-hispano.org/nauscopio/filtros.txt"
+        "https://easylist-downloads.adblockplus.org/malwaredomains_full.txt"
+        "https://adguard.com/en/filter-rules.html?id=2"
+        "https://adguard.com/en/filter-rules.html?id=3"
+        "https://adguard.com/en/filter-rules.html?id=9" )
+
 # Set IP to redirect
 IP="0.0.0.0"
 
+# Local ~/.hosty block list
 if [ -f ~/.hosty ]; then
     while read -r line
     do
@@ -14,6 +31,7 @@ if [ -f ~/.hosty ]; then
     done < ~/.hosty
 fi
 
+# Check if gsed exists 
 gnused() {
     if hash gsed 2>/dev/null; then
         gsed "$@"
@@ -22,6 +40,7 @@ gnused() {
     fi
 }
 
+# Function to download hosts files
 dwn() {
     wget --no-cache -nv -O $aux $1
     if [ $? != 0 ]; then
@@ -42,38 +61,23 @@ dwn() {
     return 0
 }
 
-orig=$(mktemp)
+original_hosts_file=$(mktemp)
 ln=$(gnused -n '/^# Ad blocking hosts generated/=' /etc/hosts)
+
 if [ -z $ln ]; then
     if [ "$1" == "--restore" ]; then
         echo "There is nothing to restore."
         exit 0
     fi
-    cat /etc/hosts > $orig
+    cat /etc/hosts > $original_hosts_file
 else
     let ln-=1
-    head -n $ln /etc/hosts > $orig
+    head -n $ln /etc/hosts > $original_hosts_file
     if [ "$1" == "--restore" ]; then
-        sudo bash -c "cat $orig > /etc/hosts"
+        sudo bash -c "cat $original_hosts_file > /etc/hosts"
         echo "/etc/hosts restore completed."
         exit 0
     fi
-fi
-
-# If this is our first run, create a whitelist file and set to read-only for safety
-if [ ! -f /etc/hosts.whitelist ]
-then
-    echo "Creating whitelist file..."
-    sudo touch /etc/hosts.whitelist
-    sudo chmod 444 /etc/hosts.whitelist
-    echo
-fi
-if [ ! -f /etc/hosts.blacklist ]
-then
-    echo "Creating blacklist file..."
-    sudo touch /etc/hosts.blacklist
-    sudo chmod 444 /etc/hosts.blacklist
-    echo
 fi
 
 host=$(mktemp)
@@ -92,6 +96,7 @@ do
         gnused -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $aux | awk '$2~/^[^# ]/ {print $2}' >> $host
     fi
 done
+
 # Obtain various AdBlock Plus rules files and merge into one
 for i in "${RULES[@]}"
 do
@@ -116,24 +121,30 @@ fi
 
 echo
 echo "Applying user blacklist..."
-cat "/etc/hosts.blacklist" >> $host
+if [ -f /etc/hosts.blacklist ]; then
+    cat "/etc/hosts.blacklist" >> $host
+fi
+
 if [ -f ~/.hosty.blacklist ]; then
     cat "~/.hosty.blacklist" >> $host
 fi
 
 echo
 echo "Applying user whitelist, cleaning and de-duplicating..."
-cat /etc/hosts.whitelist > $white
+if [ -f /etc/hosts.whitelist ]; then
+    cat "/etc/hosts.whitelist" >> $white
+fi
+
 if [ -f ~/.hosty.whitelist ]; then
     cat "~/.hosty.whitelist" >> $white
 fi
 
-awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $orig >> $white
+awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $original_hosts_file >> $white
 awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' $white $host > $aux
 
 echo
 echo "Building /etc/hosts..."
-cat $orig > $host
+cat $original_hosts_file > $host
 
 echo "# Ad blocking hosts generated $(date)" >> $host
 echo "# Don't write below this line. It will be lost if you run hosty again." >> $host
