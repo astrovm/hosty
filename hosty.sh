@@ -1,29 +1,19 @@
 #!/bin/bash
 
 # Add ad-blocking hosts files in this array
-HOSTS=( "http://adaway.org/hosts.txt"
-        "http://winhelp2002.mvps.org/hosts.txt"
-        "http://hosts-file.net/ad_servers.asp"
-        "http://someonewhocares.org/hosts/hosts"
-        "http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext"
-        "https://raw.githubusercontent.com/jorgicio/publicidad-chile/master/hosts.txt"
-        "https://raw.githubusercontent.com/astrolince/hosty/master/hostyhosts.txt"
-        "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
-
-# Add AdBlock Plus rules files in this array
-RULES=( "https://easylist-downloads.adblockplus.org/easylist.txt"
-        "https://data.getadblock.com/filters/adblock_custom.txt"
-        "https://easylist-downloads.adblockplus.org/easyprivacy.txt"
-        "http://abp.mozilla-hispano.org/nauscopio/filtros.txt"
-        "https://easylist-downloads.adblockplus.org/malwaredomains_full.txt"
-        "https://adguard.com/en/filter-rules.html?id=2"
-        "https://adguard.com/en/filter-rules.html?id=3"
-        "https://adguard.com/en/filter-rules.html?id=9" )
+HOSTS=( "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
 
 # Set IP to redirect
 IP="0.0.0.0"
 
-# Local ~/.hosty block list
+# Local /etc/hosty and ~/.hosty hosts file urls list
+if [ -f /etc/hosty ]; then
+    while read -r line
+    do
+        HOSTS+=("$line")
+    done < /etc/hosty
+fi
+
 if [ -f ~/.hosty ]; then
     while read -r line
     do
@@ -31,7 +21,7 @@ if [ -f ~/.hosty ]; then
     done < ~/.hosty
 fi
 
-# Check if gsed exists 
+# Check if gsed exists (for macOS)
 gnused() {
     if hash gsed 2>/dev/null; then
         gsed "$@"
@@ -96,18 +86,6 @@ do
         gnused -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $aux | awk '$2~/^[^# ]/ {print $2}' >> $host
     fi
 done
-
-# Obtain various AdBlock Plus rules files and merge into one
-for i in "${RULES[@]}"
-do
-    dwn $i
-    if [ $? != 0 ]; then
-        echo "Error downloading $i"
-    else
-        awk '/^\|\|[a-z][a-z0-9\-_.]+\.[a-z]+\^$/ {substr($0,3,length($0)-3)}' $aux >> $host
-    fi
-done
-
 
 echo
 echo "Excluding localhost and similar domains..."

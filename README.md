@@ -1,7 +1,7 @@
 hosty
 =====
 
-Ad blocker script for all Unix and Unix-like operating systems (Linux, GNU, BSD, Mac OS X, FreeBSD, OpenBSD).
+Ad blocker script for Unix and Unix-like operating systems.
 
 ![Comparison of total memory usage](https://i.imgur.com/qRVKMOQ.png)
 
@@ -19,22 +19,13 @@ Ad blocker script for all Unix and Unix-like operating systems (Linux, GNU, BSD,
 #### How to install the requirements
 
 * **Ubuntu/Mint/Debian:**  
-$ sudo apt-get install wget curl gawk p7zip
+$ sudo apt-get install sed wget curl gawk p7zip
 
 * **Arch/Manjaro/Antergos:**  
-$ sudo pacman -S wget curl gawk p7zip
+$ sudo pacman -S sed wget curl gawk p7zip
 
 * **Fedora/RHEL/CentOS:**  
-$ sudo dnf install wget curl gawk p7zip
-
-* **SUSE:**  
-$ sudo zypper in wget curl gawk p7zip
-
-* **Mac OS X:**  
-First install Homebrew if you didn't before:  
-$ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"  
-Once installed:  
-$ brew install coreutils gnu-sed wget curl gawk p7zip
+$ sudo dnf install sed wget curl gawk p7zip
 
 ### How to install hosty
 
@@ -58,10 +49,7 @@ You can add domains to block editing the file `/etc/hosts.blacklist` (With root 
 
 ## Add host files sources
 
-If you want to feed hosty with additional sources you just have to create a text file in `~/.hosty` and write in it one url per line.
-
-$ echo "http://15hack.tomalaplaza.net/files/aede.txt" > ~/.hosty  
-$ echo "http://datasaver.orgfree.com/hosts.zip" >> ~/.hosty
+If you want to feed hosty with additional sources you just have to create a text file in `/etc/hosty` (With root permissions) or `~/.hosty` and write in it one url per line.
 
 ## How to restore your original hosts file
 
