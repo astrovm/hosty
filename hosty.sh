@@ -52,17 +52,17 @@ dwn() {
 }
 
 original_hosts_file=$(mktemp)
-ln=$(gnused -n '/^# Ad blocking hosts generated/=' /etc/hosts)
+lines_original_hosts_counter=$(gnused -n '/^# Ad blocking hosts generated/=' /etc/hosts)
 
-if [ -z $ln ]; then
+if [ -z $lines_original_hosts_counter ]; then
     if [ "$1" == "--restore" ]; then
         echo "There is nothing to restore."
         exit 0
     fi
     cat /etc/hosts > $original_hosts_file
 else
-    let ln-=1
-    head -n $ln /etc/hosts > $original_hosts_file
+    let lines_original_hosts_counter-=1
+    head -n $lines_original_hosts_counter /etc/hosts > $original_hosts_file
     if [ "$1" == "--restore" ]; then
         sudo bash -c "cat $original_hosts_file > /etc/hosts"
         echo "/etc/hosts restore completed."
@@ -128,7 +128,7 @@ echo "# Ad blocking hosts generated $(date)" >> $host
 echo "# Don't write below this line. It will be lost if you run hosty again." >> $host
 cat $aux >> $host
 
-ln=$(grep -c "$IP" $host)
+websites_blocked_counter=$(grep -c "$IP" $host)
 
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
     sudo bash -c "cat $host > /etc/hosts"
@@ -138,7 +138,7 @@ else
 fi
 
 echo
-echo "Done, $ln websites blocked."
+echo "Done, $websites_blocked_counter websites blocked."
 echo
 echo "You can always restore your original hosts file with this command:"
 echo "  $ sudo hosty --restore"
