@@ -25,6 +25,7 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
 
     # Check user answer
     if [ "$period" != "daily" ] && [ "$period" != "weekly" ] && [ "$period" != "monthly" ]; then
+        echo
         echo "Bad answer, exiting..."
         exit 0
     else
