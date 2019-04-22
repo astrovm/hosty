@@ -1,7 +1,7 @@
 hosty
 =====
 
-Ad blocker script for Unix and Unix-like operating systems.
+Ad blocker script for Linux.
 
 ![Comparison of total memory usage](https://i.imgur.com/qRVKMOQ.png)
 
