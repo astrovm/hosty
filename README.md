@@ -16,7 +16,7 @@ Ad blocker script for Unix and Unix-like operating systems.
 * p7zip
 * gzip
 
-#### How to install the requirements
+### How to install the requirements
 
 * **Ubuntu/Mint/Debian:**  
 `$ sudo apt install wget curl gawk sed p7zip gzip`
@@ -27,13 +27,21 @@ Ad blocker script for Unix and Unix-like operating systems.
 * **Fedora/RHEL/CentOS:**  
 `$ sudo dnf install wget curl gawk sed p7zip gzip`
 
-### How to install hosty
+## How to install hosty
 
 `$ curl -L git.io/hosty | sh`
 
 ## How to run hosty
 
 `$ sudo hosty`
+
+## Automatic updates
+
+You can create a `hosty` file in `/etc/cron.daily` or `/etc/cron.weekly`
+
+`$ echo '#!/bin/sh' | sudo tee /etc/cron.daily/hosty`
+`$ echo '/usr/local/bin/hosty' | sudo tee -a /etc/cron.daily/hosty`
+`$ sudo chmod 755 /etc/cron.daily/hosty`
 
 ## Whitelist
 
