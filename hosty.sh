@@ -115,16 +115,12 @@ if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
     echo
     echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
 
-    recommended_whitelist=$(mktemp)
-
     # Download unbreak lists from ublock origin and brave
     ( wget --no-cache -nv -O- "https://github.com/brave/adblock-lists/raw/master/brave-unbreak.txt"; \
       wget --no-cache -nv -O- "https://github.com/uBlockOrigin/uAssets/raw/master/filters/unbreak.txt"; \
-    ) > $recommended_whitelist
+    ) > $user_whitelist
 
-    sedFunc -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' -i $recommended_whitelist
-    
-    cat $recommended_whitelist > $user_whitelist
+    sedFunc -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' -i $user_whitelist
 fi
 
 echo
