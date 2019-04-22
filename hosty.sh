@@ -1,5 +1,14 @@
 #!/bin/bash
 
+if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
+    if [ "$EUID" -ne 0 ]
+        then echo "Please run as root"
+        exit
+    fi
+else
+    echo "======== HOSTY DEBUG MODE ========"
+fi
+
 # Add ad-blocking hosts files in this array
 HOSTS_URLS=( "https://raw.githubusercontent.com/astrolince/hosty/master/hostyhosts.txt"
              "https://raw.githubusercontent.com/StevenBlack/hosts/master/data/StevenBlack/hosts"
