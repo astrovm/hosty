@@ -1,5 +1,8 @@
 #!/bin/bash
 
+echo "======== hosty 1.0.0 (22/Apr/19) ========"
+echo
+
 # Check if running as root
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
     if [ "$EUID" -ne 0 ]; then
@@ -7,7 +10,62 @@ if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
         exit 0
     fi
 else
-    echo "======== HOSTY DEBUG MODE ========"
+    echo "******** DEBUG MODE ON ********"
+    echo
+fi
+
+# Cron options
+if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
+    echo "Configuring autorun..."
+
+    # Ask user for autorun period
+    echo
+    echo "Enter 'daily', 'weekly' or 'monthly':"
+    read period
+
+    # Check user answer
+    if [ "$period" != "daily" ] && [ "$period" != "weekly" ] && [ "$period" != "monthly" ]; then
+        echo "Bad answer, exiting..."
+        exit 0
+    else
+        echo
+
+        # Remove previous config
+        if [ -f /etc/cron.daily/hosty ]; then
+            echo "Removing /etc/cron.daily/hosty..."
+            rm /etc/cron.daily/hosty
+        fi
+
+        if [ -f /etc/cron.weekly/hosty ]; then
+            echo "Removing /etc/cron.daily/hosty..."
+            rm /etc/cron.weekly/hosty
+        fi
+
+        if [ -f /etc/cron.monthly/hosty ]; then
+            echo "Removing /etc/cron.daily/hosty..."
+            rm /etc/cron.monthly/hosty
+        fi
+
+        # Set cron file with user choice
+        cron_file="/etc/cron.$period/hosty"
+
+        # Create the file
+        echo
+        echo "Creating $cron_file..."
+        echo '#!/bin/sh' > $cron_file
+        chmod 755 $cron_file
+
+        # If user have pass--all argument, autorun with that
+        if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
+            echo '/usr/local/bin/hosty' >> $cron_file
+        else
+            echo '/usr/local/bin/hosty --all' >> $cron_file
+        fi
+
+        echo
+        echo "Done."
+        exit 0
+    fi
 fi
 
 # Add ad-blocking hosts files in this array
@@ -90,7 +148,7 @@ else
     let lines_original_hosts_counter-=1
     head -n $lines_original_hosts_counter /etc/hosts > $original_hosts_file
     if [ "$1" == "--restore" ]; then
-        sudo bash -c "cat $original_hosts_file > /etc/hosts"
+        cat $original_hosts_file > /etc/hosts
         echo "/etc/hosts restore completed."
         exit 0
     fi
@@ -173,7 +231,7 @@ cat $downloaded_hosts >> $final_hosts_file
 websites_blocked_counter=$(grep -c "$IP" $final_hosts_file)
 
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
-    sudo bash -c "cat $final_hosts_file > /etc/hosts"
+    cat $final_hosts_file > /etc/hosts
 else
     echo
     echo "You can see the results in $final_hosts_file"
