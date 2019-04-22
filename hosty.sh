@@ -114,7 +114,17 @@ sedFunc -e '/^\(localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-loc
 if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
     echo
     echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
-    sedFunc -e '/\(smarturl\.it\|da\.feedsportal\.com\|any\.gs\|pixel\.everesttech\.net\|www\.googleadservices\.com\|maxcdn\.com\|static\.addtoany\.com\|addthis\.com\|googletagmanager\.com\|addthiscdn\.com\|sharethis\.com\|twitter\.com\|pinterest\.com\|ojrq\.net\|rpxnow\.com\|google-analytics\.com\|shorte\.st\|adf\.ly\|www\.linkbucks\.com\|static\.linkbucks\.com\)$/d' -i $tmp_hosts
+
+    recommended_whitelist=$(mktemp)
+
+    # Download unbreak lists from ublock origin and brave
+    ( wget --no-cache -nv -O- "https://github.com/brave/adblock-lists/raw/master/brave-unbreak.txt"; \
+      wget --no-cache -nv -O- "https://github.com/uBlockOrigin/uAssets/raw/master/filters/unbreak.txt"; \
+    ) > $recommended_whitelist
+
+    sedFunc -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' -i $recommended_whitelist
+    
+    cat $recommended_whitelist > $user_whitelist
 fi
 
 echo
