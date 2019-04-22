@@ -1,7 +1,14 @@
 hosty
 =====
 
-Ad blocker script for Unix and Unix-like operating systems.
+[![GitHub code size](https://img.shields.io/github/languages/code-size/astrolince/hosty.svg)
+![GitHub last commit](https://img.shields.io/github/last-commit/astrolince/hosty.svg)
+![GitHub license](https://img.shields.io/github/license/astrolince/hosty.svg)
+![GitHub stars](https://img.shields.io/github/stars/astrolince/hosty.svg?label=Star&style=social)
+![GitHub watchers](https://img.shields.io/github/watchers/astrolince/hosty.svg?label=Watch&style=social)
+![GitHub forks](https://img.shields.io/github/forks/astrolince/hosty.svg?label=Fork&style=social)](https://github.com/astrolince/hosty)
+
+Ad blocker script for Linux.
 
 ![Comparison of total memory usage](https://i.imgur.com/qRVKMOQ.png)
 

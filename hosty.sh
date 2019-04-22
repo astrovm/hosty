@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty 1.0.0 (22/Apr/19) ========"
+echo "======== hosty 1.1.0 (22/Apr/19) ========"
 echo
 
 # Check if running as root
@@ -25,6 +25,7 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
 
     # Check user answer
     if [ "$period" != "daily" ] && [ "$period" != "weekly" ] && [ "$period" != "monthly" ]; then
+        echo
         echo "Bad answer, exiting..."
         exit 0
     else
@@ -104,24 +105,18 @@ if [ -f ~/.hosty ]; then
     done < ~/.hosty
 fi
 
-# Check if gsed exists (for macOS)
-sedFunc() {
-    if hash gsed 2>/dev/null; then
-        gsed "$@"
-    else
-        sed "$@"
-    fi
-}
-
 # Function to download hosts files
 downloadHosts() {
     wget --no-cache -nv -O $downloaded_hosts $1
+
     if [ $? != 0 ]; then
         return $?
     fi
+
     if [[ $1 == *.zip ]]; then
         zcat "$downloaded_hosts" > "$tmp_zcat"
         cat "$tmp_zcat" > "$downloaded_hosts"
+
         if [ $? != 0 ]; then
             return $?
         fi
@@ -131,11 +126,12 @@ downloadHosts() {
             return $?
         fi
     fi
+
     return 0
 }
 
 original_hosts_file=$(mktemp)
-lines_original_hosts_counter=$(sedFunc -n '/^# Ad blocking hosts generated/=' /etc/hosts)
+lines_original_hosts_counter=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
 
 # If it's the first time running hosty, save the whole /etc/hosts file in the tmp var
 if [ -z $lines_original_hosts_counter ]; then
@@ -171,13 +167,13 @@ do
     if [ $? != 0 ]; then
         echo "Error downloading $i"
     else
-        sedFunc -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $downloaded_hosts | awk '$2~/^[^# ]/ {print $2}' >> $tmp_hosts
+        sed -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $downloaded_hosts | awk '$2~/^[^# ]/ {print $2}' >> $tmp_hosts
     fi
 done
 
 echo
 echo "Excluding localhost and similar domains..."
-sedFunc -e '/^\(localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-localhost\|ip6-loopback\|ip6-localnet\|ip6-mcastprefix\|ip6-allnodes\|ip6-allrouters\)$/d' -i $tmp_hosts
+sed -e '/^\(localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-localhost\|ip6-loopback\|ip6-localnet\|ip6-mcastprefix\|ip6-allnodes\|ip6-allrouters\)$/d' -i $tmp_hosts
 
 if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
     echo
@@ -188,7 +184,7 @@ if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
       wget --no-cache -nv -O- "https://github.com/uBlockOrigin/uAssets/raw/master/filters/unbreak.txt"; \
     ) > $user_whitelist
 
-    sedFunc -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' -i $user_whitelist
+    sed -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' -i $user_whitelist
 fi
 
 echo
