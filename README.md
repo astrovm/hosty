@@ -39,7 +39,7 @@ Ad blocker script for Unix and Unix-like operating systems.
 
 You can include exceptions editing the file `/etc/hosts.whitelist` (with root permissions) or `~/.hosty.whitelist`, one domain name per line.
 
-Besides, hosty apply a internal whitelist for safety. If you want only use your custom whitelist and avoid the internal whitelist run:
+Besides, hosty applies an internal whitelist based on Brave and uBlock Origin unbreak filters. If you only want to use your custom whitelist and avoid the internal whitelist run:
 
 `$ sudo hosty --all`
 
@@ -47,7 +47,7 @@ Besides, hosty apply a internal whitelist for safety. If you want only use your 
 
 You can add domains to block editing the file `/etc/hosts.blacklist` (with root permissions) or `~/.hosty.blacklist`, one domain name per line.
 
-## Add host files sources
+## Add hosts files sources
 
 If you want to feed hosty with additional sources you just have to create a text file in `/etc/hosty` (with root permissions) or `~/.hosty` and write in it one url per line.
 
