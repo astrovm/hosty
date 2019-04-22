@@ -9,23 +9,23 @@ Ad blocker script for Unix and Unix-like operating systems.
 
 ### Requires
 * sudo
-* Wget
-* cURL
-* Gawk
-* Gsed
-* 7z
-* zcat
+* wget
+* curl
+* gawk
+* sed
+* p7zip
+* gzip
 
 #### How to install the requirements
 
 * **Ubuntu/Mint/Debian:**  
-$ sudo apt-get install sed wget curl gawk p7zip
+$ sudo apt install wget curl gawk sed p7zip gzip
 
 * **Arch/Manjaro/Antergos:**  
-$ sudo pacman -S sed wget curl gawk p7zip
+$ sudo pacman -S wget curl gawk sed p7zip gzip
 
 * **Fedora/RHEL/CentOS:**  
-$ sudo dnf install sed wget curl gawk p7zip
+$ sudo dnf install wget curl gawk sed p7zip gzip
 
 ### How to install hosty
 
