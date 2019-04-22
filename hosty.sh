@@ -1,8 +1,9 @@
 #!/bin/bash
 
+# Check if running as root
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
-    if [ "$EUID" -ne 0 ]
-        then echo "Please run as root"
+    if [ "$EUID" -ne 0 ]; then
+        echo "Please run as root"
         exit 0
     fi
 else
