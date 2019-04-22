@@ -3,7 +3,7 @@
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
     if [ "$EUID" -ne 0 ]
         then echo "Please run as root"
-        exit
+        exit 0
     fi
 else
     echo "======== HOSTY DEBUG MODE ========"
