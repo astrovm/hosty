@@ -40,7 +40,9 @@ Ad blocker script for Unix and Unix-like operating systems.
 You can create a `hosty` file in `/etc/cron.daily` or `/etc/cron.weekly`
 
 `$ echo '#!/bin/sh' | sudo tee /etc/cron.daily/hosty`
+
 `$ echo '/usr/local/bin/hosty' | sudo tee -a /etc/cron.daily/hosty`
+
 `$ sudo chmod 755 /etc/cron.daily/hosty`
 
 ## Whitelist
