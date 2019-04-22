@@ -35,15 +35,19 @@ Ad blocker script for Unix and Unix-like operating systems.
 
 `$ sudo hosty`
 
-## Automatic updates
+## Automatic run
 
-You can create a `hosty` file in `/etc/cron.daily` or `/etc/cron.weekly`
+You can create a `hosty` file in `/etc/cron.daily`, `/etc/cron.weekly` or `/etc/cron.monthly`
 
-`$ echo '#!/bin/sh' | sudo tee /etc/cron.daily/hosty`
+Hosty has an option for doing that:
 
-`$ echo '/usr/local/bin/hosty' | sudo tee -a /etc/cron.daily/hosty`
+`$ sudo hosty --autorun`
 
-`$ sudo chmod 755 /etc/cron.daily/hosty`
+or, if you want to skip unbreak filters:
+
+`$ sudo hosty --autorun --all`
+
+Hosty will ask how often you want to execute it.
 
 ## Whitelist
 
