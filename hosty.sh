@@ -72,6 +72,7 @@ fi
 
 # Add ad-blocking hosts files in this array
 HOSTS_URLS=( "https://raw.githubusercontent.com/astrolince/hosty/master/hostyhosts.txt"
+             "https://mirror1.malwaredomains.com/files/domains.hosts"
              "https://raw.githubusercontent.com/StevenBlack/hosts/master/data/StevenBlack/hosts"
              "https://www.malwaredomainlist.com/hostslist/hosts.txt"
              "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Dead/hosts"
