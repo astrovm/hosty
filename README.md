@@ -26,14 +26,14 @@ It works by downloading a list of hosts files dedicated to blocking ads and malw
 
 ### Install the requirements
 
-* **Ubuntu/Mint/Debian:**  
-`$ sudo apt install wget curl gawk sed p7zip gzip`
+* **Ubuntu/Mint/Elementary/Pop/Debian:**  
+`$ sudo apt install wget curl gawk sed p7zip-full gzip`
 
 * **Arch/Manjaro/Antergos:**  
 `$ sudo pacman -S wget curl gawk sed p7zip gzip`
 
 * **Fedora/RHEL/CentOS:**  
-`$ sudo dnf install wget curl gawk sed p7zip gzip`
+`$ sudo dnf install wget curl gawk sed p7zip p7zip-plugins gzip`
 
 ### Install hosty
 
