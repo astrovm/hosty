@@ -76,7 +76,7 @@ If you want to feed hosty with additional sources you just have to create a text
 
 `$ sudo hosty --restore`
 
-## How to see the hosty version of your hosts file without modifying your system
+## Read the modified hosts without modifying your system
 
 `$ hosty --debug`
 
