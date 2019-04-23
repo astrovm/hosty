@@ -12,10 +12,9 @@ Ad blocker script for Linux.
 
 ![Comparison of total memory usage](https://i.imgur.com/qRVKMOQ.png)
 
-## Manual instalation
+## Installation
 
-### Requires
-* sudo
+### Requirements
 * wget
 * curl
 * gawk
@@ -23,7 +22,7 @@ Ad blocker script for Linux.
 * p7zip
 * gzip
 
-### How to install the requirements
+### Install the requirements
 
 * **Ubuntu/Mint/Debian:**  
 `$ sudo apt install wget curl gawk sed p7zip gzip`
@@ -34,11 +33,15 @@ Ad blocker script for Linux.
 * **Fedora/RHEL/CentOS:**  
 `$ sudo dnf install wget curl gawk sed p7zip gzip`
 
-## How to install hosty
+### Install hosty
+
+Just run:
 
 `$ curl -L git.io/hosty | sh`
 
-## How to run hosty
+## Run hosty
+
+Enable system-wide ad blockwing with:
 
 `$ sudo hosty`
 
@@ -72,11 +75,15 @@ You can add domains to block editing the file `/etc/hosts.blacklist` (with root 
 
 If you want to feed hosty with additional sources you just have to create a text file in `/etc/hosty` (with root permissions) or `~/.hosty` and write in it one url per line.
 
-## How to restore your original hosts file
+## Restore your original hosts file
+
+If you want to disable hosty ad blocking:
 
 `$ sudo hosty --restore`
 
 ## Read the modified hosts without modifying your system
+
+You can debug what hosty will do to your system with:
 
 `$ hosty --debug`
 
@@ -84,6 +91,8 @@ or
 
 `$ hosty --debug --all`
 
-## How to uninstall hosty
+## Uninstalling hosty
+
+If you don't use it anymore:
 
 `$ sudo rm /usr/local/bin/hosty`
