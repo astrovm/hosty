@@ -1,13 +1,21 @@
 #!/bin/bash
 
+# Checking sudo
+echo "Checking if user has sudo access..."
 prompt=$(sudo -nv 2>&1)
+
 if [ $? -eq 0 ]; then
-  # exit code of sudo-command is 0
-  echo "has_sudo__pass_set"
+	echo "OK"
+	echo
 elif echo $prompt | grep -q '^sudo:'; then
-  echo "has_sudo__needs_pass"
+	echo
+	echo "Requesting sudo..."
+	sudo -v
+	echo
 else
-  echo "no_sudo"
+	echo
+	echo "You don't have sudo access, please fix that or run it from root."
+	exit 0
 fi
 
 if [ -f /usr/local/bin/hosty ]; then
