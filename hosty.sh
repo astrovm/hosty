@@ -122,6 +122,7 @@ downloadHosts() {
         fi
     elif [[ $1 == *.7z ]]; then
         7z e -so -bd "$downloaded_hosts" 2>/dev/null > $1
+        
         if [ $? != 0 ]; then
             return $?
         fi
