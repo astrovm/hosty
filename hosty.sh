@@ -15,6 +15,31 @@ else
     echo
 fi
 
+# Copy original hosts file and handle --restore
+original_hosts_file=$(mktemp)
+lines_original_hosts_counter=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
+
+# If hosty has never been executed, don't restore anything
+if [ -z $lines_original_hosts_counter ]; then
+    if [ "$1" == "--restore" ]; then
+        echo "There is nothing to restore."
+        exit 0
+    fi
+    # If it's the first time running hosty, save the whole /etc/hosts file in the tmp var
+    cat /etc/hosts > $original_hosts_file
+else
+    # Copy original hosts lines
+    let lines_original_hosts_counter-=1
+    head -n $lines_original_hosts_counter /etc/hosts > $original_hosts_file
+
+    # If --restore is present, restore original hosts and exit
+    if [ "$1" == "--restore" ]; then
+        cat $original_hosts_file > /etc/hosts
+        echo "/etc/hosts restore completed."
+        exit 0
+    fi
+fi
+
 # Cron options
 if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
     echo "Configuring autorun..."
@@ -133,25 +158,6 @@ downloadHosts() {
     return 0
 }
 
-original_hosts_file=$(mktemp)
-lines_original_hosts_counter=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
-
-# If it's the first time running hosty, save the whole /etc/hosts file in the tmp var
-if [ -z $lines_original_hosts_counter ]; then
-    if [ "$1" == "--restore" ]; then
-        echo "There is nothing to restore."
-        exit 0
-    fi
-    cat /etc/hosts > $original_hosts_file
-else
-    let lines_original_hosts_counter-=1
-    head -n $lines_original_hosts_counter /etc/hosts > $original_hosts_file
-    if [ "$1" == "--restore" ]; then
-        cat $original_hosts_file > /etc/hosts
-        echo "/etc/hosts restore completed."
-        exit 0
-    fi
-fi
 
 tmp_zcat=$(mktemp)
 tmp_hosts=$(mktemp)
