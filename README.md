@@ -19,10 +19,10 @@ It works by downloading a list of hosts files dedicated to blocking ads and malw
 ### Requirements
 * wget
 * curl
-* gawk
+* awk
 * sed
-* p7zip
-* gzip
+* 7z
+* zip
 
 ### Install the requirements
 
