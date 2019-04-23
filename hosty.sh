@@ -114,9 +114,17 @@ HOSTS_URLS=( "https://raw.githubusercontent.com/astrolince/hosty/master/hostyhos
              "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts"
              "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
 
+# Add uBlock Origin/Brave style blacklists
+# UBO_BLACK_URLS=( "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt"
+#                  "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/badware.txt"
+#                  "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/resource-abuse.txt"
+#                  "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/privacy.txt"
+#                  "https://easylist.to/easylist/easylist.txt"
+#                  "https://easylist.to/easylist/easyprivacy.txt" )
+
 # Add uBlock Origin/Brave style whitelists
-UBO_WHITE_URLS=( "https://github.com/brave/adblock-lists/raw/master/brave-unbreak.txt"
-                 "https://github.com/uBlockOrigin/uAssets/raw/master/filters/unbreak.txt" )
+UBO_WHITE_URLS=( "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
+                 "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt" )
 
 # Set IP to redirect
 IP="0.0.0.0"
@@ -183,6 +191,17 @@ do
         sed -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $downloaded_hosts | awk '$2~/^[^# ]/ {print $2}' >> $tmp_hosts
     fi
 done
+
+# Obtain various uBlock Origin/Brave style blacklists and merge into one
+# for i in "${UBO_BLACK_URLS[@]}"
+# do
+#     downloadHosts $i
+#     if [ $? != 0 ]; then
+#         echo "Error downloading $i"
+#     else
+#         sed -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' $downloaded_hosts >> $tmp_hosts
+#     fi
+# done
 
 echo
 echo "Excluding localhost and similar domains..."
