@@ -10,6 +10,8 @@ hosty
 
 Ad blocker script for Linux.
 
+It works by downloading a list of hosts files dedicated to blocking ads and malware and unifying them with the hosts file of your system (maintaining the existing rules).
+
 ![Comparison of total memory usage](https://i.imgur.com/qRVKMOQ.png)
 
 ## Installation
@@ -41,9 +43,11 @@ Just run:
 
 ## Run hosty
 
-Enable system-wide ad blockwing with:
+Enable system-wide ad blocking with:
 
 `$ sudo hosty`
+
+You probably want to run it periodically to update the ads list.
 
 ## Automatic run
 
