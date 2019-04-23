@@ -1,13 +1,14 @@
 #!/bin/bash
 
-echo "======== hosty 1.1.0 (22/Apr/19) ========"
+echo "======== hosty v1.1.0 (22/Apr/19) ========"
+echo "========   astrolince.com/hosty   ========"
 echo
 
 # Check if running as root
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
     if [ "$EUID" -ne 0 ]; then
         echo "Please run as root"
-        exit 0
+        exit 1
     fi
 else
     echo "******** DEBUG MODE ON ********"
@@ -27,7 +28,7 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
     if [ "$period" != "daily" ] && [ "$period" != "weekly" ] && [ "$period" != "monthly" ]; then
         echo
         echo "Bad answer, exiting..."
-        exit 0
+        exit 1
     else
         echo
 
@@ -122,7 +123,7 @@ downloadHosts() {
         fi
     elif [[ $1 == *.7z ]]; then
         7z e -so -bd "$downloaded_hosts" 2>/dev/null > $1
-        
+
         if [ $? != 0 ]; then
             return $?
         fi
