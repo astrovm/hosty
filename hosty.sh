@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty v1.1.0 (22/Apr/19) ========"
+echo "======== hosty v1.1.1 (23/Apr/19) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
