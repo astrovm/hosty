@@ -114,6 +114,10 @@ HOSTS_URLS=( "https://raw.githubusercontent.com/astrolince/hosty/master/hostyhos
              "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts"
              "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
 
+# Add uBlock Origin/Brave style whitelists
+UBO_WHITE_URLS=( "https://github.com/brave/adblock-lists/raw/master/brave-unbreak.txt"
+                 "https://github.com/uBlockOrigin/uAssets/raw/master/filters/unbreak.txt" )
+
 # Set IP to redirect
 IP="0.0.0.0"
 
@@ -189,11 +193,15 @@ if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
     echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
 
     # Download unbreak lists from ublock origin and brave
-    ( wget --no-cache -nv -O- "https://github.com/brave/adblock-lists/raw/master/brave-unbreak.txt"; \
-      wget --no-cache -nv -O- "https://github.com/uBlockOrigin/uAssets/raw/master/filters/unbreak.txt"; \
-    ) > $user_whitelist
-
-    sed -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' -i $user_whitelist
+    for i in "${UBO_WHITE_URLS[@]}"
+    do
+        downloadHosts $i
+        if [ $? != 0 ]; then
+            echo "Error downloading $i"
+        else
+            sed -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' $downloaded_hosts >> $user_whitelist
+        fi
+    done
 fi
 
 echo
