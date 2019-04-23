@@ -8,7 +8,7 @@ hosty
 ![GitHub watchers](https://img.shields.io/github/watchers/astrolince/hosty.svg?label=Watch&style=social)
 ![GitHub forks](https://img.shields.io/github/forks/astrolince/hosty.svg?label=Fork&style=social)](https://github.com/astrolince/hosty)
 
-Ad blocker script for Linux.
+System-wide ad blocker for Linux.
 
 It works by downloading a list of hosts files dedicated to blocking ads and malware and unifying them with the hosts file of your system (maintaining the existing rules).
 
@@ -73,7 +73,9 @@ Besides, hosty applies an internal whitelist based on Brave and uBlock Origin un
 
 ## Blacklist
 
-You can add domains to block editing the file `/etc/hosts.blacklist` (with root permissions) or `~/.hosty.blacklist`, one domain name per line.
+Hosty will keep your hosts file modifications if you don't write them below the indicated line, but you can also use a blacklist.
+
+Add the domains to block editing the file `/etc/hosts.blacklist` (with root permissions) or `~/.hosty.blacklist`, one domain name per line.
 
 ## Add hosts files sources
 
