@@ -10,7 +10,11 @@ hosty
 
 System-wide ad blocker for Linux.
 
-It works by downloading a list of hosts files dedicated to blocking ads and malware and unifying them with the hosts file of your system (maintaining the existing rules).
+By default it works by downloading a predefined list of domains to block and adding them to the hosts file of your system (keeping the existing rules intact).
+
+Hosty aims to block annoying things designed to steal users time, dangerous software such as spyware, malware and things that harm the privacy of users.
+
+In the predefined list we don't accept political censorship or paternalistic goals like blocking porn or gambling, we DON'T accept anything that harms user FREEDOM.
 
 ![Comparison of total memory usage](https://i.imgur.com/qRVKMOQ.png)
 
