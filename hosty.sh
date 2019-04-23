@@ -160,7 +160,7 @@ final_hosts_file=$(mktemp)
 
 echo "Downloading ad-blocking files..."
 
-# Obtain various hosts files and merge into one
+# Download various hosts files and merge into one
 for i in "${HOSTS_URLS[@]}"
 do
     downloadHosts $i
