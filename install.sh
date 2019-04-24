@@ -35,7 +35,7 @@ if [ -f /usr/local/bin/hosty ]; then
 fi
 
 echo "Installing hosty..."
-sudo curl -L -o /usr/local/bin/hosty https://github.com/astrolince/hosty/raw/master/hosty
+sudo curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty
 echo
 
 echo "Fixing permissions..."
