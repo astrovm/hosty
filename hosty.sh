@@ -96,23 +96,23 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
 fi
 
 # Add ad-blocking hosts files in this array
-HOSTS_URLS=( "https://raw.githubusercontent.com/astrolince/hosty/master/hostyhosts.txt"
-             "https://mirror1.malwaredomains.com/files/domains.hosts"
-             "https://raw.githubusercontent.com/StevenBlack/hosts/master/data/StevenBlack/hosts"
-             "https://www.malwaredomainlist.com/hostslist/hosts.txt"
-             "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Dead/hosts"
-             "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts"
-             "https://someonewhocares.org/hosts/zero/hosts"
-             "http://winhelp2002.mvps.org/hosts.txt"
-             "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&mimetype=plaintext&useip=0.0.0.0"
-             "https://raw.githubusercontent.com/mitchellkrogza/Badd-Boyz-Hosts/master/hosts"
-             "https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser"
-             "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts"
-             "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.2o7Net/hosts"
-             "https://raw.githubusercontent.com/azet12/KADhosts/master/KADhosts.txt"
-             "https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt"
-             "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts"
-             "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
+HOSTS_FILES=( "https://raw.githubusercontent.com/astrolince/hosty/master/hostyhosts.txt"
+              "https://mirror1.malwaredomains.com/files/domains.hosts"
+              "https://raw.githubusercontent.com/StevenBlack/hosts/master/data/StevenBlack/hosts"
+              "https://www.malwaredomainlist.com/hostslist/hosts.txt"
+              "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Dead/hosts"
+              "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts"
+              "https://someonewhocares.org/hosts/zero/hosts"
+              "http://winhelp2002.mvps.org/hosts.txt"
+              "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&mimetype=plaintext&useip=0.0.0.0"
+              "https://raw.githubusercontent.com/mitchellkrogza/Badd-Boyz-Hosts/master/hosts"
+              "https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser"
+              "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts"
+              "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.2o7Net/hosts"
+              "https://raw.githubusercontent.com/azet12/KADhosts/master/KADhosts.txt"
+              "https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt"
+              "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts"
+              "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
 
 # Add uBlock Origin/Brave style blacklists
 # UBO_BLACK_URLS=( "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt"
@@ -123,44 +123,51 @@ HOSTS_URLS=( "https://raw.githubusercontent.com/astrolince/hosty/master/hostyhos
 #                  "https://easylist.to/easylist/easyprivacy.txt" )
 
 # Add uBlock Origin/Brave style whitelists
-UBO_WHITE_URLS=( "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
-                 "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt" )
+UNBREAK_FILES=( "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
+                "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt" )
 
 # Set IP to redirect
 IP="0.0.0.0"
 
-# Local /etc/hosty and ~/.hosty hosts file urls list
+# User custom /etc/hosty/hosts hosts urls list
 if [ -f /etc/hosty ]; then
     while read -r line
     do
-        HOSTS_URLS+=("$line")
+        HOSTS_FILES+=("$line")
     done < /etc/hosty
 fi
 
 if [ -f ~/.hosty ]; then
     while read -r line
     do
-        HOSTS_URLS+=("$line")
+        HOSTS_FILES+=("$line")
     done < ~/.hosty
+fi
+
+if [ -f /etc/hosty/hosts ]; then
+    while read -r line
+    do
+        HOSTS_FILES+=("$line")
+    done < /etc/hosty/hosts
 fi
 
 # Function to download files
 downloadFile() {
-    wget --no-cache -nv -O $downloaded_hosts $1
+    wget --no-cache -nv -O $downloaded_files $1
 
     if [ $? != 0 ]; then
         return $?
     fi
 
     if [[ $1 == *.zip ]]; then
-        zcat "$downloaded_hosts" > "$tmp_zcat"
-        cat "$tmp_zcat" > "$downloaded_hosts"
+        zcat "$downloaded_files" > "$tmp_zcat"
+        cat "$tmp_zcat" > "$downloaded_files"
 
         if [ $? != 0 ]; then
             return $?
         fi
     elif [[ $1 == *.7z ]]; then
-        7z e -so -bd "$downloaded_hosts" 2>/dev/null > $1
+        7z e -so -bd "$downloaded_files" 2>/dev/null > $1
 
         if [ $? != 0 ]; then
             return $?
@@ -174,7 +181,7 @@ downloadFile() {
 tmp_zcat=$(mktemp)
 tmp_hosts=$(mktemp)
 
-downloaded_hosts=$(mktemp)
+downloaded_files=$(mktemp)
 user_whitelist=$(mktemp)
 
 final_hosts_file=$(mktemp)
@@ -182,13 +189,13 @@ final_hosts_file=$(mktemp)
 echo "Downloading ad-blocking files..."
 
 # Download various hosts files and merge into one
-for i in "${HOSTS_URLS[@]}"
+for i in "${HOSTS_FILES[@]}"
 do
     downloadFile $i
     if [ $? != 0 ]; then
         echo "Error downloading $i"
     else
-        sed -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $downloaded_hosts | awk '$2~/^[^# ]/ {print $2}' >> $tmp_hosts
+        sed -e '/^[[:space:]]*\(127\.0\.0\.1\|0\.0\.0\.0\|255\.255\.255\.0\)[[:space:]]/!d' -e 's/[[:space:]]\+/ /g' $downloaded_files | awk '$2~/^[^# ]/ {print $2}' >> $tmp_hosts
     fi
 done
 
@@ -199,7 +206,7 @@ done
 #     if [ $? != 0 ]; then
 #         echo "Error downloading $i"
 #     else
-#         sed -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' $downloaded_hosts >> $tmp_hosts
+#         sed -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' $downloaded_files >> $tmp_hosts
 #     fi
 # done
 
@@ -212,20 +219,20 @@ if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
     echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
 
     # Download unbreak lists from ublock origin and brave
-    for i in "${UBO_WHITE_URLS[@]}"
+    for i in "${UNBREAK_FILES[@]}"
     do
         downloadFile $i
         if [ $? != 0 ]; then
             echo "Error downloading $i"
         else
             # Replace with new lines everything that isn't letters, numbers, hyphens and dots
-            sed -e 's/[^a-zA-Z0-9\-\.]/\n/g' -i $downloaded_hosts
+            sed -e 's/[^a-zA-Z0-9\-\.]/\n/g' -i $downloaded_files
             # Remove lines that don't have dots
-            sed -e '/\./!d' -i $downloaded_hosts
+            sed -e '/\./!d' -i $downloaded_files
             # Remove lines that don't start with a letter or number
-            sed -e '/^[a-zA-Z0-9]/!d' -i $downloaded_hosts
+            sed -e '/^[a-zA-Z0-9]/!d' -i $downloaded_files
             # Remove lines that end with a dot
-            sed -e '/\.$/d' $downloaded_hosts >> $user_whitelist
+            sed -e '/\.$/d' $downloaded_files >> $user_whitelist
         fi
     done
 fi
@@ -240,6 +247,10 @@ if [ -f ~/.hosty.blacklist ]; then
     cat "~/.hosty.blacklist" >> $tmp_hosts
 fi
 
+if [ -f /etc/hosty/blacklist ]; then
+    cat "/etc/hosty/blacklist" >> $tmp_hosts
+fi
+
 echo
 echo "Applying user whitelist..."
 if [ -f /etc/hosts.whitelist ]; then
@@ -250,6 +261,10 @@ if [ -f ~/.hosty.whitelist ]; then
     cat "~/.hosty.whitelist" >> $user_whitelist
 fi
 
+if [ -f /etc/hosty/whitelist ]; then
+    cat "/etc/hosty/whitelist" >> $user_whitelist
+fi
+
 echo
 echo "Cleaning and de-duplicating..."
 
@@ -257,7 +272,7 @@ echo "Cleaning and de-duplicating..."
 awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $original_hosts_file >> $user_whitelist
 
 # Applying the whitelist and dedup
-awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' $user_whitelist $tmp_hosts > $downloaded_hosts
+awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' $user_whitelist $tmp_hosts > $downloaded_files
 
 echo
 echo "Building /etc/hosts..."
@@ -265,7 +280,7 @@ cat $original_hosts_file > $final_hosts_file
 
 echo "# Ad blocking hosts generated $(date)" >> $final_hosts_file
 echo "# Don't write below this line. It will be lost if you run hosty again." >> $final_hosts_file
-cat $downloaded_hosts >> $final_hosts_file
+cat $downloaded_files >> $final_hosts_file
 
 websites_blocked_counter=$(grep -c "$IP" $final_hosts_file)
 
