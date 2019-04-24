@@ -218,7 +218,14 @@ if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
         if [ $? != 0 ]; then
             echo "Error downloading $i"
         else
-            sed -e '/^[[:space:]]*$/d' -e '/^!.*/d' -e '/||/!d' -e 's/^\W*//g' -e 's/[/#$\^].*//g' -e '/\./!d' -e '/[=,\*:]/d' -e '/\.$/d' $downloaded_hosts >> $user_whitelist
+            # Replace with new lines everything that isn't letters, numbers, hyphens and dots
+            sed -e 's/[^a-zA-Z0-9\-\.]/\n/g' -i $downloaded_hosts
+            # Remove lines that don't have dots
+            sed -e '/\./!d' -i $downloaded_hosts
+            # Remove lines that don't start with a letter or number
+            sed -e '/^[a-zA-Z0-9]/!d' -i $downloaded_hosts
+            # Remove lines that end with a dot
+            sed -e '/\.$/d' $downloaded_hosts >> $user_whitelist
         fi
     done
 fi
