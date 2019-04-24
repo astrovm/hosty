@@ -144,8 +144,8 @@ if [ -f ~/.hosty ]; then
     done < ~/.hosty
 fi
 
-# Function to download hosts files
-downloadHosts() {
+# Function to download files
+downloadFile() {
     wget --no-cache -nv -O $downloaded_hosts $1
 
     if [ $? != 0 ]; then
@@ -184,7 +184,7 @@ echo "Downloading ad-blocking files..."
 # Download various hosts files and merge into one
 for i in "${HOSTS_URLS[@]}"
 do
-    downloadHosts $i
+    downloadFile $i
     if [ $? != 0 ]; then
         echo "Error downloading $i"
     else
@@ -195,7 +195,7 @@ done
 # Obtain various uBlock Origin/Brave style blacklists and merge into one
 # for i in "${UBO_BLACK_URLS[@]}"
 # do
-#     downloadHosts $i
+#     downloadFile $i
 #     if [ $? != 0 ]; then
 #         echo "Error downloading $i"
 #     else
@@ -214,7 +214,7 @@ if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
     # Download unbreak lists from ublock origin and brave
     for i in "${UBO_WHITE_URLS[@]}"
     do
-        downloadHosts $i
+        downloadFile $i
         if [ $? != 0 ]; then
             echo "Error downloading $i"
         else
