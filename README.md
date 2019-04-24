@@ -67,9 +67,12 @@ Hosty will ask how often you want to execute it.
 
 ## Whitelist
 
-You can include exceptions editing the file `/etc/hosty/whitelist` (with root permissions), one domain name per line.
+You can include exceptions editing the file `/etc/hosty/whitelist` (with root permissions), one domain name per line:
 
-`google.com`
+```
+google.com
+www.google.com
+```
 
 Besides, hosty applies an internal whitelist based on Brave and uBlock Origin unbreak filters. If you only want to avoid the internal whitelist run:
 
@@ -79,13 +82,16 @@ Besides, hosty applies an internal whitelist based on Brave and uBlock Origin un
 
 Hosty will keep your hosts file modifications if you don't write them below the indicated line, but you can also use a blacklist.
 
-Add the domains to block editing the file `/etc/hosty/blacklist` (with root permissions), one domain name per line.
+Add the domains to block editing the file `/etc/hosty/blacklist` (with root permissions), one domain name per line:
 
-`facebook.com`
+```
+facebook.com
+wwww.facebook.com
+```
 
 ## Custom sources
 
-If you want to feed hosty with additional sources you just have to create a text file in `/etc/hosty/hosts` (with root permissions) and write in it one url per line.
+If you want to feed hosty with additional sources you just have to create a text file in `/etc/hosty/hosts` (with root permissions) and write in it one url per line:
 
 `https://www.malwaredomainlist.com/hostslist/hosts.txt`
 
