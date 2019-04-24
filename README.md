@@ -65,6 +65,17 @@ or, if you want to skip unbreak filters:
 
 Hosty will ask how often you want to execute it.
 
+## Blacklist
+
+Hosty will keep your hosts file modifications if you don't write them below the indicated line, but you can also use a blacklist.
+
+Add the domains to block editing the file `/etc/hosty/blacklist` (with root permissions), one domain name per line:
+
+```
+facebook.com
+wwww.facebook.com
+```
+
 ## Whitelist
 
 You can include exceptions editing the file `/etc/hosty/whitelist` (with root permissions), one domain name per line:
@@ -78,26 +89,16 @@ Besides, hosty applies an internal whitelist based on Brave and uBlock Origin un
 
 `$ sudo hosty --all`
 
-## Blacklist
-
-Hosty will keep your hosts file modifications if you don't write them below the indicated line, but you can also use a blacklist.
-
-Add the domains to block editing the file `/etc/hosty/blacklist` (with root permissions), one domain name per line:
-
-```
-facebook.com
-wwww.facebook.com
-```
 
 ## Custom sources
 
-If you want to feed hosty with additional sources from the interet you just have to create a text file in:
+If you want to feed hosty with additional sources from the internet you just have to create a text file in:
 
 `/etc/hosty/blacklist.sources` for files with domains to block
 
 or/and
 
-`/etc/hosty/whilelist.sources` for files with domains to unblock
+`/etc/hosty/whitelist.sources` for files with domains to unblock
 
 and write in them one url per line:
 
