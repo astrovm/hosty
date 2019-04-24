@@ -70,8 +70,8 @@ Hosty will ask how often you want to execute it.
 You can include exceptions editing the file `/etc/hosty/whitelist` (with root permissions), one domain name per line:
 
 ```
-google.com
-www.google.com
+astrolince.com
+www.astrolince.com
 ```
 
 Besides, hosty applies an internal whitelist based on Brave and uBlock Origin unbreak filters. If you only want to avoid the internal whitelist run:
@@ -91,9 +91,21 @@ wwww.facebook.com
 
 ## Custom sources
 
-If you want to feed hosty with additional sources you just have to create a text file in `/etc/hosty/hosts` (with root permissions) and write in it one url per line:
+If you want to feed hosty with additional sources from the interet you just have to create a text file in:
+
+`/etc/hosty/blacklist.sources` for files with domains to block
+
+or/and
+
+`/etc/hosty/whilelist.sources` for files with domains to unblock
+
+and write in them one url per line:
 
 `https://www.malwaredomainlist.com/hostslist/hosts.txt`
+
+Hosty will take all domains separated by some symbol, space or new line, so it supports hosts-style files and files with just domains.
+
+ABP, uBlock Origin, Brave and AdGuard files are accepted too, but take in account that ANY not-commented domain will be used, so it's safer to use them in whitelists than in blacklists (a website that you don't want to block can end up blocked if exists in the file).
 
 ## Restore your original hosts file
 
