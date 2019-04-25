@@ -23,8 +23,7 @@ BLACKLIST_SOURCES=( "https://mirror1.malwaredomains.com/files/domains.hosts"
                     "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
 
 # We'll unblock every domain that is inside these files
-WHITELIST_SOURCES=( "https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist"
-                    "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt"
+WHITELIST_SOURCES=( "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt"
                     "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
                     "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
                     "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/referral-sites.txt"
