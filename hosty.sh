@@ -213,7 +213,7 @@ whitelist_domains=$(mktemp)
 
 final_hosts_file=$(mktemp)
 
-echo "Downloading ad-blocking files..."
+echo "Downloading blacklists..."
 
 # Download blacklist files and merge into one
 for i in "${BLACKLIST_FILES[@]}"
