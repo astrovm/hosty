@@ -228,22 +228,20 @@ do
     fi
 done
 
-if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
-    echo
-    echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
+echo
+echo "Downloading whitelists..."
 
-    # Download unbreak lists from ublock origin and brave
-    for i in "${WHITELIST_FILES[@]}"
-    do
-        downloadFile $i
-        if [ $? != 0 ]; then
-            echo "Error downloading $i"
-        else
-            extractDomains
-            cat $downloaded_files >> $whitelist_domains
-        fi
-    done
-fi
+# Download whitelist files and merge into one
+for i in "${WHITELIST_FILES[@]}"
+do
+    downloadFile $i
+    if [ $? != 0 ]; then
+        echo "Error downloading $i"
+    else
+        extractDomains
+        cat $downloaded_files >> $whitelist_domains
+    fi
+done
 
 echo
 echo "Applying user custom blacklist..."
