@@ -23,12 +23,12 @@ BLACKLIST_FILES=( "https://mirror1.malwaredomains.com/files/domains.hosts"
                   "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
 
 # We'll unblock every domain that is inside these files
-WHITELIST_FILES=( "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
-                  "https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist"
+WHITELIST_FILES=( "https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist"
+                  "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt"
+                  "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
                   "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
                   "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/referral-sites.txt"
-                  "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/optional-list.txt"
-                  "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt" )
+                  "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/optional-list.txt" )
 
 # Set IP to redirect
 IP="0.0.0.0"
