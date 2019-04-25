@@ -19,7 +19,6 @@ In the predefined list we don't accept political censorship or paternalistic goa
 ## Installation
 
 ### Requirements
-* wget
 * curl
 * awk
 * sed
@@ -29,13 +28,13 @@ In the predefined list we don't accept political censorship or paternalistic goa
 ### Install the requirements
 
 * **Ubuntu/Mint/Elementary/Pop/Debian:**  
-`$ sudo apt install wget curl gawk sed p7zip-full gzip`
+`$ sudo apt install curl gawk sed p7zip-full gzip`
 
 * **Arch/Manjaro/Antergos:**  
-`$ sudo pacman -S wget curl gawk sed p7zip gzip`
+`$ sudo pacman -S curl gawk sed p7zip gzip`
 
 * **Fedora/RHEL/CentOS:**  
-`$ sudo dnf install wget curl gawk sed p7zip p7zip-plugins gzip`
+`$ sudo dnf install curl gawk sed p7zip p7zip-plugins gzip`
 
 ### Install hosty
 

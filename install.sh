@@ -43,7 +43,6 @@ sudo chmod 755 /usr/local/bin/hosty
 echo
 
 echo "Checking dependencies..."
-command -v wget >/dev/null 2>&1 || { echo >&2 "Hosty requires 'wget' but it's not installed."; }
 command -v awk >/dev/null 2>&1 || { echo >&2 "Hosty requires 'awk' but it's not installed."; }
 command -v sed >/dev/null 2>&1 || { echo >&2 "Hosty requires 'sed' but it's not installed."; }
 command -v head >/dev/null 2>&1 || { echo >&2 "Hosty requires 'head' but it's not installed."; }
