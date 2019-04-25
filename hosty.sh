@@ -109,14 +109,8 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
         echo
         echo "Creating $cron_file..."
         echo '#!/bin/sh' > $cron_file
+        echo '/usr/local/bin/hosty' >> $cron_file
         chmod 755 $cron_file
-
-        # If user have passed the --all argument, autorun with that
-        if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
-            echo '/usr/local/bin/hosty' >> $cron_file
-        else
-            echo '/usr/local/bin/hosty --all' >> $cron_file
-        fi
 
         echo
         echo "Done."

@@ -59,10 +59,6 @@ Hosty has an option for doing that:
 
 `$ sudo hosty --autorun`
 
-or, if you want to skip unbreak filters:
-
-`$ sudo hosty --autorun --all`
-
 Hosty will ask how often you want to execute it.
 
 ## Blacklist
@@ -84,11 +80,6 @@ You can include exceptions editing the file `/etc/hosty/whitelist` (with root pe
 astrolince.com
 www.astrolince.com
 ```
-
-Besides, hosty applies an internal whitelist based on Brave and uBlock Origin unbreak filters. If you only want to avoid the internal whitelist run:
-
-`$ sudo hosty --all`
-
 
 ## Custom sources
 
@@ -119,10 +110,6 @@ If you want to disable hosty ad blocking:
 You can debug what hosty will do to your system with:
 
 `$ hosty --debug`
-
-or
-
-`$ hosty --debug --all`
 
 ## Uninstalling hosty
 
