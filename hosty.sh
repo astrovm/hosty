@@ -223,24 +223,6 @@ do
     fi
 done
 
-echo
-echo "Applying user custom blacklist..."
-if [ -f /etc/hosts.blacklist ]; then
-    cat "/etc/hosts.blacklist" >> $blacklist_domains
-fi
-
-if [ -f ~/.hosty.blacklist ]; then
-    cat "~/.hosty.blacklist" >> $blacklist_domains
-fi
-
-if [ -f /etc/hosty/blacklist ]; then
-    cat "/etc/hosty/blacklist" >> $blacklist_domains
-fi
-
-echo
-echo "Excluding localhost and similar domains..."
-sed -e '/^\(localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-localhost\|ip6-loopback\|ip6-localnet\|ip6-mcastprefix\|ip6-allnodes\|ip6-allrouters\)$/d' -i $blacklist_domains
-
 if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
     echo
     echo "Applying recommended whitelist (Run hosty --all to avoid this step)..."
@@ -259,6 +241,20 @@ if [ "$1" != "--all" ] && [ "$2" != "--all" ]; then
 fi
 
 echo
+echo "Applying user custom blacklist..."
+if [ -f /etc/hosts.blacklist ]; then
+    cat "/etc/hosts.blacklist" >> $blacklist_domains
+fi
+
+if [ -f ~/.hosty.blacklist ]; then
+    cat "~/.hosty.blacklist" >> $blacklist_domains
+fi
+
+if [ -f /etc/hosty/blacklist ]; then
+    cat "/etc/hosty/blacklist" >> $blacklist_domains
+fi
+
+echo
 echo "Applying user custom whitelist..."
 if [ -f /etc/hosts.whitelist ]; then
     cat "/etc/hosts.whitelist" >> $whitelist_domains
@@ -271,6 +267,10 @@ fi
 if [ -f /etc/hosty/whitelist ]; then
     cat "/etc/hosty/whitelist" >> $whitelist_domains
 fi
+
+echo
+echo "Excluding localhost and similar domains..."
+sed -e '/^\(localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-localhost\|ip6-loopback\|ip6-localnet\|ip6-mcastprefix\|ip6-allnodes\|ip6-allrouters\)$/d' -i $blacklist_domains
 
 echo
 echo "Building /etc/hosts..."
