@@ -163,7 +163,8 @@ fi
 
 # Function to download files
 downloadFile() {
-    wget --no-cache -nv -O $downloaded_files $1
+    echo "Downloading $1..."
+    curl -L -s -S -o $downloaded_files $1
 
     if [ $? != 0 ]; then
         return $?
