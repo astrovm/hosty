@@ -192,7 +192,7 @@ extractDomains() {
     # Remove '#' and everything that follows
     sed -e 's/#.*//g' -i $downloaded_files
     # Replace with new lines everything that isn't letters, numbers, hyphens and dots
-    sed -e 's/[^a-zA-Z0-9\-\.]/\n/g' -i $downloaded_files
+    sed -e 's/[^a-zA-Z0-9\.\-]/\n/g' -i $downloaded_files
     # Remove lines that don't have dots
     sed -e '/\./!d' -i $downloaded_files
     # Remove lines that don't start with a letter or number
