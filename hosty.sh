@@ -267,7 +267,7 @@ fi
 
 echo
 echo "Excluding localhost and similar domains..."
-sed -e '/^\(localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-localhost\|ip6-loopback\|ip6-localnet\|ip6-mcastprefix\|ip6-allnodes\|ip6-allrouters\)$/d' -i $blacklist_domains
+sed -e '/^\(127.0.0.1\|localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-localhost\|ip6-loopback\|ip6-localnet\|ip6-mcastprefix\|ip6-allnodes\|ip6-allrouters\)$/d' -i $blacklist_domains
 
 echo
 echo "Building /etc/hosts..."
