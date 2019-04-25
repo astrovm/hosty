@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty v1.3.0 (24/Apr/19) ========"
+echo "======== hosty v1.3.1 (24/Apr/19) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
@@ -24,6 +24,7 @@ BLACKLIST_FILES=( "https://mirror1.malwaredomains.com/files/domains.hosts"
 
 # We'll unblock every domain that is inside these files
 WHITELIST_FILES=( "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
+                  "https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist"
                   "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt" )
 
 # Set IP to redirect
