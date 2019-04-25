@@ -5,30 +5,30 @@ echo "========   astrolince.com/hosty   ========"
 echo
 
 # We'll block every domain that is inside these files
-BLACKLIST_FILES=( "https://mirror1.malwaredomains.com/files/domains.hosts"
-                  "https://raw.githubusercontent.com/StevenBlack/hosts/master/data/StevenBlack/hosts"
-                  "https://www.malwaredomainlist.com/hostslist/hosts.txt"
-                  "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Dead/hosts"
-                  "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts"
-                  "https://someonewhocares.org/hosts/zero/hosts"
-                  "http://winhelp2002.mvps.org/hosts.txt"
-                  "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&mimetype=plaintext&useip=0.0.0.0"
-                  "https://raw.githubusercontent.com/mitchellkrogza/Badd-Boyz-Hosts/master/hosts"
-                  "https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser"
-                  "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts"
-                  "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.2o7Net/hosts"
-                  "https://raw.githubusercontent.com/azet12/KADhosts/master/KADhosts.txt"
-                  "https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt"
-                  "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts"
-                  "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
+BLACKLIST_SOURCES=( "https://mirror1.malwaredomains.com/files/domains.hosts"
+                    "https://raw.githubusercontent.com/StevenBlack/hosts/master/data/StevenBlack/hosts"
+                    "https://www.malwaredomainlist.com/hostslist/hosts.txt"
+                    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Dead/hosts"
+                    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts"
+                    "https://someonewhocares.org/hosts/zero/hosts"
+                    "http://winhelp2002.mvps.org/hosts.txt"
+                    "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&mimetype=plaintext&useip=0.0.0.0"
+                    "https://raw.githubusercontent.com/mitchellkrogza/Badd-Boyz-Hosts/master/hosts"
+                    "https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser"
+                    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts"
+                    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.2o7Net/hosts"
+                    "https://raw.githubusercontent.com/azet12/KADhosts/master/KADhosts.txt"
+                    "https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt"
+                    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts"
+                    "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
 
 # We'll unblock every domain that is inside these files
-WHITELIST_FILES=( "https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist"
-                  "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt"
-                  "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
-                  "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
-                  "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/referral-sites.txt"
-                  "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/optional-list.txt" )
+WHITELIST_SOURCES=( "https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist"
+                    "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt"
+                    "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
+                    "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
+                    "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/referral-sites.txt"
+                    "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/optional-list.txt" )
 
 # Set IP to redirect
 IP="0.0.0.0"
@@ -118,44 +118,44 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
     fi
 fi
 
-# User custom blacklists files
+# User custom blacklists sources
 if [ -f /etc/hosty ]; then
     while read -r line
     do
-        BLACKLIST_FILES+=("$line")
+        BLACKLIST_SOURCES+=("$line")
     done < /etc/hosty
 fi
 
 if [ -f ~/.hosty ]; then
     while read -r line
     do
-        BLACKLIST_FILES+=("$line")
+        BLACKLIST_SOURCES+=("$line")
     done < ~/.hosty
 fi
 
 if [ -f /etc/hosty/hosts ]; then
     while read -r line
     do
-        BLACKLIST_FILES+=("$line")
+        BLACKLIST_SOURCES+=("$line")
     done < /etc/hosty/hosts
 fi
 
 if [ -f /etc/hosty/blacklist.sources ]; then
     while read -r line
     do
-        BLACKLIST_FILES+=("$line")
+        BLACKLIST_SOURCES+=("$line")
     done < /etc/hosty/blacklist.sources
 fi
 
-# User custom whitelist files
+# User custom whitelist sources
 if [ -f /etc/hosty/whitelist.sources ]; then
     while read -r line
     do
-        WHITELIST_FILES+=("$line")
+        WHITELIST_SOURCES+=("$line")
     done < /etc/hosty/whitelist.sources
 fi
 
-# Function to download files
+# Function to download sources
 downloadFile() {
     echo "Downloading $1..."
     curl -L -s -S -o $downloaded_files $1
@@ -185,20 +185,30 @@ downloadFile() {
 
 # Take all domains of any text file
 extractDomains() {
+    echo
+    echo "Extracting domains..."
     # Remove whitespace at beginning of the line
-    sed -e 's/^[[:space:]]*//g' -i $downloaded_files
+    sed -e 's/^[[:space:]]*//g' -i $1
     # Remove lines that start with '!'
-    sed -e '/^!/d' -i $downloaded_files
+    sed -e '/^!/d' -i $1
     # Remove '#' and everything that follows
-    sed -e 's/#.*//g' -i $downloaded_files
+    sed -e 's/#.*//g' -i $1
     # Replace with new lines everything that isn't letters, numbers, hyphens and dots
-    sed -e 's/[^a-zA-Z0-9\.\-]/\n/g' -i $downloaded_files
+    sed -e 's/[^a-zA-Z0-9\.\-]/\n/g' -i $1
     # Remove lines that don't have dots
-    sed -e '/\./!d' -i $downloaded_files
+    sed -e '/\./!d' -i $1
     # Remove lines that don't start with a letter or number
-    sed -e '/^[a-zA-Z0-9]/!d' -i $downloaded_files
+    sed -e '/^[a-zA-Z0-9]/!d' -i $1
     # Remove lines that end with a dot
-    sed -e '/\.$/d' -i $downloaded_files
+    sed -e '/\.$/d' -i $1
+    # Removing important system ips
+    sed -e '/^\(127\.0\.0\.1\|255\.255\.255\.255\|0\.0\.0\.0\|255\.255\.255\.0\|localhost\.localdomain\)$/d' -i $1
+
+    # Count extacted domains
+    domains_counter=$(awk 'BEGIN{counter=0}{counter++;}END{print counter}' $1)
+    echo "$domains_counter domains extracted."
+
+    return 0
 }
 
 downloaded_files=$(mktemp)
@@ -210,32 +220,36 @@ final_hosts_file=$(mktemp)
 
 echo "Downloading blacklists..."
 
-# Download blacklist files and merge into one
-for i in "${BLACKLIST_FILES[@]}"
+# Download blacklist sources and merge into one
+for i in "${BLACKLIST_SOURCES[@]}"
 do
     downloadFile $i
     if [ $? != 0 ]; then
         echo "Error downloading $i"
     else
-        extractDomains
         cat $downloaded_files >> $blacklist_domains
     fi
 done
 
+# Extract domains from blacklist sources
+extractDomains $blacklist_domains
+
 echo
 echo "Downloading whitelists..."
 
-# Download whitelist files and merge into one
-for i in "${WHITELIST_FILES[@]}"
+# Download whitelist sources and merge into one
+for i in "${WHITELIST_SOURCES[@]}"
 do
     downloadFile $i
     if [ $? != 0 ]; then
         echo "Error downloading $i"
     else
-        extractDomains
         cat $downloaded_files >> $whitelist_domains
     fi
 done
+
+# Extract domains from whitelist sources
+extractDomains $whitelist_domains
 
 echo
 echo "Applying user custom blacklist..."
@@ -264,10 +278,6 @@ fi
 if [ -f /etc/hosty/whitelist ]; then
     cat "/etc/hosty/whitelist" >> $whitelist_domains
 fi
-
-echo
-echo "Excluding localhost and similar domains..."
-sed -e '/^\(127\.0\.0\.1\|255\.255\.255\.255\|0\.0\.0\.0\|255\.255\.255\.0\|localhost\|localhost\.localdomain\|local\|broadcasthost\|ip6-localhost\|ip6-loopback\|ip6-localnet\|ip6-allhosts\|ip6-mcastprefix\|ip6-allnodes\|ip6-allrouters\)$/d' -i $blacklist_domains
 
 echo
 echo "Building /etc/hosts..."
