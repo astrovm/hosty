@@ -233,6 +233,7 @@ downloadFile() {
         tmp_zcat=$(mktemp)
         zcat "$tmp_downloadFile" > "$tmp_zcat"
         cat "$tmp_zcat" > "$tmp_downloadFile"
+        rm $tmp_zcat
 
         if [ $? != 0 ]; then
             return $?
