@@ -108,7 +108,15 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
         echo
         echo "Creating $cron_file..."
         echo '#!/bin/sh' > $cron_file
-        echo '/usr/local/bin/hosty' >> $cron_file
+
+        # If user have passed the --ignore-default-sources argument, autorun with that
+        if [ "$1" != "--ignore-default-sources" ] && [ "$2" != "--ignore-default-sources" ]; then
+            echo '/usr/local/bin/hosty' >> $cron_file
+        else
+            echo '/usr/local/bin/hosty --ignore-default-sources' >> $cron_file
+        fi
+
+        # Set permissions
         chmod 755 $cron_file
 
         echo
