@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty v1.5.2 (26/Apr/19) ========"
+echo "======== hosty v1.5.3 (26/Apr/19) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
@@ -92,19 +92,19 @@ fi
 
 # Copy original hosts file and handle --restore
 user_hosts_file=$(mktemp)
-user_hosts_linesnumber=$(awk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter}' /etc/hosts)
+user_hosts_linesnumber=$(awk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter-1}' /etc/hosts)
 
 # If hosty has never been executed, don't restore anything
-if [ -z $user_hosts_linesnumber ]; then
+if [ $user_hosts_linesnumber -lt 0 ]; then
     if [ "$1" == "--restore" ]; then
         echo "There is nothing to restore."
         exit 0
     fi
+
     # If it's the first time running hosty, save the whole /etc/hosts file in the tmp var
     cat /etc/hosts > $user_hosts_file
 else
     # Copy original hosts lines
-    let user_hosts_linesnumber-=1
     head -n $user_hosts_linesnumber /etc/hosts > $user_hosts_file
 
     # If --restore is present, restore original hosts and exit
