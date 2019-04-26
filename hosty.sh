@@ -117,6 +117,12 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
     fi
 fi
 
+# Remove default sources if the user want that
+if [ "$1" == "--ignore-default-sources" ] || [ "$2" == "--ignore-default-sources" ]; then
+    BLACKLIST_SOURCES=()
+    WHITELIST_SOURCES=()
+fi
+
 # User custom blacklists sources
 if [ -f /etc/hosty ]; then
     while read -r line
