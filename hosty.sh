@@ -92,7 +92,7 @@ fi
 
 # Copy original hosts file and handle --restore
 user_hosts_file=$(mktemp)
-user_hosts_linesnumber=$(sed -n '/^# Ad blocking hosts generated/=' /etc/hosts)
+user_hosts_linesnumber=$(awk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter}' /etc/hosts)
 
 # If hosty has never been executed, don't restore anything
 if [ -z $user_hosts_linesnumber ]; then
