@@ -320,7 +320,7 @@ if [ -f /etc/hosty/blacklist ]; then
     cat "/etc/hosty/blacklist" >> $blacklist_domains
 fi
 
-# DEPRECATED
+## DEPRECATED
 if [ -f /etc/hosts.blacklist ]; then
     cat "/etc/hosts.blacklist" >> $blacklist_domains
 fi
@@ -335,7 +335,7 @@ if [ -f /etc/hosty/whitelist ]; then
     cat "/etc/hosty/whitelist" >> $whitelist_domains
 fi
 
-# DEPRECATED
+## DEPRECATED
 if [ -f /etc/hosts.whitelist ]; then
     cat "/etc/hosts.whitelist" >> $whitelist_domains
 fi
