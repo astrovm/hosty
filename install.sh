@@ -46,8 +46,8 @@ echo "Checking dependencies..."
 command -v awk >/dev/null 2>&1 || { echo >&2 "Hosty requires 'awk' but it's not installed."; }
 command -v head >/dev/null 2>&1 || { echo >&2 "Hosty requires 'head' but it's not installed."; }
 command -v cat >/dev/null 2>&1 || { echo >&2 "Hosty requires 'cat' but it's not installed."; }
-command -v zcat >/dev/null 2>&1 || { echo >&2 "Hosty can require 'zcat' but it's not installed."; }
-command -v 7z >/dev/null 2>&1 || { echo >&2 "Hosty can require '7z' but it's not installed."; }
+command -v zcat >/dev/null 2>&1 || { echo >&2 "Hosty can require 'zcat' if you want to use custom .zip sources, but it's not installed."; }
+command -v 7z >/dev/null 2>&1 || { echo >&2 "Hosty can require '7z' if you want to use custom .7z sources, but it's not installed."; }
 echo
 
 echo "Done."
