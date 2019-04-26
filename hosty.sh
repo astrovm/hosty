@@ -182,33 +182,33 @@ if [ "$1" == "--ignore-default-sources" ] || [ "$2" == "--ignore-default-sources
 fi
 
 # User custom blacklists sources
-if [ -f /etc/hosty ]; then
-    while read -r line
-    do
-        BLACKLIST_SOURCES+=("$line")
-    done < /etc/hosty
-fi
-
-if [ -f ~/.hosty ]; then
-    while read -r line
-    do
-        BLACKLIST_SOURCES+=("$line")
-    done < ~/.hosty
-fi
-
-if [ -f /etc/hosty/hosts ]; then
-    while read -r line
-    do
-        BLACKLIST_SOURCES+=("$line")
-    done < /etc/hosty/hosts
-fi
-
 if [ -f /etc/hosty/blacklist.sources ]; then
     while read -r line
     do
         BLACKLIST_SOURCES+=("$line")
     done < /etc/hosty/blacklist.sources
 fi
+
+## DEPRECATED
+if [ -f /etc/hosty ]; then
+    while read -r line
+    do
+        BLACKLIST_SOURCES+=("$line")
+    done < /etc/hosty
+fi
+if [ -f ~/.hosty ]; then
+    while read -r line
+    do
+        BLACKLIST_SOURCES+=("$line")
+    done < ~/.hosty
+fi
+if [ -f /etc/hosty/hosts ]; then
+    while read -r line
+    do
+        BLACKLIST_SOURCES+=("$line")
+    done < /etc/hosty/hosts
+fi
+##
 
 # User custom whitelist sources
 if [ -f /etc/hosty/whitelist.sources ]; then
@@ -316,31 +316,33 @@ extractDomains $whitelist_domains
 
 echo
 echo "Applying user custom blacklist..."
-if [ -f /etc/hosts.blacklist ]; then
-    cat "/etc/hosts.blacklist" >> $blacklist_domains
-fi
-
-if [ -f ~/.hosty.blacklist ]; then
-    cat "~/.hosty.blacklist" >> $blacklist_domains
-fi
-
 if [ -f /etc/hosty/blacklist ]; then
     cat "/etc/hosty/blacklist" >> $blacklist_domains
 fi
 
+# DEPRECATED
+if [ -f /etc/hosts.blacklist ]; then
+    cat "/etc/hosts.blacklist" >> $blacklist_domains
+fi
+if [ -f ~/.hosty.blacklist ]; then
+    cat "~/.hosty.blacklist" >> $blacklist_domains
+fi
+##
+
 echo
 echo "Applying user custom whitelist..."
-if [ -f /etc/hosts.whitelist ]; then
-    cat "/etc/hosts.whitelist" >> $whitelist_domains
-fi
-
-if [ -f ~/.hosty.whitelist ]; then
-    cat "~/.hosty.whitelist" >> $whitelist_domains
-fi
-
 if [ -f /etc/hosty/whitelist ]; then
     cat "/etc/hosty/whitelist" >> $whitelist_domains
 fi
+
+# DEPRECATED
+if [ -f /etc/hosts.whitelist ]; then
+    cat "/etc/hosts.whitelist" >> $whitelist_domains
+fi
+if [ -f ~/.hosty.whitelist ]; then
+    cat "~/.hosty.whitelist" >> $whitelist_domains
+fi
+##
 
 echo
 echo "Building /etc/hosts..."
@@ -357,6 +359,7 @@ awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $user_hosts_file >> $white
 # Applying the whitelist and dedup
 awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' $whitelist_domains $blacklist_domains >> $final_hosts_file
 
+# Count websites blocked
 websites_blocked_counter=$(grep -c "$IP" $final_hosts_file)
 
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
