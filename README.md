@@ -52,13 +52,11 @@ You probably want to run it periodically to update the ads list.
 
 ## Automatic run
 
-You can create a `hosty` file in `/etc/cron.daily`, `/etc/cron.weekly` or `/etc/cron.monthly`
-
-Hosty has an option for doing that:
+Hosty can be configured to be executed automatically with:
 
 `$ sudo hosty --autorun`
 
-Hosty will ask how often you want to execute it.
+It will ask how often you want to execute it. A `hosty` file in `/etc/cron.daily`, `/etc/cron.weekly` or `/etc/cron.monthly` will be created.
 
 ## Blacklist
 
@@ -82,7 +80,7 @@ www.astrolince.com
 
 ## Custom sources
 
-If you want to feed hosty with additional sources from the internet you just have to create a text file in:
+If you want to add additional custom sources from the internet,  create a text file in:
 
 `/etc/hosty/blacklist.sources` for files with domains to block
 
@@ -97,6 +95,16 @@ and write in them one url per line:
 Hosty will take all domains separated by some symbol, space or new line, so it supports hosts-style files and files with just domains.
 
 ABP, uBlock Origin, Brave and AdGuard files are accepted too, but take in account that ANY not-commented domain will be used, so it's safer to use them in whitelists than in blacklists (a website that you don't want to block can end up blocked if exists in the file).
+
+You can also run hosty using ONLY your custom sources with:
+
+`$ sudo hosty --ignore-default-sources`
+
+and you can config autorun to run that way too:
+
+`$ sudo hosty --autorun --ignore-default-sources`
+
+Keep in mind that this is an advanced function that we do not recommend using, hosty is designed and tested to be used with the default configuration and in that way we believe that it will give you the best experience.
 
 ## Restore your original hosts file
 
