@@ -220,6 +220,8 @@ fi
 
 # Function to download sources
 downloadFile() {
+    tmp_downloadFile=$(mktemp)
+
     echo "Downloading $1..."
     curl -L -s -S -o $tmp_downloadFile $1
 
@@ -271,6 +273,7 @@ extractDomains() {
     tmp_extractDomains=$(mktemp)
     awk '!x[$0]++' $1 > $tmp_extractDomains
     cat $tmp_extractDomains > $1
+    rm $tmp_extractDomains
 
     # Count extacted domains
     domains_counter=$(awk 'BEGIN{counter=0}{counter++;}END{print counter}' $1)
@@ -279,24 +282,21 @@ extractDomains() {
     return 0
 }
 
-tmp_downloadFile=$(mktemp)
-
-blacklist_domains=$(mktemp)
-whitelist_domains=$(mktemp)
-
-final_hosts_file=$(mktemp)
-
 echo "Downloading blacklists..."
+blacklist_domains=$(mktemp)
 
 # Download blacklist sources and merge into one
 for i in "${BLACKLIST_SOURCES[@]}"
 do
     downloadFile $i
+
     if [ $? != 0 ]; then
         echo "Error downloading $i"
     else
         cat $tmp_downloadFile >> $blacklist_domains
     fi
+
+    rm $tmp_downloadFile
 done
 
 # Extract domains from blacklist sources
@@ -304,16 +304,20 @@ extractDomains $blacklist_domains
 
 echo
 echo "Downloading whitelists..."
+whitelist_domains=$(mktemp)
 
 # Download whitelist sources and merge into one
 for i in "${WHITELIST_SOURCES[@]}"
 do
     downloadFile $i
+
     if [ $? != 0 ]; then
         echo "Error downloading $i"
     else
         cat $tmp_downloadFile >> $whitelist_domains
     fi
+
+    rm $tmp_downloadFile
 done
 
 # Extract domains from whitelist sources
@@ -351,6 +355,7 @@ fi
 
 echo
 echo "Building /etc/hosts..."
+final_hosts_file=$(mktemp)
 cat $user_hosts_file > $final_hosts_file
 echo "# Ad blocking hosts generated $(date)" >> $final_hosts_file
 echo "# Don't write below this line. It will be lost if you run hosty again." >> $final_hosts_file
@@ -364,11 +369,15 @@ awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' $user_hosts_file >> $white
 # Applying the whitelist and dedup
 awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' $whitelist_domains $blacklist_domains >> $final_hosts_file
 
+# Remove tmp files
+rm $blacklist_domains $whitelist_domains $user_hosts_file
+
 # Count websites blocked
 websites_blocked_counter=$(grep -c "$IP" $final_hosts_file)
 
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
     cat $final_hosts_file > /etc/hosts
+    rm $final_hosts_file
 else
     echo
     echo "You can see the results in $final_hosts_file"
