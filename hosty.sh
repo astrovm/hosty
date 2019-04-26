@@ -122,11 +122,12 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
 
     # Ask user for autorun period
     echo
-    echo "Enter 'daily', 'weekly' or 'monthly':"
+    echo "How often do you want to run hosty automatically?"
+    echo "Enter 'daily', 'weekly', 'monthly' or 'never':"
     read period
 
     # Check user answer
-    if [ "$period" != "daily" ] && [ "$period" != "weekly" ] && [ "$period" != "monthly" ]; then
+    if [ "$period" != "daily" ] && [ "$period" != "weekly" ] && [ "$period" != "monthly" ] && [ "$period" != "never" ]; then
         echo
         echo "Bad answer, exiting..."
         exit 1
@@ -148,6 +149,13 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
             echo
             echo "Removing /etc/cron.monthly/hosty..."
             rm /etc/cron.monthly/hosty
+        fi
+
+        # Stop here if the user has chosen 'never'
+        if [ "$period" == "never" ]; then
+            echo
+            echo "Done."
+            exit 0
         fi
 
         # Set cron file with user choice
