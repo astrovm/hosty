@@ -50,7 +50,7 @@ if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
             # Check user answer
             if [ "$answer" == "y" ]; then
                 echo "Removing hosty configs directory..."
-                sudo rm -R /etc/hosty
+                rm -R /etc/hosty
                 echo
             elif [ "$answer" != "n" ]; then
                 echo "Bad answer, exiting..."
@@ -78,7 +78,7 @@ if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
         fi
 
         echo "Uninstalling hosty..."
-        sudo rm /usr/local/bin/hosty
+        rm /usr/local/bin/hosty
 
         echo
         echo "Hosty uninstalled."
