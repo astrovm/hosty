@@ -254,21 +254,21 @@ extractDomains() {
     echo
     echo "Extracting domains..."
     # Remove whitespace at beginning of the line
-    sed -e 's/^[[:space:]]*//g' -i $1
+    awk -i inplace '{gsub(/^[[:space:]]*/,""); print}' $1
     # Remove lines that start with '!'
-    sed -e '/^!/d' -i $1
+    awk -i inplace '!/^!/' $1
     # Remove '#' and everything that follows
-    sed -e 's/#.*//g' -i $1
+    awk -i inplace '{gsub(/#.*/,""); print}' $1
     # Replace with new lines everything that isn't letters, numbers, hyphens and dots
-    sed -e 's/[^a-zA-Z0-9\.\-]/\n/g' -i $1
+    awk -i inplace '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' $1
     # Remove lines that don't have dots
-    sed -e '/\./!d' -i $1
+    awk -i inplace '/\./' $1
     # Remove lines that don't start with a letter or number
-    sed -e '/^[a-zA-Z0-9]/!d' -i $1
+    awk -i inplace '/^[a-zA-Z0-9]/' $1
     # Remove lines that end with a dot
-    sed -e '/\.$/d' -i $1
+    awk -i inplace '!/\.$/' $1
     # Removing important system ips
-    sed -e '/^\(127\.0\.0\.1\|255\.255\.255\.255\|0\.0\.0\.0\|255\.255\.255\.0\|localhost\.localdomain\)$/d' -i $1
+    awk -i inplace '!/^\(127\.0\.0\.1\|255\.255\.255\.255\|0\.0\.0\.0\|255\.255\.255\.0\|localhost\.localdomain\)$/' $1
 
     # Remove duplicates
     awk -i inplace '!x[$0]++' $1
