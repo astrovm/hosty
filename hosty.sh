@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty v1.4.2 (25/Apr/19) ========"
+echo "======== hosty v1.5.0 (26/Apr/19) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
@@ -37,6 +37,53 @@ if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
     if [ "$EUID" -ne 0 ]; then
         echo "Please run as root"
         exit 1
+    fi
+
+    # --uninstall option
+    if [ "$1" == "--uninstall" ]; then
+        if [ -d /etc/hosty ]; then
+            # Ask user to remove hosty config
+            echo "Do you want to remove /etc/hosty configs directory? y/n"
+            read answer
+            echo
+
+            # Check user answer
+            if [ "$answer" == "y" ]; then
+                echo "Removing hosty configs directory..."
+                sudo rm -R /etc/hosty
+                echo
+            elif [ "$answer" != "n" ]; then
+                echo "Bad answer, exiting..."
+                exit 1
+            fi
+        fi
+
+        # Remove autorun config
+        if [ -f /etc/cron.daily/hosty ]; then
+            echo "Removing /etc/cron.daily/hosty..."
+            echo
+            rm /etc/cron.daily/hosty
+        fi
+
+        if [ -f /etc/cron.weekly/hosty ]; then
+            echo "Removing /etc/cron.daily/hosty..."
+            echo
+            rm /etc/cron.weekly/hosty
+        fi
+
+        if [ -f /etc/cron.monthly/hosty ]; then
+            echo "Removing /etc/cron.daily/hosty..."
+            echo
+            rm /etc/cron.monthly/hosty
+        fi
+
+        echo "Uninstalling hosty..."
+        sudo rm /usr/local/bin/hosty
+
+        echo
+        echo "Hosty uninstalled."
+
+        exit 0
     fi
 else
     echo "******** DEBUG MODE ON ********"
@@ -83,20 +130,21 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
         echo "Bad answer, exiting..."
         exit 1
     else
-        echo
-
         # Remove previous config
         if [ -f /etc/cron.daily/hosty ]; then
+            echo
             echo "Removing /etc/cron.daily/hosty..."
             rm /etc/cron.daily/hosty
         fi
 
         if [ -f /etc/cron.weekly/hosty ]; then
+            echo
             echo "Removing /etc/cron.daily/hosty..."
             rm /etc/cron.weekly/hosty
         fi
 
         if [ -f /etc/cron.monthly/hosty ]; then
+            echo
             echo "Removing /etc/cron.daily/hosty..."
             rm /etc/cron.monthly/hosty
         fi
@@ -113,6 +161,8 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
         if [ "$1" != "--ignore-default-sources" ] && [ "$2" != "--ignore-default-sources" ]; then
             echo '/usr/local/bin/hosty' >> $cron_file
         else
+            echo
+            echo "Config hosty with --ignore-default-sources..."
             echo '/usr/local/bin/hosty --ignore-default-sources' >> $cron_file
         fi
 

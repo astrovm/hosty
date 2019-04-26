@@ -122,4 +122,6 @@ You can debug what hosty will do to your system with:
 
 If you don't use it anymore:
 
-`$ sudo rm /usr/local/bin/hosty`
+`$ sudo hosty --uninstall`
+
+If your want to restore you original hosts file, run that option first.
