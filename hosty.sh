@@ -66,13 +66,13 @@ if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
         fi
 
         if [ -f /etc/cron.weekly/hosty ]; then
-            echo "Removing /etc/cron.daily/hosty..."
+            echo "Removing /etc/cron.weekly/hosty..."
             echo
             rm /etc/cron.weekly/hosty
         fi
 
         if [ -f /etc/cron.monthly/hosty ]; then
-            echo "Removing /etc/cron.daily/hosty..."
+            echo "Removing /etc/cron.monthly/hosty..."
             echo
             rm /etc/cron.monthly/hosty
         fi
@@ -139,13 +139,13 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
 
         if [ -f /etc/cron.weekly/hosty ]; then
             echo
-            echo "Removing /etc/cron.daily/hosty..."
+            echo "Removing /etc/cron.weekly/hosty..."
             rm /etc/cron.weekly/hosty
         fi
 
         if [ -f /etc/cron.monthly/hosty ]; then
             echo
-            echo "Removing /etc/cron.daily/hosty..."
+            echo "Removing /etc/cron.monthly/hosty..."
             rm /etc/cron.monthly/hosty
         fi
 

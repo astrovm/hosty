@@ -124,4 +124,4 @@ If you don't use it anymore:
 
 `$ sudo hosty --uninstall`
 
-If your want to restore you original hosts file, run that option first.
+If your want to restore your original hosts file, run that option first.
