@@ -271,10 +271,7 @@ extractDomains() {
     sed -e '/^\(127\.0\.0\.1\|255\.255\.255\.255\|0\.0\.0\.0\|255\.255\.255\.0\|localhost\.localdomain\)$/d' -i $1
 
     # Remove duplicates
-    tmp_extractDomains=$(mktemp)
-    awk '!x[$0]++' $1 > $tmp_extractDomains
-    cat $tmp_extractDomains > $1
-    rm $tmp_extractDomains
+    awk -i inplace '!x[$0]++' $1
 
     # Count extacted domains
     domains_counter=$(awk 'BEGIN{counter=0}{counter++;}END{print counter}' $1)
