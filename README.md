@@ -20,21 +20,20 @@ In the predefined list we don't accept political censorship or paternalistic goa
 
 ### Requirements
 * curl
-* awk
-* sed
-* 7z
-* zip
+* gawk
+* p7zip-full
+* gzip
 
 ### Install the requirements
 
 * **Ubuntu/Mint/Elementary/Pop/Debian:**  
-`$ sudo apt install curl gawk sed p7zip-full gzip`
+`$ sudo apt install curl gawk p7zip-full gzip`
 
 * **Arch/Manjaro/Antergos:**  
-`$ sudo pacman -S curl gawk sed p7zip gzip`
+`$ sudo pacman -S curl gawk p7zip gzip`
 
 * **Fedora/RHEL/CentOS:**  
-`$ sudo dnf install curl gawk sed p7zip p7zip-plugins gzip`
+`$ sudo dnf install curl gawk p7zip p7zip-plugins gzip`
 
 ### Install hosty
 

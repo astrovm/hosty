@@ -44,7 +44,6 @@ echo
 
 echo "Checking dependencies..."
 command -v awk >/dev/null 2>&1 || { echo >&2 "Hosty requires 'awk' but it's not installed."; }
-command -v sed >/dev/null 2>&1 || { echo >&2 "Hosty requires 'sed' but it's not installed."; }
 command -v head >/dev/null 2>&1 || { echo >&2 "Hosty requires 'head' but it's not installed."; }
 command -v cat >/dev/null 2>&1 || { echo >&2 "Hosty requires 'cat' but it's not installed."; }
 command -v zcat >/dev/null 2>&1 || { echo >&2 "Hosty can require 'zcat' but it's not installed."; }
