@@ -20,6 +20,7 @@ BLACKLIST_SOURCES=( "https://mirror1.malwaredomains.com/files/domains.hosts"
                     "https://raw.githubusercontent.com/azet12/KADhosts/master/KADhosts.txt"
                     "https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt"
                     "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts"
+                    "https://raw.githubusercontent.com/tiuxo/hosts/master/ads"
                     "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" )
 
 # We'll unblock every domain that is inside these files
