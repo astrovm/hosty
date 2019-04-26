@@ -269,7 +269,6 @@ extractDomains() {
     awk -i inplace '!/\.$/' $1
     # Removing important system ips
     awk -i inplace '!/^\(127\.0\.0\.1\|255\.255\.255\.255\|0\.0\.0\.0\|255\.255\.255\.0\|localhost\.localdomain\)$/' $1
-
     # Remove duplicates
     awk -i inplace '!x[$0]++' $1
 
