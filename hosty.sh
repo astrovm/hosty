@@ -221,7 +221,7 @@ fi
 # Function to download sources
 downloadFile() {
     echo "Downloading $1..."
-    curl -L -s -S -o $downloaded_files $1
+    curl -L -s -S -o $tmp_downloadFile $1
 
     if [ $? != 0 ]; then
         return $?
@@ -229,14 +229,14 @@ downloadFile() {
 
     if [[ $1 == *.zip ]]; then
         tmp_zcat=$(mktemp)
-        zcat "$downloaded_files" > "$tmp_zcat"
-        cat "$tmp_zcat" > "$downloaded_files"
+        zcat "$tmp_downloadFile" > "$tmp_zcat"
+        cat "$tmp_zcat" > "$tmp_downloadFile"
 
         if [ $? != 0 ]; then
             return $?
         fi
     elif [[ $1 == *.7z ]]; then
-        7z e -so -bd "$downloaded_files" 2>/dev/null > $1
+        7z e -so -bd "$tmp_downloadFile" 2>/dev/null > $1
 
         if [ $? != 0 ]; then
             return $?
@@ -279,7 +279,7 @@ extractDomains() {
     return 0
 }
 
-downloaded_files=$(mktemp)
+tmp_downloadFile=$(mktemp)
 
 blacklist_domains=$(mktemp)
 whitelist_domains=$(mktemp)
@@ -295,7 +295,7 @@ do
     if [ $? != 0 ]; then
         echo "Error downloading $i"
     else
-        cat $downloaded_files >> $blacklist_domains
+        cat $tmp_downloadFile >> $blacklist_domains
     fi
 done
 
@@ -312,7 +312,7 @@ do
     if [ $? != 0 ]; then
         echo "Error downloading $i"
     else
-        cat $downloaded_files >> $whitelist_domains
+        cat $tmp_downloadFile >> $whitelist_domains
     fi
 done
 
