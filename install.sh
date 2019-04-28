@@ -15,17 +15,17 @@ echo "Checking if user has sudo access..."
 prompt=$(sudo -nv 2>&1)
 
 if [ $? -eq 0 ]; then
-	echo "OK"
-	echo
+    echo "OK"
+    echo
 elif echo $prompt | grep -q '^sudo:'; then
-	echo
-	echo "Requesting sudo..."
-	sudo -v
-	echo
+    echo
+    echo "Requesting sudo..."
+    sudo -v
+    echo
 else
-	echo
-	echo "You don't have sudo access, please fix that or run it from root."
-	exit 1
+    echo
+    echo "You don't have sudo access, please fix that or run it from root."
+    exit 1
 fi
 
 if [ -f /usr/local/bin/hosty ]; then
