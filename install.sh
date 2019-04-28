@@ -35,15 +35,15 @@ if [ -f /usr/local/bin/hosty ]; then
 fi
 
 echo "Do you want to always run the latest version of hosty? (recommended) y/n"
-read answer
+read answer < /dev/tty
 echo
 
 # Check user answer
-if [ "$answer" == "y" ]; then
+if [ "$answer" = "y" ]; then
     echo "Installing hosty..."
     sudo curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/updater.sh
     echo
-elif [ "$answer" == "n" ]; then
+elif [ "$answer" = "n" ]; then
     echo "Installing hosty..."
     sudo curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
     echo
@@ -66,12 +66,12 @@ command -v 7z >/dev/null 2>&1 || { echo >&2 "Hosty can require '7z' if you want 
 echo
 
 echo "Do you want to automatically update your hosts file with latest ads list? (recommended) y/n"
-read answer
+read answer < /dev/tty
 echo
 
 # Check user answer
-if [ "$answer" == "y" ]; then
-    sudo /usr/local/bin/hosty --autorun
+if [ "$answer" = "y" ]; then
+    sudo /usr/local/bin/hosty --autorun < /dev/tty
     exit 0
 elif [ "$answer" != "n" ]; then
     echo "Bad answer, exiting..."
