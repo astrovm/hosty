@@ -40,7 +40,7 @@ In the predefined list we don't accept political censorship or paternalistic goa
 
 Just run:
 
-`$ curl -L git.io/hosty | sh`
+`$ bash -c "$(curl -sSL git.io/hosty)"`
 
 ## Run hosty
 
