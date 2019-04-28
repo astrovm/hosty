@@ -21,8 +21,8 @@ downloadFiles "$hosty" https://raw.githubusercontent.com/astrolince/hosty/master
 downloadFiles "$signature" https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh.sig
 
 # Verify signature
-gpg --dearmor "$astrokeys" &>/dev/null
-gpg --no-default-keyring --keyring "$astrokeys.gpg" --verify "$signature" "$hosty" &>/dev/null
+gpg --dearmor "$astrokeys" >/dev/null 2>&1
+gpg --no-default-keyring --keyring "$astrokeys.gpg" --verify "$signature" "$hosty" >/dev/null 2>&1
 
 # If there is a problem, kill program
 if [ $? -eq 0 ]
