@@ -23,17 +23,18 @@ In the predefined list we don't accept political censorship or paternalistic goa
 * gawk
 * p7zip-full
 * gzip
+* gnupg
 
 ### Install the requirements
 
 * **Ubuntu/Mint/Elementary/Pop/Debian:**  
-`$ sudo apt install curl gawk p7zip-full gzip`
+`$ sudo apt install curl gawk p7zip-full gzip gnupg`
 
 * **Arch/Manjaro/Antergos:**  
-`$ sudo pacman -S curl gawk p7zip gzip`
+`$ sudo pacman -S curl gawk p7zip gzip gnupg`
 
 * **Fedora/RHEL/CentOS:**  
-`$ sudo dnf install curl gawk p7zip p7zip-plugins gzip`
+`$ sudo dnf install curl gawk p7zip p7zip-plugins gzip gnupg2`
 
 ### Install hosty
 
