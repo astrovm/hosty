@@ -43,6 +43,7 @@ sudo chmod 755 /usr/local/bin/hosty
 echo
 
 echo "Checking dependencies..."
+command -v gpg >/dev/null 2>&1 || { echo >&2 "Hosty requires 'gpg' but it's not installed."; }
 command -v awk >/dev/null 2>&1 || { echo >&2 "Hosty requires 'awk' but it's not installed."; }
 command -v head >/dev/null 2>&1 || { echo >&2 "Hosty requires 'head' but it's not installed."; }
 command -v cat >/dev/null 2>&1 || { echo >&2 "Hosty requires 'cat' but it's not installed."; }
