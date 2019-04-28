@@ -1,4 +1,4 @@
-hosty v1.6.0 (26/Apr/19)
+hosty
 =====
 
 [![GitHub code size](https://img.shields.io/github/languages/code-size/astrolince/hosty.svg)
