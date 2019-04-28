@@ -27,7 +27,7 @@ gpg --no-default-keyring --keyring "$astrokeys.gpg" --verify "$signature" "$host
 # If there is a problem, kill program
 if [ $? -eq 0 ]
 then
-	bash <(cat $hosty) $*
+    bash <(cat $hosty) $*
 else
     echo "There is a problem with the signature, probably hosty repository was compromised, no changes were made to your system."
     exit 1
