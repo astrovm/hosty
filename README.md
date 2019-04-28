@@ -1,4 +1,4 @@
-hosty v1.6.0 (26/Apr/19)
+hosty
 =====
 
 [![GitHub code size](https://img.shields.io/github/languages/code-size/astrolince/hosty.svg)
@@ -42,23 +42,17 @@ Just run:
 
 `$ curl -L git.io/hosty | sh`
 
-The installer will ask you if you want to always run the latest version of hosty code, to achieve this, code updates are downloaded from this repository in each execution. A verification mechanism is included, hosty will make sure automatically that the updates are signed by me.
-
-Still, you may not like to trust me, you can also install hosty without automatic code updates and manually check if updates are available.
-
-You will also be asked if you want to automatically run hosty every so often to update your hosts file with latest domains list.
-
 ## Run hosty
 
 Enable system-wide ad blocking with:
 
 `$ sudo hosty`
 
-You probably want to run it periodically to update your hosts file with latest domains list.
+You probably want to run it periodically to update the ads list.
 
-## Automatic run configuration
+## Automatic run
 
-Hosty can be configured to periodically update your hosts file with:
+Hosty can be configured to be executed automatically with:
 
 `$ sudo hosty --autorun`
 

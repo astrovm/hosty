@@ -34,23 +34,9 @@ if [ -f /usr/local/bin/hosty ]; then
     echo
 fi
 
-echo "Do you want to always run the latest version of hosty? (recommended) y/n"
-read answer
+echo "Installing hosty..."
+sudo curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty
 echo
-
-# Check user answer
-if [ "$answer" == "y" ]; then
-    echo "Installing hosty..."
-    sudo curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty
-    echo
-elif [ "$answer" == "n" ]; then
-    echo "Installing hosty..."
-    sudo curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
-    echo
-else
-    echo "Bad answer, exiting..."
-    exit 1
-fi
 
 echo "Fixing permissions..."
 sudo chmod 755 /usr/local/bin/hosty
@@ -64,18 +50,5 @@ command -v cat >/dev/null 2>&1 || { echo >&2 "Hosty requires 'cat' but it's not 
 command -v zcat >/dev/null 2>&1 || { echo >&2 "Hosty can require 'zcat' if you want to use custom .zip sources, but it's not installed."; }
 command -v 7z >/dev/null 2>&1 || { echo >&2 "Hosty can require '7z' if you want to use custom .7z sources, but it's not installed."; }
 echo
-
-echo "Do you want to automatically update your hosts file with latest ads list? (recommended) y/n"
-read answer
-echo
-
-# Check user answer
-if [ "$answer" == "y" ]; then
-    sudo /usr/local/bin/hosty --autorun
-    exit 0
-elif [ "$answer" != "n" ]; then
-    echo "Bad answer, exiting..."
-    exit 1
-fi
 
 echo "Done."
