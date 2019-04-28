@@ -34,7 +34,7 @@ if [ -f /usr/local/bin/hosty ]; then
     echo
 fi
 
-echo "Do you want to automatically always run lastest hosty version? (recommended) y/n"
+echo "Do you want to always run the latest version of hosty? (recommended) y/n"
 read answer
 echo
 
@@ -65,7 +65,7 @@ command -v zcat >/dev/null 2>&1 || { echo >&2 "Hosty can require 'zcat' if you w
 command -v 7z >/dev/null 2>&1 || { echo >&2 "Hosty can require '7z' if you want to use custom .7z sources, but it's not installed."; }
 echo
 
-echo "Do you want to automatically update your hosts file with lastest ads list? (recommended) y/n"
+echo "Do you want to automatically update your hosts file with latest ads list? (recommended) y/n"
 read answer
 echo
 
