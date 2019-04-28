@@ -41,7 +41,7 @@ echo
 # Check user answer
 if [ "$answer" == "y" ]; then
     echo "Installing hosty..."
-    sudo curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty
+    sudo curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/updater.sh
     echo
 elif [ "$answer" == "n" ]; then
     echo "Installing hosty..."
