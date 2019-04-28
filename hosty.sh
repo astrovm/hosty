@@ -232,7 +232,7 @@ downloadFile() {
     tmp_downloadFile=$(mktemp)
 
     echo "Downloading $1..."
-    curl -L -s -S -o $tmp_downloadFile $1
+    curl -fsSL -o $tmp_downloadFile $1
 
     if [ $? != 0 ]; then
         return $?

@@ -1,5 +1,6 @@
 #!/bin/sh
 
+echo
 command -v sudo >/dev/null 2>&1 || { echo >&2 "Hosty requires 'sudo' but it's not installed."; exit 1; }
 command -v grep >/dev/null 2>&1 || { echo >&2 "Hosty requires 'grep' but it's not installed."; exit 1; }
 command -v curl >/dev/null 2>&1 || { echo >&2 "Hosty requires 'curl' but it's not installed."; exit 1; }
