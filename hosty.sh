@@ -305,6 +305,21 @@ do
     rm $tmp_downloadFile
 done
 
+echo
+echo "Applying user custom blacklist..."
+if [ -f /etc/hosty/blacklist ]; then
+    cat "/etc/hosty/blacklist" >> $blacklist_domains
+fi
+
+## DEPRECATED
+if [ -f /etc/hosts.blacklist ]; then
+    cat "/etc/hosts.blacklist" >> $blacklist_domains
+fi
+if [ -f ~/.hosty.blacklist ]; then
+    cat "~/.hosty.blacklist" >> $blacklist_domains
+fi
+##
+
 # Extract domains from blacklist sources
 extractDomains $blacklist_domains
 
@@ -326,24 +341,6 @@ do
     rm $tmp_downloadFile
 done
 
-# Extract domains from whitelist sources
-extractDomains $whitelist_domains
-
-echo
-echo "Applying user custom blacklist..."
-if [ -f /etc/hosty/blacklist ]; then
-    cat "/etc/hosty/blacklist" >> $blacklist_domains
-fi
-
-## DEPRECATED
-if [ -f /etc/hosts.blacklist ]; then
-    cat "/etc/hosts.blacklist" >> $blacklist_domains
-fi
-if [ -f ~/.hosty.blacklist ]; then
-    cat "~/.hosty.blacklist" >> $blacklist_domains
-fi
-##
-
 echo
 echo "Applying user custom whitelist..."
 if [ -f /etc/hosty/whitelist ]; then
@@ -358,6 +355,9 @@ if [ -f ~/.hosty.whitelist ]; then
     cat "~/.hosty.whitelist" >> $whitelist_domains
 fi
 ##
+
+# Extract domains from whitelist sources
+extractDomains $whitelist_domains
 
 echo
 echo "Building /etc/hosts..."
