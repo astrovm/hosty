@@ -39,6 +39,7 @@ WHITELIST_SOURCES=( "https://raw.githubusercontent.com/anudeepND/whitelist/maste
                     "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/referral-sites.txt"
                     "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
                     "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
+                    "https://raw.githubusercontent.com/raghavdua1995/DNSlock-PiHole-whitelist/master/whitelist.list"
                     "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt"
                     "https://zerodot1.gitlab.io/CoinBlockerLists/hosts" )
 
