@@ -7,7 +7,7 @@ signature=$(mktemp)
 
 # Download function
 downloadFiles() {
-    curl -L -s -S -o $1 $2
+    curl -H 'Cache-Control: no-cache' -fsSL -o $1 $2
 
     if [ $? != 0 ]; then
         echo "Error downloading $2"
