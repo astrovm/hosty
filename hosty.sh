@@ -32,6 +32,7 @@ BLACKLIST_SOURCES=( "https://adaway.org/hosts.txt"
                     "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts"
                     "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts"
                     "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts"
+                    "https://raw.githubusercontent.com/hoshsadiq/adblock-nocoin-list/master/hosts.txt"
                     "https://raw.githubusercontent.com/matomo-org/referrer-spam-blacklist/master/spammers.txt"
                     "https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/master/src/hosts.txt"
                     "https://raw.githubusercontent.com/mitchellkrogza/Badd-Boyz-Hosts/master/hosts"
@@ -54,6 +55,7 @@ BLACKLIST_SOURCES=( "https://adaway.org/hosts.txt"
                     "https://www.malwaredomainlist.com/hostslist/hosts.txt"
                     "https://www.squidblacklist.org/downloads/dg-ads.acl"
                     "https://www.squidblacklist.org/downloads/dg-malicious.acl"
+                    "https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser"
                     "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist"
                     "http://winhelp2002.mvps.org/hosts.txt" )
 
@@ -64,7 +66,8 @@ WHITELIST_SOURCES=( "https://raw.githubusercontent.com/anudeepND/whitelist/maste
                     "https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist"
                     "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
                     "https://raw.githubusercontent.com/raghavdua1995/DNSlock-PiHole-whitelist/master/whitelist.list"
-                    "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt" )
+                    "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt"
+                    "https://zerodot1.gitlab.io/CoinBlockerLists/hosts_optional" )
 
 # Set IP to redirect
 IP="0.0.0.0"
