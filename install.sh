@@ -10,6 +10,7 @@ command -v gpg >/dev/null 2>&1 || { echo >&2 "Hosty requires 'gpg' but it's not 
 command -v awk >/dev/null 2>&1 || { echo >&2 "Hosty requires 'awk' but it's not installed."; exit 1; }
 command -v head >/dev/null 2>&1 || { echo >&2 "Hosty requires 'head' but it's not installed."; exit 1; }
 command -v cat >/dev/null 2>&1 || { echo >&2 "Hosty requires 'cat' but it's not installed."; exit 1; }
+command -v crontab >/dev/null 2>&1 || { echo >&2 "Hosty requires 'crontab' but it's not installed."; exit 1; }
 
 echo "======== Welcome to hosty installer ========"
 echo "========    astrolince.com/hosty    ========"
