@@ -11,7 +11,7 @@ downloadFiles() {
 
     if [ $? != 0 ]; then
         echo "Error downloading $2"
-        rm $astrokeys $hosty $signature
+        rm "$astrokeys" "$hosty" "$signature"
         exit 1
     fi
 }
@@ -28,11 +28,11 @@ gpg --no-default-keyring --keyring "$astrokeys.gpg" --verify "$signature" "$host
 # If there is a problem, kill the program
 if [ $? -eq 0 ]
 then
-    rm $astrokeys $signature
-    bash <(cat $hosty) $*
-    rm $hosty
+    rm "$astrokeys" "$signature" "$astrokeys.gpg"
+    bash <(cat "$hosty") $*
+    rm "$hosty"
 else
-    rm $astrokeys $hosty $signature
+    rm "$astrokeys" "$hosty" "$signature" "$astrokeys.gpg"
     echo "There is a problem with the signature, probably hosty repository was compromised, no changes were made to your system."
     exit 1
 fi
