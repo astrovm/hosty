@@ -132,3 +132,7 @@ If you don't use it anymore:
 `$ sudo hosty --uninstall`
 
 If your want to restore your original hosts file, run that option first.
+
+## License
+
+Hosty is [MIT licensed](https://github.com/astrolince/hosty/blob/master/LICENSE).
