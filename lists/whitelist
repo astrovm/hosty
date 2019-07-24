@@ -1,9 +1,7 @@
 codeload.github.com # github repo zip download
 e1151.e12.akamaiedge.net # unbreak anandtech.com
-
-# url shorteners and trackers
-amzn.to
-app.adjust.com
-geni.us
-tc.tradetracker.net
-s.click.aliexpress.com
+amzn.to # fix amazon
+app.adjust.com # fix some yt links
+geni.us # fix some yt links
+tc.tradetracker.net # fix kimovil.com
+s.click.aliexpress.com # fix kimovil.com
