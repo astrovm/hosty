@@ -12,7 +12,7 @@ System-wide ad blocker for Linux.
 
 Hosty aims to block annoying things designed to steal time like ads, dangerous software such as spyware and things that harms user privacy. By default it works by downloading a predefined list of domains to block and adding them to the hosts file of your system (keeping the existing rules intact).
 
-In the predefined list we don't accept political censorship or paternalistic goals like blocking porn or gambling, we DON'T accept anything that harms user FREEDOM.
+In the predefined list we don't accept political censorship or paternalistic goals like blocking porn or gambling, we don't accept anything that harms user freedom.
 
 ![Comparison of total memory usage](https://i.imgur.com/qRVKMOQ.png)
 
