@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty v1.6.7 (02/May/19) ========"
+echo "======== hosty v1.6.8 (12/Feb/20) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
@@ -53,8 +53,6 @@ BLACKLIST_SOURCES=( "https://adaway.org/hosts.txt"
                     "https://v.firebog.net/hosts/Shalla-mal.txt"
                     "https://v.firebog.net/hosts/static/w3kbl.txt"
                     "https://www.malwaredomainlist.com/hostslist/hosts.txt"
-                    "https://www.squidblacklist.org/downloads/dg-ads.acl"
-                    "https://www.squidblacklist.org/downloads/dg-malicious.acl"
                     "https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser"
                     "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist"
                     "http://winhelp2002.mvps.org/hosts.txt" )
@@ -149,7 +147,8 @@ else
 
     # If --restore is present, restore original hosts and exit
     if [ "$1" == "--restore" ]; then
-        cat $user_hosts_file > /etc/hosts
+        # Remove empty lines from begin and end
+        awk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' $user_hosts_file $user_hosts_file > /etc/hosts
         echo "/etc/hosts restore completed."
         exit 0
     fi
@@ -401,7 +400,13 @@ extractDomains $whitelist_domains
 echo
 echo "Building /etc/hosts..."
 final_hosts_file=$(mktemp)
-cat $user_hosts_file > $final_hosts_file
+
+# Remove empty lines from begin and end
+awk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' $user_hosts_file $user_hosts_file > $final_hosts_file
+
+# Add blank line at the end
+echo >> $final_hosts_file
+
 echo "# Ad blocking hosts generated $(date)" >> $final_hosts_file
 echo "# Don't write below this line. It will be lost if you run hosty again." >> $final_hosts_file
 
