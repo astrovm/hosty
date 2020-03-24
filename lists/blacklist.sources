@@ -1,4 +1,3 @@
-https://adaway.org/hosts.txt
 https://bitbucket.org/ethanr/dns-blacklists/raw/8575c9f96e5b4a1308f2f12394abd86d0927a4a0/bad_lists/Mandiant_APT1_Report_Appendix_D.txt
 https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-blocklist.txt
 https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt
@@ -17,11 +16,6 @@ https://mirror.cedia.org.ec/malwaredomains/immortal_domains.txt
 https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt
 https://pgl.yoyo.org/adservers/serverlist.php?hostformat=nohtml&mimetype=plaintext
 https://phishing.army/download/phishing_army_blocklist_extended.txt
-https://ransomwaretracker.abuse.ch/downloads/CW_C2_DOMBL.txt
-https://ransomwaretracker.abuse.ch/downloads/LY_C2_DOMBL.txt
-https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt
-https://ransomwaretracker.abuse.ch/downloads/TC_C2_DOMBL.txt
-https://ransomwaretracker.abuse.ch/downloads/TL_C2_DOMBL.txt
 https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt
 https://raw.githubusercontent.com/anudeepND/blacklist/master/adservers.txt
 https://raw.githubusercontent.com/azet12/KADhosts/master/KADhosts.txt
@@ -38,6 +32,7 @@ https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts
 https://raw.githubusercontent.com/HorusTeknoloji/TR-PhishingList/master/url-lists.txt
 https://raw.githubusercontent.com/hoshsadiq/adblock-nocoin-list/master/hosts.txt
 https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
+https://raw.githubusercontent.com/lightswitch05/hosts/master/ads-and-tracking-extended.txt
 https://raw.githubusercontent.com/matomo-org/referrer-spam-blacklist/master/spammers.txt
 https://raw.githubusercontent.com/MetaMask/eth-phishing-detect/master/src/hosts.txt
 https://raw.githubusercontent.com/mitchellkrogza/Badd-Boyz-Hosts/master/hosts
@@ -49,7 +44,7 @@ https://raw.githubusercontent.com/RooneyMcNibNug/pihole-stuff/master/SNAFU.txt
 https://raw.githubusercontent.com/StevenBlack/hosts/master/data/StevenBlack/hosts
 https://raw.githubusercontent.com/tiuxo/hosts/master/ads
 https://raw.githubusercontent.com/vokins/yhosts/master/hosts
-https://reddestdream.github.io/Projects/MinimalHosts/etc/MinimalHostsBlocker/minimalhosts
+https://raw.githubusercontent.com/Yhonay/antipopads/master/hosts
 https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
 https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt
 https://s3.amazonaws.com/lists.disconnect.me/simple_malware.txt
@@ -64,7 +59,6 @@ https://v.firebog.net/hosts/Easylist.txt
 https://v.firebog.net/hosts/Easyprivacy.txt
 https://v.firebog.net/hosts/Prigent-Ads.txt
 https://v.firebog.net/hosts/Prigent-Malware.txt
-https://v.firebog.net/hosts/Prigent-Phishing.txt
 https://v.firebog.net/hosts/Shalla-mal.txt
 https://v.firebog.net/hosts/static/w3kbl.txt
 https://winhelp2002.mvps.org/hosts.txt
@@ -74,4 +68,3 @@ https://www.dshield.org/feeds/suspiciousdomains_Medium.txt
 https://www.github.developerdan.com/hosts/lists/ads-and-tracking-extended.txt
 https://www.malwaredomainlist.com/hostslist/hosts.txt
 https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser
-https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist
