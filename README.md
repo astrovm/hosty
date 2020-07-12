@@ -135,4 +135,4 @@ If your want to restore your original hosts file, run that option first.
 
 ## License
 
-Hosty is [MIT licensed](https://github.com/astrolince/hosty/blob/master/LICENSE).
+[MIT License](https://github.com/astrolince/hosty/blob/master/LICENSE)
