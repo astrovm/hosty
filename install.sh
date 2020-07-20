@@ -3,42 +3,23 @@
 echo
 
 # Check dependences
-command -v grep >/dev/null 2>&1 || {
-    echo >&2 "Hosty requires 'grep' but it's not installed."
-    exit 1
+CheckDep() {
+    command -v "$1" >/dev/null 2>&1 || {
+        echo >&2 "Hosty requires '$1' but it's not installed."
+        exit 1
+    }
 }
-command -v curl >/dev/null 2>&1 || {
-    echo >&2 "Hosty requires 'curl' but it's not installed."
-    exit 1
-}
-command -v chmod >/dev/null 2>&1 || {
-    echo >&2 "Hosty requires 'chmod' but it's not installed."
-    exit 1
-}
-command -v bash >/dev/null 2>&1 || {
-    echo >&2 "Hosty requires 'bash' but it's not installed."
-    exit 1
-}
-command -v gpg >/dev/null 2>&1 || {
-    echo >&2 "Hosty requires 'gpg' but it's not installed."
-    exit 1
-}
-command -v awk >/dev/null 2>&1 || {
-    echo >&2 "Hosty requires 'awk' but it's not installed."
-    exit 1
-}
-command -v head >/dev/null 2>&1 || {
-    echo >&2 "Hosty requires 'head' but it's not installed."
-    exit 1
-}
-command -v cat >/dev/null 2>&1 || {
-    echo >&2 "Hosty requires 'cat' but it's not installed."
-    exit 1
-}
-command -v crontab >/dev/null 2>&1 || {
-    echo >&2 "Hosty requires 'crontab' but it's not installed."
-    exit 1
-}
+
+CheckDep grep
+CheckDep curl
+CheckDep chmod
+CheckDep bash
+CheckDep gpg
+CheckDep awk
+CheckDep head
+CheckDep cat
+CheckDep crontab
+CheckDep id
 
 # Define main function
 MainHosty() {
