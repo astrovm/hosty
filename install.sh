@@ -81,7 +81,8 @@ if [ $? -eq 0 ] || [ "$EUID" -eq 0 ]; then
 elif echo $prompt | grep -q '^sudo:'; then
     echo
     echo "Requesting sudo..."
-    sudo MainHosty
+    DECL=$(declare -f MainHosty)
+    sudo bash -c "$DECL; MainHosty"
     echo
 else
     echo
