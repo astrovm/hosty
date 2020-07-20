@@ -1,6 +1,8 @@
 #!/bin/sh
 
 echo
+
+# Check dependences
 command -v grep >/dev/null 2>&1 || { echo >&2 "Hosty requires 'grep' but it's not installed."; exit 1; }
 command -v curl >/dev/null 2>&1 || { echo >&2 "Hosty requires 'curl' but it's not installed."; exit 1; }
 command -v chmod >/dev/null 2>&1 || { echo >&2 "Hosty requires 'chmod' but it's not installed."; exit 1; }
@@ -11,30 +13,7 @@ command -v head >/dev/null 2>&1 || { echo >&2 "Hosty requires 'head' but it's no
 command -v cat >/dev/null 2>&1 || { echo >&2 "Hosty requires 'cat' but it's not installed."; exit 1; }
 command -v crontab >/dev/null 2>&1 || { echo >&2 "Hosty requires 'crontab' but it's not installed."; exit 1; }
 
-echo "======== Welcome to hosty installer ========"
-echo "========    astrolince.com/hosty    ========"
-echo
-
-# Checking root
-echo "Checking if user has root access..."
-
-prompt=$(sudo -nv 2>&1)
-
-if [ $? -eq 0 ] || [ "$EUID" -eq 0 ]; then
-    echo "OK"
-    echo
-    MainHosty
-elif echo $prompt | grep -q '^sudo:'; then
-    echo
-    echo "Requesting sudo..."
-    sudo MainHosty
-    echo
-else
-    echo
-    echo "You don't have sudo access, please fix that or run it from root."
-    exit 1
-fi
-
+# Define main function
 MainHosty () {
     if [ -f /usr/local/bin/hosty ]; then
         echo "Removing existing hosty..."
@@ -84,3 +63,28 @@ MainHosty () {
     
     echo "Done."
 }
+
+# Start script
+echo "======== Welcome to hosty installer ========"
+echo "========    astrolince.com/hosty    ========"
+echo
+
+# Check root and exec main function as it
+echo "Checking if user has root access..."
+
+prompt=$(sudo -nv 2>&1)
+
+if [ $? -eq 0 ] || [ "$EUID" -eq 0 ]; then
+    echo "OK"
+    echo
+    MainHosty
+elif echo $prompt | grep -q '^sudo:'; then
+    echo
+    echo "Requesting sudo..."
+    sudo MainHosty
+    echo
+else
+    echo
+    echo "You don't have sudo access, please fix that or run it from root."
+    exit 1
+fi
