@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Creating tmp files
 astrokeys=$(mktemp)
@@ -7,9 +7,7 @@ signature=$(mktemp)
 
 # Download function
 downloadFiles() {
-    curl -H 'Cache-Control: no-cache' -fsSL -o $1 $2
-
-    if [ $? != 0 ]; then
+    if ! curl -H 'Cache-Control: no-cache' -fsSL -o "$1" "$2"; then
         echo "Error downloading $2"
         rm "$astrokeys" "$hosty" "$signature"
         exit 1
@@ -23,16 +21,14 @@ downloadFiles "$signature" https://raw.githubusercontent.com/astrolince/hosty/ma
 
 # Verify signature
 gpg --dearmor "$astrokeys" >/dev/null 2>&1
-gpg --no-default-keyring --keyring "$astrokeys.gpg" --verify "$signature" "$hosty" >/dev/null 2>&1
 
 # If there is a problem, kill the program
-if [ $? -eq 0 ]
-then
-    rm "$astrokeys" "$signature" "$astrokeys.gpg"
-    bash <(cat "$hosty") $*
-    rm "$hosty"
-else
+if ! gpg --no-default-keyring --keyring "$astrokeys.gpg" --verify "$signature" "$hosty" >/dev/null 2>&1; then
     rm "$astrokeys" "$hosty" "$signature" "$astrokeys.gpg"
     echo "There is a problem with the signature, probably hosty repository was compromised, no changes were made to your system."
     exit 1
 fi
+
+rm "$astrokeys" "$signature" "$astrokeys.gpg"
+bash "$hosty" "$*"
+rm "$hosty"
