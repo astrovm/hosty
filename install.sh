@@ -77,7 +77,8 @@ echo "Checking if user has root access..."
 if [ "$EUID" -ne 0 ]; then
     prompt=$(sudo -nv 2>&1)
     if [ $? -eq 0 ]; then
-        echo "OK"
+        echo
+        echo "Using already granted sudo access..."
     elif echo $prompt | grep -q '^sudo:'; then
         echo
         echo "Requesting sudo..."
