@@ -10,16 +10,7 @@ CheckDep() {
     }
 }
 
-CheckDep grep
 CheckDep curl
-CheckDep chmod
-CheckDep bash
-CheckDep gpg
-CheckDep awk
-CheckDep head
-CheckDep cat
-CheckDep crontab
-CheckDep id
 
 # Define main function
 MainHosty() {

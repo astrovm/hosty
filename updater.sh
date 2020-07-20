@@ -1,5 +1,17 @@
 #!/bin/sh
 
+# Check dependences
+CheckDep() {
+    command -v "$1" >/dev/null 2>&1 || {
+        echo >&2 "Hosty requires '$1' but it's not installed."
+        exit 1
+    }
+}
+
+CheckDep gpg
+CheckDep curl
+CheckDep bash
+
 # Creating tmp files
 astrokeys=$(mktemp)
 hosty=$(mktemp)
