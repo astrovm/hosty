@@ -15,6 +15,8 @@ command -v crontab >/dev/null 2>&1 || { echo >&2 "Hosty requires 'crontab' but i
 
 # Define main function
 MainHosty () {
+    echo
+    
     if [ -f /usr/local/bin/hosty ]; then
         echo "Removing existing hosty..."
         rm /usr/local/bin/hosty
@@ -74,7 +76,6 @@ echo "Checking if user has root access..."
 
 if [ "$EUID" -eq 0 ]; then
     echo "OK"
-    echo
     MainHosty
 fi
 
@@ -82,7 +83,6 @@ prompt=$(sudo -nv 2>&1)
 
 if [ $? -eq 0 ]; then
     echo "OK"
-    echo
     DECL=$(declare -f MainHosty)
     sudo bash -c "$DECL; MainHosty"
 elif echo $prompt | grep -q '^sudo:'; then
