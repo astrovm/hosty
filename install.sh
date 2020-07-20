@@ -74,24 +74,23 @@ echo
 # Check root and exec main function as it
 echo "Checking if user has root access..."
 
-if [ "$EUID" -eq 0 ]; then
-    echo "OK"
-    MainHosty
-fi
-
-prompt=$(sudo -nv 2>&1)
-
-if [ $? -eq 0 ]; then
-    echo "OK"
+if [ "$EUID" -ne 0 ]; then
+    prompt=$(sudo -nv 2>&1)
+    if [ $? -eq 0 ]; then
+        echo "OK"
+    elif echo $prompt | grep -q '^sudo:'; then
+        echo
+        echo "Requesting sudo..."
+    else
+        echo
+        echo "You don't have sudo access, please fix that or run it from root."
+        exit 1
+    fi
+    
     DECL=$(declare -f MainHosty)
     sudo bash -c "$DECL; MainHosty"
-elif echo $prompt | grep -q '^sudo:'; then
-    echo
-    echo "Requesting sudo..."
-    DECL=$(declare -f MainHosty)
-    sudo bash -c "$DECL; MainHosty"
-else
-    echo
-    echo "You don't have sudo access, please fix that or run it from root."
-    exit 1
+    exit 0
 fi
+
+echo "OK"
+MainHosty
