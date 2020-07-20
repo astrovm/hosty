@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty v1.7.0 (20/Jul/20) ========"
+echo "======== hosty v1.7.1 (20/Jul/20) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
@@ -248,6 +248,7 @@ downloadFile() {
     fi
 
     if [[ $1 == *.zip ]]; then
+        CheckDep zcat
         tmp_zcat=$(mktemp)
         if ! zcat "$tmp_downloadFile" >"$tmp_zcat"; then
             rm "$tmp_zcat"
@@ -256,6 +257,7 @@ downloadFile() {
         cat "$tmp_zcat" >"$tmp_downloadFile"
         rm "$tmp_zcat"
     elif [[ $1 == *.7z ]]; then
+        CheckDep 7z
         tmp_7z=$(mktemp)
         if ! 7z e -so -bd "$tmp_downloadFile" >"$tmp_7z"; then
             rm "$tmp_7z"
@@ -305,6 +307,8 @@ blacklist_domains=$(mktemp)
 for i in "${BLACKLIST_SOURCES[@]}"; do
     if ! downloadFile "$i"; then
         echo "Error downloading $i"
+        rm "$tmp_downloadFile"
+        break
     fi
 
     cat "$tmp_downloadFile" >>"$blacklist_domains"
@@ -328,6 +332,8 @@ whitelist_domains=$(mktemp)
 for i in "${WHITELIST_SOURCES[@]}"; do
     if ! downloadFile "$i"; then
         echo "Error downloading $i"
+        rm "$tmp_downloadFile"
+        break
     fi
 
     cat "$tmp_downloadFile" >>"$whitelist_domains"
