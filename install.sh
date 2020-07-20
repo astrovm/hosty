@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 echo
 
@@ -46,7 +46,7 @@ MainHosty() {
 
     if [ -f /usr/local/bin/hosty ]; then
         echo "Removing existing hosty..."
-        rm /usr/local/bin/hosty
+        $1 rm /usr/local/bin/hosty
         echo
     fi
 
@@ -57,11 +57,11 @@ MainHosty() {
     # Check user answer
     if [ "$answer" = "y" ]; then
         echo "Installing hosty..."
-        curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/updater.sh
+        $1 curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/updater.sh
         echo
     elif [ "$answer" = "n" ]; then
         echo "Installing hosty..."
-        curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
+        $1 curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
         echo
     else
         echo "Bad answer, exiting..."
@@ -69,7 +69,7 @@ MainHosty() {
     fi
 
     echo "Fixing permissions..."
-    chmod 755 /usr/local/bin/hosty
+    $1 chmod 755 /usr/local/bin/hosty
     echo
 
     echo "Checking optional dependencies..."
@@ -83,7 +83,7 @@ MainHosty() {
 
     # Check user answer
     if [ "$answer" = "y" ]; then
-        /usr/local/bin/hosty --autorun </dev/tty
+        $1 /usr/local/bin/hosty --autorun </dev/tty
         exit 0
     elif [ "$answer" != "n" ]; then
         echo "Bad answer, exiting..."
@@ -101,7 +101,7 @@ echo
 # Check root and exec main function as it
 echo "Checking if user has root access..."
 
-if [ "$EUID" -ne 0 ]; then
+if [ "$(id -u)" != 0 ]; then
     echo
 
     if ! prompt=$(sudo -nv 2>&1); then
@@ -115,8 +115,7 @@ if [ "$EUID" -ne 0 ]; then
         echo "Using already granted sudo access..."
     fi
 
-    DECL=$(declare -f MainHosty)
-    sudo bash -c "$DECL; MainHosty"
+    MainHosty sudo
     exit 0
 fi
 
