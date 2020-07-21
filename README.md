@@ -25,17 +25,18 @@ In the predefined list we don't accept political censorship or paternalistic goa
 * zcat
 * gpg
 * crontab
+* bash
 
 ### Install the requirements
 
 * **Ubuntu/Mint/Elementary/Pop/Debian:**
-`$ sudo apt install curl gawk p7zip-full gzip gnupg`
+`$ sudo apt install curl gawk p7zip-full gzip gnupg cron bash`
 
 * **Arch/Manjaro/Antergos:**
-`$ sudo pacman -S curl gawk p7zip gzip gnupg cronie`
+`$ sudo pacman -S --needed curl gawk p7zip gzip gnupg cronie bash`
 
 * **Fedora/RHEL/CentOS:**
-`$ sudo dnf install curl gawk p7zip p7zip-plugins gzip gnupg2 cronie`
+`$ sudo dnf install curl gawk p7zip p7zip-plugins gzip gnupg2 cronie bash`
 
 ### Install hosty
 
