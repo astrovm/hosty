@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty v1.7.2 (23/Jul/20) ========"
+echo "======== hosty v1.7.3 (23/Jul/20) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
@@ -13,7 +13,7 @@ CheckDep() {
 }
 
 CheckDep curl
-CheckDep awk
+CheckDep gawk
 CheckDep head
 CheckDep cat
 
@@ -124,7 +124,7 @@ fi
 
 # Copy original hosts file and handle --restore
 user_hosts_file=$(mktemp)
-user_hosts_linesnumber=$(awk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter-1}' /etc/hosts)
+user_hosts_linesnumber=$(gawk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter-1}' /etc/hosts)
 
 # If hosty has never been executed, don't restore anything
 if [ "$user_hosts_linesnumber" -lt 0 ]; then
@@ -142,7 +142,7 @@ else
     # If --restore is present, restore original hosts and exit
     if [ "$1" == "--restore" ]; then
         # Remove empty lines from begin and end
-        awk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >/etc/hosts
+        gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >/etc/hosts
         echo "/etc/hosts restore completed."
         exit 0
     fi
@@ -274,26 +274,26 @@ extractDomains() {
     echo
     echo "Extracting domains..."
     # Remove whitespace at beginning of the line
-    awk -i inplace '{gsub(/^[[:space:]]*/,""); print}' "$1"
+    gawk -i inplace '{gsub(/^[[:space:]]*/,""); print}' "$1"
     # Remove lines that start with '!'
-    awk -i inplace '!/^!/' "$1"
+    gawk -i inplace '!/^!/' "$1"
     # Remove '#' and everything that follows
-    awk -i inplace '{gsub(/#.*/,""); print}' "$1"
+    gawk -i inplace '{gsub(/#.*/,""); print}' "$1"
     # Replace with new lines everything that isn't letters, numbers, hyphens and dots
-    awk -i inplace '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1"
+    gawk -i inplace '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1"
     # Remove lines that don't have dots
-    awk -i inplace '/\./' "$1"
+    gawk -i inplace '/\./' "$1"
     # Remove lines that don't start with a letter or number
-    awk -i inplace '/^[a-zA-Z0-9]/' "$1"
+    gawk -i inplace '/^[a-zA-Z0-9]/' "$1"
     # Remove lines that end with a dot
-    awk -i inplace '!/\.$/' "$1"
+    gawk -i inplace '!/\.$/' "$1"
     # Removing important system ips
-    awk -i inplace '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1"
+    gawk -i inplace '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1"
     # Remove duplicates
-    awk -i inplace '!x[$0]++' "$1"
+    gawk -i inplace '!x[$0]++' "$1"
 
     # Count extacted domains
-    domains_counter=$(awk 'BEGIN{counter=0}{counter++;}END{print counter}' "$1")
+    domains_counter=$(gawk 'BEGIN{counter=0}{counter++;}END{print counter}' "$1")
     echo "$domains_counter domains extracted."
 
     return 0
@@ -353,7 +353,7 @@ echo "Building /etc/hosts..."
 final_hosts_file=$(mktemp)
 
 # Remove empty lines from begin and end
-awk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >"$final_hosts_file"
+gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >"$final_hosts_file"
 
 # Add blank line at the end
 {
@@ -366,16 +366,16 @@ echo
 echo "Cleaning and de-duplicating..."
 
 # Here we take the urls from the original hosts file and we add them to the whitelist to ensure that these urls behave like the user expects
-awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' "$user_hosts_file" >>"$whitelist_domains"
+gawk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' "$user_hosts_file" >>"$whitelist_domains"
 
 # Applying the whitelist and dedup
-awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whitelist_domains" "$blacklist_domains" >>"$final_hosts_file"
+gawk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whitelist_domains" "$blacklist_domains" >>"$final_hosts_file"
 
 # Remove tmp files
 rm "$blacklist_domains" "$whitelist_domains" "$user_hosts_file"
 
 # Count websites blocked
-websites_blocked_counter=$(awk "/$IP/ {count++} END{print count}" "$final_hosts_file")
+websites_blocked_counter=$(gawk "/$IP/ {count++} END{print count}" "$final_hosts_file")
 
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
     cat "$final_hosts_file" >/etc/hosts
