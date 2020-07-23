@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty v1.7.1 (20/Jul/20) ========"
+echo "======== hosty v1.7.2 (23/Jul/20) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
@@ -12,7 +12,6 @@ CheckDep() {
     }
 }
 
-CheckDep grep
 CheckDep curl
 CheckDep awk
 CheckDep head
@@ -376,7 +375,7 @@ awk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whi
 rm "$blacklist_domains" "$whitelist_domains" "$user_hosts_file"
 
 # Count websites blocked
-websites_blocked_counter=$(grep -c "$IP" "$final_hosts_file")
+websites_blocked_counter=$(awk "/$IP/ {count++} END{print count}" "$final_hosts_file")
 
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
     cat "$final_hosts_file" >/etc/hosts
