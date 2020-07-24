@@ -8,7 +8,7 @@ hosty
 ![GitHub stars](https://img.shields.io/github/stars/astrolince/hosty.svg?label=Star&style=social)
 ![GitHub forks](https://img.shields.io/github/forks/astrolince/hosty.svg?label=Fork&style=social)](https://github.com/astrolince/hosty)
 
-System-wide ad blocker for Linux.
+System-wide ad blocker for Linux/Unix/BSD/Mac.
 
 Hosty aims to block annoying things designed to steal time like ads, dangerous software such as spyware and things that harms user privacy. By default it works by downloading a predefined list of domains to block and adding them to the hosts file of your system (keeping the existing rules intact).
 
@@ -22,10 +22,10 @@ In the predefined list we don't accept political censorship or paternalistic goa
 * bash
 * curl
 * gawk
-* gpg (optional for automatic hosty version update)
-* crontab (optional for automatic hosts file update)
-* 7z (optional for .7z sources)
-* zcat (optional for .zip sources)
+* gpg/gnupg (optional for automatic hosty version update)
+* crontab/cronie (optional for automatic hosts file update)
+* 7z/p7zip (optional for .7z sources)
+* zcat/gzip (optional for .zip sources)
 
 ### Install the requirements
 

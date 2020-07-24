@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty v1.7.3 (23/Jul/20) ========"
+echo "======== hosty v1.7.4 (23/Jul/20) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
@@ -12,6 +12,7 @@ CheckDep() {
     }
 }
 
+CheckDep bash
 CheckDep curl
 CheckDep gawk
 CheckDep head

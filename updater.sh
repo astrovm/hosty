@@ -8,9 +8,9 @@ CheckDep() {
     }
 }
 
-CheckDep gpg
-CheckDep curl
 CheckDep bash
+CheckDep curl
+CheckDep gpg
 
 # Creating tmp files
 astrokeys=$(mktemp)
