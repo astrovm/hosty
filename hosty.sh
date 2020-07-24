@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "======== hosty v1.7.4 (23/Jul/20) ========"
+echo "======== hosty v1.7.5 (23/Jul/20) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
@@ -66,45 +66,45 @@ WHITELIST_SOURCES=("https://raw.githubusercontent.com/anudeepND/whitelist/master
 IP="0.0.0.0"
 
 # Check if running as root
-if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
-    if [ "$EUID" -ne 0 ]; then
+if [[ "$1" != "--debug" ]] && [[ "$2" != "--debug" ]]; then
+    if [[ "$EUID" -ne 0 ]]; then
         echo "Please run as root"
         exit 1
     fi
 
     # --uninstall option
-    if [ "$1" == "--uninstall" ]; then
-        if [ -d /etc/hosty ]; then
+    if [[ "$1" == "--uninstall" ]]; then
+        if [[ -d /etc/hosty ]]; then
             # Ask user to remove hosty config
             echo "Do you want to remove /etc/hosty configs directory? y/n"
             read -r answer
             echo
 
             # Check user answer
-            if [ "$answer" == "y" ]; then
+            if [[ "$answer" == "y" ]]; then
                 echo "Removing hosty configs directory..."
                 rm -R /etc/hosty
                 echo
-            elif [ "$answer" != "n" ]; then
+            elif [[ "$answer" != "n" ]]; then
                 echo "Bad answer, exiting..."
                 exit 1
             fi
         fi
 
         # Remove autorun config
-        if [ -f /etc/cron.daily/hosty ]; then
+        if [[ -f /etc/cron.daily/hosty ]]; then
             echo "Removing /etc/cron.daily/hosty..."
             echo
             rm /etc/cron.daily/hosty
         fi
 
-        if [ -f /etc/cron.weekly/hosty ]; then
+        if [[ -f /etc/cron.weekly/hosty ]]; then
             echo "Removing /etc/cron.weekly/hosty..."
             echo
             rm /etc/cron.weekly/hosty
         fi
 
-        if [ -f /etc/cron.monthly/hosty ]; then
+        if [[ -f /etc/cron.monthly/hosty ]]; then
             echo "Removing /etc/cron.monthly/hosty..."
             echo
             rm /etc/cron.monthly/hosty
@@ -128,8 +128,8 @@ user_hosts_file=$(mktemp)
 user_hosts_linesnumber=$(gawk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter-1}' /etc/hosts)
 
 # If hosty has never been executed, don't restore anything
-if [ "$user_hosts_linesnumber" -lt 0 ]; then
-    if [ "$1" == "--restore" ]; then
+if [[ "$user_hosts_linesnumber" -lt 0 ]]; then
+    if [[ "$1" == "--restore" ]]; then
         echo "There is nothing to restore."
         exit 0
     fi
@@ -141,7 +141,7 @@ else
     head -n "$user_hosts_linesnumber" /etc/hosts >"$user_hosts_file"
 
     # If --restore is present, restore original hosts and exit
-    if [ "$1" == "--restore" ]; then
+    if [[ "$1" == "--restore" ]]; then
         # Remove empty lines from begin and end
         gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >/etc/hosts
         echo "/etc/hosts restore completed."
@@ -150,9 +150,16 @@ else
 fi
 
 # Cron options
-if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
+if [[ "$1" == "--autorun" ]] || [[ "$2" == "--autorun" ]]; then
     echo "Configuring autorun..."
+
+    # Check system compatibility
     CheckDep crontab
+    if [[ ! -d /etc/cron.daily ]] || [[ ! -d /etc/cron.weekly ]] || [[ ! -d /etc/cron.monthly ]]; then
+        echo
+        echo "Hosty doesn't know how to autorun in your operating system, you need to configure that by yourself."
+        exit 1
+    fi
 
     # Ask user for autorun period
     echo
@@ -161,32 +168,32 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
     read -r period
 
     # Check user answer
-    if [ "$period" != "daily" ] && [ "$period" != "weekly" ] && [ "$period" != "monthly" ] && [ "$period" != "never" ]; then
+    if [[ "$period" != "daily" ]] && [[ "$period" != "weekly" ]] && [[ "$period" != "monthly" ]] && [[ "$period" != "never" ]]; then
         echo
         echo "Bad answer, exiting..."
         exit 1
     else
         # Remove previous config
-        if [ -f /etc/cron.daily/hosty ]; then
+        if [[ -f /etc/cron.daily/hosty ]]; then
             echo
             echo "Removing /etc/cron.daily/hosty..."
             rm /etc/cron.daily/hosty
         fi
 
-        if [ -f /etc/cron.weekly/hosty ]; then
+        if [[ -f /etc/cron.weekly/hosty ]]; then
             echo
             echo "Removing /etc/cron.weekly/hosty..."
             rm /etc/cron.weekly/hosty
         fi
 
-        if [ -f /etc/cron.monthly/hosty ]; then
+        if [[ -f /etc/cron.monthly/hosty ]]; then
             echo
             echo "Removing /etc/cron.monthly/hosty..."
             rm /etc/cron.monthly/hosty
         fi
 
         # Stop here if the user has chosen 'never'
-        if [ "$period" == "never" ]; then
+        if [[ "$period" == "never" ]]; then
             echo
             echo "Done."
             exit 0
@@ -201,7 +208,7 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
         echo '#!/bin/sh' >"$cron_file"
 
         # If user have passed the --ignore-default-sources argument, autorun with that
-        if [ "$1" != "--ignore-default-sources" ] && [ "$2" != "--ignore-default-sources" ]; then
+        if [[ "$1" != "--ignore-default-sources" ]] && [[ "$2" != "--ignore-default-sources" ]]; then
             echo '/usr/local/bin/hosty' >>"$cron_file"
         else
             echo
@@ -219,20 +226,20 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
 fi
 
 # Remove default sources if the user want that
-if [ "$1" == "--ignore-default-sources" ] || [ "$2" == "--ignore-default-sources" ]; then
+if [[ "$1" == "--ignore-default-sources" ]] || [[ "$2" == "--ignore-default-sources" ]]; then
     BLACKLIST_SOURCES=()
     WHITELIST_SOURCES=()
 fi
 
 # User custom blacklists sources
-if [ -f /etc/hosty/blacklist.sources ]; then
+if [[ -f /etc/hosty/blacklist.sources ]]; then
     while read -r line; do
         BLACKLIST_SOURCES+=("$line")
     done </etc/hosty/blacklist.sources
 fi
 
 # User custom whitelist sources
-if [ -f /etc/hosty/whitelist.sources ]; then
+if [[ -f /etc/hosty/whitelist.sources ]]; then
     while read -r line; do
         WHITELIST_SOURCES+=("$line")
     done </etc/hosty/whitelist.sources
@@ -317,7 +324,7 @@ done
 
 echo
 echo "Applying user custom blacklist..."
-if [ -f /etc/hosty/blacklist ]; then
+if [[ -f /etc/hosty/blacklist ]]; then
     cat "/etc/hosty/blacklist" >>"$blacklist_domains"
 fi
 
@@ -342,7 +349,7 @@ done
 
 echo
 echo "Applying user custom whitelist..."
-if [ -f /etc/hosty/whitelist ]; then
+if [[ -f /etc/hosty/whitelist ]]; then
     cat "/etc/hosty/whitelist" >>"$whitelist_domains"
 fi
 
@@ -378,7 +385,7 @@ rm "$blacklist_domains" "$whitelist_domains" "$user_hosts_file"
 # Count websites blocked
 websites_blocked_counter=$(gawk "/$IP/ {count++} END{print count}" "$final_hosts_file")
 
-if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
+if [[ "$1" != "--debug" ]] && [[ "$2" != "--debug" ]]; then
     cat "$final_hosts_file" >/etc/hosts
     rm "$final_hosts_file"
 else
