@@ -32,11 +32,22 @@ In the predefined list we don't accept political censorship or paternalistic goa
 * **Ubuntu/Mint/Elementary/Pop/Debian:**
 `$ sudo apt install bash curl gawk gnupg cron p7zip-full gzip`
 
-* **Arch/Manjaro/Antergos:**
+* **Arch/Manjaro/Endeavour:**
 `$ sudo pacman -S --needed bash curl gawk gnupg cronie p7zip gzip`
 
-* **Fedora/RHEL/CentOS:**
+* **Fedora/RHEL/Rocky Linux:**
 `$ sudo dnf install bash curl gawk gnupg2 cronie p7zip p7zip-plugins gzip`
+
+* **Sailfish OS:**
+`$ devel-su zypper install p7zip-full gawk gzip gnu-bash`  
+`$ devel-su ln -s /usr/bin/gpg2 /usr/bin/gpg`  
+Install vixie-cron from openrepos.net: https://openrepos.net/content/ade/vixie-cron  
+Install & configure `sudo` in Sailfish to properly use of hosty:  
+`$ devel-su pkcon install sudo`  
+Add "defaultuser" as "sudoer" using "nano":  
+`$ devel-su nano /etc/sudoers`  
+Adding at the end of the file:  
+`defaultuser ALL=(ALL) ALL`
 
 ### Install hosty
 
@@ -48,7 +59,29 @@ The installer will ask you if you want to always run the latest version of hosty
 
 Still, you may not like to trust me, you can also install hosty without automatic code updates and manually check if updates are available.
 
-You will also be asked if you want to automatically run hosty every so often to update your hosts file with latest domains list.
+You will also be asked if you want to automatically run hosty every so often to update your hosts file with latest domains list.  
+
+### Aditional steps to install hosty in Sailfish OS  
+
+During installation hosty will ask if you want to automatically run hosty from time to time to update your hosts file with the latest list of domains.
+
+We answer the following questions:
+
+    Do you want to always run the latest version of hosty? Y
+
+    Do you want to automatically update your hosts file with latest ads list? n
+
+Once hosty ends its installation, just run again:
+
+`$ curl -L git.io/hosty | sh`
+
+### Extend Ad Blocking to Sailfish OS Android App Support
+
+Add this line to `/var/lib/lxc/aliendalvik/extra_config` (create the file if it doesn't exist):  
+
+`$ sudo nano /var/lib/lxc/aliendalvik/extra_config`  
+
+`lxc.mount.entry = /etc/hosts system/etc/hosts none bind,create=file 0 0`  
 
 ## Run hosty
 
