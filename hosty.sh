@@ -230,10 +230,10 @@ if [[ "$1" == "--ignore-default-sources" ]] || [[ "$2" == "--ignore-default-sour
 fi
 
 # User custom blacklists sources
-if [[ -f /etc/hosty/blacklist.sources ]]; then
+if [[ -f /etc/hosty/denylist.sources ]]; then
     while read -r line; do
         BLACKLIST_SOURCES+=("$line")
-    done </etc/hosty/blacklist.sources
+    done </etc/hosty/denylist.sources
 fi
 
 # User custom whitelist sources
@@ -305,7 +305,7 @@ extractDomains() {
     return 0
 }
 
-echo "Downloading blacklists..."
+echo "Downloading denylists..."
 blacklist_domains=$(mktemp)
 
 # Download blacklist sources and merge into one
@@ -321,9 +321,9 @@ for i in "${BLACKLIST_SOURCES[@]}"; do
 done
 
 echo
-echo "Applying user custom blacklist..."
-if [[ -f /etc/hosty/blacklist ]]; then
-    cat "/etc/hosty/blacklist" >>"$blacklist_domains"
+echo "Applying user custom denylist..."
+if [[ -f /etc/hosty/denylist ]]; then
+    cat "/etc/hosty/denylist" >>"$blacklist_domains"
 fi
 
 # Extract domains from blacklist sources
