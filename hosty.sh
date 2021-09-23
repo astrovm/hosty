@@ -237,10 +237,10 @@ if [[ -f /etc/hosty/blacklist.sources ]]; then
 fi
 
 # User custom whitelist sources
-if [[ -f /etc/hosty/whitelist.sources ]]; then
+if [[ -f /etc/hosty/allowlist.sources ]]; then
     while read -r line; do
         WHITELIST_SOURCES+=("$line")
-    done </etc/hosty/whitelist.sources
+    done </etc/hosty/allowlist.sources
 fi
 
 # Function to download sources
@@ -330,7 +330,7 @@ fi
 extractDomains "$blacklist_domains"
 
 echo
-echo "Downloading whitelists..."
+echo "Downloading allowlists..."
 whitelist_domains=$(mktemp)
 
 # Download whitelist sources and merge into one
@@ -346,9 +346,9 @@ for i in "${WHITELIST_SOURCES[@]}"; do
 done
 
 echo
-echo "Applying user custom whitelist..."
-if [[ -f /etc/hosty/whitelist ]]; then
-    cat "/etc/hosty/whitelist" >>"$whitelist_domains"
+echo "Applying user custom allowlist..."
+if [[ -f /etc/hosty/allowlist ]]; then
+    cat "/etc/hosty/allowlist" >>"$whitelist_domains"
 fi
 
 # Extract domains from whitelist sources
