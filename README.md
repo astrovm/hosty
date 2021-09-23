@@ -99,20 +99,20 @@ Hosty can be configured to periodically update your hosts file with:
 
 It will ask how often you want to execute it. A `hosty` file in `/etc/cron.daily`, `/etc/cron.weekly` or `/etc/cron.monthly` will be created.
 
-## Blacklist
+## Denylist
 
-Hosty will keep your hosts file modifications if you don't write them below the indicated line, but you can also use a blacklist.
+Hosty will keep your hosts file modifications if you don't write them below the indicated line, but you can also use a denylist.
 
-Add the domains to block editing the file `/etc/hosty/blacklist` (with root permissions), one domain name per line:
+Add the domains to block editing the file `/etc/hosty/denylist` (with root permissions), one domain name per line:
 
 ```
 facebook.com
 wwww.facebook.com
 ```
 
-## Whitelist
+## Allowlist
 
-You can include exceptions editing the file `/etc/hosty/whitelist` (with root permissions), one domain name per line:
+You can include exceptions editing the file `/etc/hosty/allowlist` (with root permissions), one domain name per line:
 
 ```
 astrolince.com
@@ -123,11 +123,11 @@ www.astrolince.com
 
 If you want to add additional custom sources from the internet,  create a text file in:
 
-`/etc/hosty/blacklist.sources` for files with domains to block
+`/etc/hosty/denylist.sources` for files with domains to block
 
 or/and
 
-`/etc/hosty/whitelist.sources` for files with domains to unblock
+`/etc/hosty/allowlist.sources` for files with domains to unblock
 
 and write in them one url per line:
 
@@ -135,7 +135,7 @@ and write in them one url per line:
 
 Hosty will take all domains separated by some symbol, space or new line, so it supports hosts-style files and files with just domains.
 
-ABP, uBlock Origin, Brave and AdGuard files are accepted too, but take in account that ANY not-commented domain will be used, so it's safer to use them in whitelists than in blacklists (a website that you don't want to block can end up blocked if exists in the file).
+ABP, uBlock Origin, Brave and AdGuard files are accepted too, but take in account that ANY not-commented domain will be used, so it's safer to use them in allowlists than in denylists (a website that you don't want to block can end up blocked if exists in the file).
 
 You can also run hosty using ONLY your custom sources with:
 
