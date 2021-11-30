@@ -39,7 +39,9 @@ In the predefined list we don't accept political censorship or paternalistic goa
 `$ sudo dnf install bash curl gawk gnupg2 cronie p7zip p7zip-plugins gzip`
 
 * **Sailfish OS:**
-`$ devel-su zypper install p7zip-full gawk gzip gnu-bash`  
+`$ devel-su pkcon install zypper`  
+`$ devel-su zypper install p7zip-full gawk gzip`  
+`$ devel-su zypper install gnu-bash` (This action will remove busybox-symlinks-bash package under your responsibility)  
 `$ devel-su ln -s /usr/bin/gpg2 /usr/bin/gpg`  
 Install vixie-cron from openrepos.net: https://openrepos.net/content/ade/vixie-cron  
 Install & configure `sudo` in Sailfish to properly use of hosty:  
