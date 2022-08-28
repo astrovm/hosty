@@ -24,19 +24,17 @@ In the predefined list we don't accept political censorship or paternalistic goa
 * gawk
 * gpg/gnupg (optional for automatic hosty version update)
 * crontab/cronie (optional for automatic hosts file update)
-* 7z/p7zip (optional for .7z sources)
-* zcat/gzip (optional for .zip sources)
 
 ### Install the requirements
 
 * **Ubuntu/Mint/Pop/Debian:**
-`$ sudo apt install bash curl gawk gnupg cron p7zip-full gzip`
+`$ sudo apt install bash curl gawk gnupg cron`
 
 * **Arch/Manjaro/Endeavour:**
-`$ sudo pacman -S --needed bash curl gawk gnupg cronie p7zip gzip`
+`$ sudo pacman -S --needed bash curl gawk gnupg cronie`
 
 * **Fedora/RHEL/Rocky:**
-`$ sudo dnf in bash curl gawk gnupg2 cronie p7zip p7zip-plugins gzip`
+`$ sudo dnf in bash curl gawk gnupg2 cronie`
 
 ### Install hosty
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 echo "======== hosty v1.7.6 (10/Mar/21) ========"
 echo "========   astrolince.com/hosty   ========"
@@ -19,90 +19,54 @@ CheckDep head
 CheckDep cat
 
 # We'll block every domain that is inside these files
-BLACKLIST_SOURCES=("https://adaway.org/hosts.txt"
-    "https://bitbucket.org/ethanr/dns-blacklists/raw/8575c9f96e5b4a1308f2f12394abd86d0927a4a0/bad_lists/Mandiant_APT1_Report_Appendix_D.txt"
-    "https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-blocklist.txt"
-    "https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt"
-    "https://hostfiles.frogeye.fr/firstparty-trackers-hosts.txt"
-    "https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt"
-    "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext"
-    "https://phishing.army/download/phishing_army_blocklist_extended.txt"
-    "https://raw.githubusercontent.com/anudeepND/blacklist/master/adservers.txt"
-    "https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts"
-    "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt"
-    "https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Alternate%20versions%20Anti-Malware%20List/AntiMalwareHosts.txt"
-    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.2o7Net/hosts"
-    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts"
-    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts"
-    "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts"
-    "https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts_without_controversies.txt"
-    "https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt"
-    "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt"
-    "https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt"
-    "https://urlhaus.abuse.ch/downloads/hostfile/"
-    "https://v.firebog.net/hosts/AdguardDNS.txt"
-    "https://v.firebog.net/hosts/Admiral.txt"
-    "https://v.firebog.net/hosts/Easylist.txt"
-    "https://v.firebog.net/hosts/Easyprivacy.txt"
-    "https://v.firebog.net/hosts/Prigent-Ads.txt"
-    "https://v.firebog.net/hosts/Shalla-mal.txt"
-    "https://v.firebog.net/hosts/static/w3kbl.txt"
-    "https://www.malwaredomainlist.com/hostslist/hosts.txt")
+BLACKLIST_SOURCES="https://adaway.org/hosts.txt"
 
 # We'll unblock every domain that is inside these files
-WHITELIST_SOURCES=("https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/optional-list.txt"
-    "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/referral-sites.txt"
-    "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt"
-    "https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist"
-    "https://raw.githubusercontent.com/brave/adblock-lists/master/brave-unbreak.txt"
-    "https://raw.githubusercontent.com/raghavdua1995/DNSlock-PiHole-whitelist/master/whitelist.list"
-    "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/unbreak.txt"
-    "https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser"
-    "https://zerodot1.gitlab.io/CoinBlockerLists/hosts_optional")
+WHITELIST_SOURCES="https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/optional-list.txt"
 
 # Set IP to redirect
 IP="0.0.0.0"
 
 # Check if running as root
-if [[ "$1" != "--debug" ]] && [[ "$2" != "--debug" ]]; then
-    if [[ "$EUID" -ne 0 ]]; then
+if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
+    if [ "$EUID" -ne 0 ]; then
         echo "Please run as root"
         exit 1
     fi
 
     # --uninstall option
-    if [[ "$1" == "--uninstall" ]]; then
-        if [[ -d /etc/hosty ]]; then
+    if [ "$1" == "--uninstall" ]; then
+        if [ -d /etc/hosty ]; then
             # Ask user to remove hosty config
             echo "Do you want to remove /etc/hosty configs directory? y/n"
             read -r answer
             echo
 
             # Check user answer
-            if [[ "$answer" == "y" ]]; then
+            if [ "$answer" == "y" ]; then
                 echo "Removing hosty configs directory..."
                 rm -R /etc/hosty
                 echo
-            elif [[ "$answer" != "n" ]]; then
+            elif [ "$answer" != "n" ]; then
                 echo "Bad answer, exiting..."
                 exit 1
             fi
         fi
 
         # Remove autorun config
-        if [[ -f /etc/cron.daily/hosty ]]; then
+        if [ -f /etc/cron.daily/hosty ]; then
             echo "Removing /etc/cron.daily/hosty..."
             echo
             rm /etc/cron.daily/hosty
         fi
 
-        if [[ -f /etc/cron.weekly/hosty ]]; then
+        if [ -f /etc/cron.weekly/hosty ]; then
             echo "Removing /etc/cron.weekly/hosty..."
             echo
             rm /etc/cron.weekly/hosty
         fi
 
-        if [[ -f /etc/cron.monthly/hosty ]]; then
+        if [ -f /etc/cron.monthly/hosty ]; then
             echo "Removing /etc/cron.monthly/hosty..."
             echo
             rm /etc/cron.monthly/hosty
@@ -126,8 +90,8 @@ user_hosts_file=$(mktemp)
 user_hosts_linesnumber=$(gawk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter-1}' /etc/hosts)
 
 # If hosty has never been executed, don't restore anything
-if [[ "$user_hosts_linesnumber" -lt 0 ]]; then
-    if [[ "$1" == "--restore" ]]; then
+if [ "$user_hosts_linesnumber" -lt 0 ]; then
+    if [ "$1" == "--restore" ]; then
         echo "There is nothing to restore."
         exit 0
     fi
@@ -139,7 +103,7 @@ else
     head -n "$user_hosts_linesnumber" /etc/hosts >"$user_hosts_file"
 
     # If --restore is present, restore original hosts and exit
-    if [[ "$1" == "--restore" ]]; then
+    if [ "$1" == "--restore" ]; then
         # Remove empty lines from begin and end
         gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >/etc/hosts
         echo "/etc/hosts restore completed."
@@ -148,12 +112,12 @@ else
 fi
 
 # Cron options
-if [[ "$1" == "--autorun" ]] || [[ "$2" == "--autorun" ]]; then
+if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
     echo "Configuring autorun..."
 
     # Check system compatibility
     CheckDep crontab
-    if [[ ! -d /etc/cron.daily ]] || [[ ! -d /etc/cron.weekly ]] || [[ ! -d /etc/cron.monthly ]]; then
+    if [ ! -d /etc/cron.daily ] || [ ! -d /etc/cron.weekly ] || [ ! -d /etc/cron.monthly ]; then
         echo
         echo "Hosty doesn't know how to autorun in your operating system, you need to configure that by yourself."
         exit 1
@@ -166,32 +130,32 @@ if [[ "$1" == "--autorun" ]] || [[ "$2" == "--autorun" ]]; then
     read -r period
 
     # Check user answer
-    if [[ "$period" != "daily" ]] && [[ "$period" != "weekly" ]] && [[ "$period" != "monthly" ]] && [[ "$period" != "never" ]]; then
+    if [ "$period" != "daily" ] && [ "$period" != "weekly" ] && [ "$period" != "monthly" ] && [ "$period" != "never" ]; then
         echo
         echo "Bad answer, exiting..."
         exit 1
     else
         # Remove previous config
-        if [[ -f /etc/cron.daily/hosty ]]; then
+        if [ -f /etc/cron.daily/hosty ]; then
             echo
             echo "Removing /etc/cron.daily/hosty..."
             rm /etc/cron.daily/hosty
         fi
 
-        if [[ -f /etc/cron.weekly/hosty ]]; then
+        if [ -f /etc/cron.weekly/hosty ]; then
             echo
             echo "Removing /etc/cron.weekly/hosty..."
             rm /etc/cron.weekly/hosty
         fi
 
-        if [[ -f /etc/cron.monthly/hosty ]]; then
+        if [ -f /etc/cron.monthly/hosty ]; then
             echo
             echo "Removing /etc/cron.monthly/hosty..."
             rm /etc/cron.monthly/hosty
         fi
 
         # Stop here if the user has chosen 'never'
-        if [[ "$period" == "never" ]]; then
+        if [ "$period" = "never" ]; then
             echo
             echo "Done."
             exit 0
@@ -206,7 +170,7 @@ if [[ "$1" == "--autorun" ]] || [[ "$2" == "--autorun" ]]; then
         echo '#!/bin/sh' >"$cron_file"
 
         # If user have passed the --ignore-default-sources argument, autorun with that
-        if [[ "$1" != "--ignore-default-sources" ]] && [[ "$2" != "--ignore-default-sources" ]]; then
+        if [ "$1" != "--ignore-default-sources" ] && [ "$2" != "--ignore-default-sources" ]; then
             echo '/usr/local/bin/hosty' >>"$cron_file"
         else
             echo
@@ -224,20 +188,20 @@ if [[ "$1" == "--autorun" ]] || [[ "$2" == "--autorun" ]]; then
 fi
 
 # Remove default sources if the user want that
-if [[ "$1" == "--ignore-default-sources" ]] || [[ "$2" == "--ignore-default-sources" ]]; then
+if [ "$1" == "--ignore-default-sources" ] || [ "$2" == "--ignore-default-sources" ]; then
     BLACKLIST_SOURCES=()
     WHITELIST_SOURCES=()
 fi
 
 # User custom blacklists sources
-if [[ -f /etc/hosty/blacklist.sources ]]; then
+if [ -f /etc/hosty/blacklist.sources ]; then
     while read -r line; do
         BLACKLIST_SOURCES+=("$line")
     done </etc/hosty/blacklist.sources
 fi
 
 # User custom whitelist sources
-if [[ -f /etc/hosty/whitelist.sources ]]; then
+if [ -f /etc/hosty/whitelist.sources ]; then
     while read -r line; do
         WHITELIST_SOURCES+=("$line")
     done </etc/hosty/whitelist.sources
@@ -250,26 +214,6 @@ downloadFile() {
     echo "Downloading $1..."
     if ! curl -fsSL -o "$tmp_downloadFile" "$1"; then
         return $?
-    fi
-
-    if [[ $1 == *.zip ]]; then
-        CheckDep zcat
-        tmp_zcat=$(mktemp)
-        if ! zcat "$tmp_downloadFile" >"$tmp_zcat"; then
-            rm "$tmp_zcat"
-            return $?
-        fi
-        cat "$tmp_zcat" >"$tmp_downloadFile"
-        rm "$tmp_zcat"
-    elif [[ $1 == *.7z ]]; then
-        CheckDep 7z
-        tmp_7z=$(mktemp)
-        if ! 7z e -so -bd "$tmp_downloadFile" >"$tmp_7z"; then
-            rm "$tmp_7z"
-            return $?
-        fi
-        cat "$tmp_7z" >"$tmp_downloadFile"
-        rm "$tmp_7z"
     fi
 
     return 0
@@ -322,7 +266,7 @@ done
 
 echo
 echo "Applying user custom blacklist..."
-if [[ -f /etc/hosty/blacklist ]]; then
+if [ -f /etc/hosty/blacklist ]; then
     cat "/etc/hosty/blacklist" >>"$blacklist_domains"
 fi
 
@@ -347,7 +291,7 @@ done
 
 echo
 echo "Applying user custom whitelist..."
-if [[ -f /etc/hosty/whitelist ]]; then
+if [ -f /etc/hosty/whitelist ]; then
     cat "/etc/hosty/whitelist" >>"$whitelist_domains"
 fi
 
@@ -383,7 +327,7 @@ rm "$blacklist_domains" "$whitelist_domains" "$user_hosts_file"
 # Count websites blocked
 websites_blocked_counter=$(gawk "/$IP/ {count++} END{print count}" "$final_hosts_file")
 
-if [[ "$1" != "--debug" ]] && [[ "$2" != "--debug" ]]; then
+if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
     cat "$final_hosts_file" >/etc/hosts
     rm "$final_hosts_file"
 else
