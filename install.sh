@@ -44,11 +44,6 @@ MainHosty() {
     $1 chmod 755 /usr/local/bin/hosty
     echo
 
-    echo "Checking optional dependencies..."
-    command -v zcat >/dev/null 2>&1 || { echo >&2 "Hosty can require 'zcat' if you want to use custom .zip sources, but it's not installed."; }
-    command -v 7z >/dev/null 2>&1 || { echo >&2 "Hosty can require '7z' if you want to use custom .7z sources, but it's not installed."; }
-    echo
-
     echo "Do you want to automatically update your hosts file with latest ads list? (recommended) y/n"
     read -r answer </dev/tty
     echo

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo "======== hosty v1.7.6 (10/Mar/21) ========"
+echo "======== hosty v1.8.0 (28/Aug/22) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
@@ -19,23 +19,23 @@ CheckDep head
 CheckDep cat
 
 # We'll block every domain that is inside these files
-BLACKLIST_SOURCES="https://adaway.org/hosts.txt"
+BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
 
 # We'll unblock every domain that is inside these files
-WHITELIST_SOURCES="https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/optional-list.txt"
+WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
 
 # Set IP to redirect
 IP="0.0.0.0"
 
 # Check if running as root
 if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
-    if [ "$EUID" -ne 0 ]; then
+    if [ "$(id -u)" != 0 ]; then
         echo "Please run as root"
         exit 1
     fi
 
     # --uninstall option
-    if [ "$1" == "--uninstall" ]; then
+    if [ "$1" = "--uninstall" ]; then
         if [ -d /etc/hosty ]; then
             # Ask user to remove hosty config
             echo "Do you want to remove /etc/hosty configs directory? y/n"
@@ -43,7 +43,7 @@ if [ "$1" != "--debug" ] && [ "$2" != "--debug" ]; then
             echo
 
             # Check user answer
-            if [ "$answer" == "y" ]; then
+            if [ "$answer" = "y" ]; then
                 echo "Removing hosty configs directory..."
                 rm -R /etc/hosty
                 echo
@@ -91,7 +91,7 @@ user_hosts_linesnumber=$(gawk '/^# Ad blocking hosts generated/ {counter=NR} END
 
 # If hosty has never been executed, don't restore anything
 if [ "$user_hosts_linesnumber" -lt 0 ]; then
-    if [ "$1" == "--restore" ]; then
+    if [ "$1" = "--restore" ]; then
         echo "There is nothing to restore."
         exit 0
     fi
@@ -103,7 +103,7 @@ else
     head -n "$user_hosts_linesnumber" /etc/hosts >"$user_hosts_file"
 
     # If --restore is present, restore original hosts and exit
-    if [ "$1" == "--restore" ]; then
+    if [ "$1" = "--restore" ]; then
         # Remove empty lines from begin and end
         gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >/etc/hosts
         echo "/etc/hosts restore completed."
@@ -112,7 +112,7 @@ else
 fi
 
 # Cron options
-if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
+if [ "$1" = "--autorun" ] || [ "$2" = "--autorun" ]; then
     echo "Configuring autorun..."
 
     # Check system compatibility
@@ -187,26 +187,6 @@ if [ "$1" == "--autorun" ] || [ "$2" == "--autorun" ]; then
     fi
 fi
 
-# Remove default sources if the user want that
-if [ "$1" == "--ignore-default-sources" ] || [ "$2" == "--ignore-default-sources" ]; then
-    BLACKLIST_SOURCES=()
-    WHITELIST_SOURCES=()
-fi
-
-# User custom blacklists sources
-if [ -f /etc/hosty/blacklist.sources ]; then
-    while read -r line; do
-        BLACKLIST_SOURCES+=("$line")
-    done </etc/hosty/blacklist.sources
-fi
-
-# User custom whitelist sources
-if [ -f /etc/hosty/whitelist.sources ]; then
-    while read -r line; do
-        WHITELIST_SOURCES+=("$line")
-    done </etc/hosty/whitelist.sources
-fi
-
 # Function to download sources
 downloadFile() {
     tmp_downloadFile=$(mktemp)
@@ -218,6 +198,40 @@ downloadFile() {
 
     return 0
 }
+
+blacklist_sources=$(mktemp)
+whitelist_sources=$(mktemp)
+
+# Remove default sources if the user want that
+if [ ! "$1" = "--ignore-default-sources" ] && [ ! "$2" = "--ignore-default-sources" ]; then
+    if ! downloadFile "$BLACKLIST_DEFAULT_SOURCE"; then
+        echo "Error downloading $BLACKLIST_DEFAULT_SOURCE"
+        rm "$tmp_downloadFile"
+        exit 1
+    fi
+
+    cat "$tmp_downloadFile" >>"$blacklist_sources"
+    rm "$tmp_downloadFile"
+
+    if ! downloadFile "$WHITELIST_DEFAULT_SOURCE"; then
+        echo "Error downloading $WHITELIST_DEFAULT_SOURCE"
+        rm "$tmp_downloadFile"
+        exit 1
+    fi
+
+    cat "$tmp_downloadFile" >>"$whitelist_sources"
+    rm "$tmp_downloadFile"
+fi
+
+# User custom blacklists sources
+if [ -f /etc/hosty/blacklist.sources ]; then
+    cat /etc/hosty/blacklist.sources >>"$blacklist_sources"
+fi
+
+# User custom whitelist sources
+if [ -f /etc/hosty/whitelist.sources ]; then
+    cat /etc/hosty/whitelist.sources >>"$whitelist_sources"
+fi
 
 # Take all domains of any text file
 extractDomains() {
@@ -253,16 +267,17 @@ echo "Downloading blacklists..."
 blacklist_domains=$(mktemp)
 
 # Download blacklist sources and merge into one
-for i in "${BLACKLIST_SOURCES[@]}"; do
-    if ! downloadFile "$i"; then
-        echo "Error downloading $i"
+
+while read -r line; do
+    if ! downloadFile "$line"; then
+        echo "Error downloading $line"
         rm "$tmp_downloadFile"
         break
     fi
 
     cat "$tmp_downloadFile" >>"$blacklist_domains"
     rm "$tmp_downloadFile"
-done
+done <"$blacklist_sources"
 
 echo
 echo "Applying user custom blacklist..."
@@ -278,16 +293,16 @@ echo "Downloading whitelists..."
 whitelist_domains=$(mktemp)
 
 # Download whitelist sources and merge into one
-for i in "${WHITELIST_SOURCES[@]}"; do
-    if ! downloadFile "$i"; then
-        echo "Error downloading $i"
+while read -r line; do
+    if ! downloadFile "$line"; then
+        echo "Error downloading $line"
         rm "$tmp_downloadFile"
         break
     fi
 
     cat "$tmp_downloadFile" >>"$whitelist_domains"
     rm "$tmp_downloadFile"
-done
+done <"$whitelist_sources"
 
 echo
 echo "Applying user custom whitelist..."
