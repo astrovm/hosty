@@ -29,14 +29,14 @@ In the predefined list we don't accept political censorship or paternalistic goa
 
 ### Install the requirements
 
-* **Ubuntu/Mint/Elementary/Pop/Debian:**
+* **Ubuntu/Mint/Pop/Debian:**
 `$ sudo apt install bash curl gawk gnupg cron p7zip-full gzip`
 
 * **Arch/Manjaro/Endeavour:**
 `$ sudo pacman -S --needed bash curl gawk gnupg cronie p7zip gzip`
 
-* **Fedora/RHEL/Rocky Linux:**
-`$ sudo dnf install bash curl gawk gnupg2 cronie p7zip p7zip-plugins gzip`
+* **Fedora/RHEL/Rocky:**
+`$ sudo dnf in bash curl gawk gnupg2 cronie p7zip p7zip-plugins gzip`
 
 ### Install hosty
 
