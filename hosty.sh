@@ -464,8 +464,8 @@ gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "
 # Add blank line at the end
 {
     echo
-    echo "# Ad blocking hosts generated $(date)" >>"$final_hosts_file"
-    echo "# Don't write below this line. It will be lost if you run hosty again." >>"$final_hosts_file"
+    echo "# Ad blocking hosts generated $(date)"
+    echo "# Don't write below this line. It will be lost if you run hosty again."
 } >>"$final_hosts_file"
 
 echo
