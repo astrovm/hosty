@@ -15,7 +15,7 @@ checkDep() {
 checkDep curl
 
 # Define main function
-MainHosty() {
+mainHosty() {
     echo
 
     if [ -f /usr/local/bin/hosty ]; then
@@ -84,9 +84,9 @@ if [ "$(id -u)" != 0 ]; then
         echo "Using already granted sudo access..."
     fi
 
-    MainHosty sudo
+    mainHosty sudo
     exit 0
 fi
 
 echo "OK"
-MainHosty
+mainHosty
