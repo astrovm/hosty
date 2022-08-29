@@ -3,7 +3,7 @@
 set -euf
 
 VERSION="1.8.0"
-DATE="28/Aug/22"
+DATE="29/Aug/22"
 URL="astrolince.com/hosty"
 
 # @getoptions
@@ -368,6 +368,8 @@ whitelist_sources=$(mktemp)
 
 # Remove default sources if the user want that
 if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
+    echo "Downloading default sources..."
+
     if ! downloadFile "$BLACKLIST_DEFAULT_SOURCE"; then
         echo "Error downloading $BLACKLIST_DEFAULT_SOURCE"
         rm "$tmp_downloadFile"
@@ -387,16 +389,21 @@ if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
     rm "$tmp_downloadFile"
 fi
 
-# User custom blacklists sources
+# User custom blacklist sources
 if [ -f /etc/hosty/blacklist.sources ]; then
+    echo
+    echo "Adding custom blacklist sources..."
     cat /etc/hosty/blacklist.sources >>"$blacklist_sources"
 fi
 
 # User custom whitelist sources
 if [ -f /etc/hosty/whitelist.sources ]; then
+    echo
+    echo "Adding custom whitelist sources..."
     cat /etc/hosty/whitelist.sources >>"$whitelist_sources"
 fi
 
+echo
 echo "Downloading blacklists..."
 blacklist_domains=$(mktemp)
 
@@ -413,9 +420,9 @@ while read -r line; do
     rm "$tmp_downloadFile"
 done <"$blacklist_sources"
 
-echo
-echo "Applying user custom blacklist..."
 if [ -f /etc/hosty/blacklist ]; then
+    echo
+    echo "Applying user custom blacklist..."
     cat "/etc/hosty/blacklist" >>"$blacklist_domains"
 fi
 
@@ -438,9 +445,9 @@ while read -r line; do
     rm "$tmp_downloadFile"
 done <"$whitelist_sources"
 
-echo
-echo "Applying user custom whitelist..."
 if [ -f /etc/hosty/whitelist ]; then
+    echo
+    echo "Applying user custom whitelist..."
     cat "/etc/hosty/whitelist" >>"$whitelist_domains"
 fi
 
