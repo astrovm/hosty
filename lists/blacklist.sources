@@ -1,6 +1,5 @@
 https://adaway.org/hosts.txt
 https://bitbucket.org/ethanr/dns-blacklists/raw/8575c9f96e5b4a1308f2f12394abd86d0927a4a0/bad_lists/Mandiant_APT1_Report_Appendix_D.txt
-https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-blocklist.txt
 https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt
 https://hostfiles.frogeye.fr/firstparty-trackers-hosts.txt
 https://malware-filter.gitlab.io/malware-filter/phishing-filter-hosts.txt
@@ -26,6 +25,4 @@ https://v.firebog.net/hosts/Admiral.txt
 https://v.firebog.net/hosts/Easylist.txt
 https://v.firebog.net/hosts/Easyprivacy.txt
 https://v.firebog.net/hosts/Prigent-Ads.txt
-https://v.firebog.net/hosts/Shalla-mal.txt
 https://v.firebog.net/hosts/static/w3kbl.txt
-https://www.malwaredomainlist.com/hostslist/hosts.txt
