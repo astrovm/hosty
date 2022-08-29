@@ -1,22 +1,65 @@
 #!/bin/sh
 
+set -euf
+
 echo "======== hosty v1.8.0 (28/Aug/22) ========"
 echo "========   astrolince.com/hosty   ========"
 echo
 
 # Check dependences
-CheckDep() {
+checkDep() {
     command -v "$1" >/dev/null 2>&1 || {
         echo >&2 "Hosty requires '$1' but it's not installed."
         exit 1
     }
 }
 
-CheckDep bash
-CheckDep curl
-CheckDep gawk
-CheckDep head
-CheckDep cat
+checkDep curl
+checkDep gawk
+checkDep head
+checkDep cat
+
+# Function to download sources
+downloadFile() {
+    tmp_downloadFile=$(mktemp)
+
+    echo "Downloading $1..."
+    if ! curl -fsSL -o "$tmp_downloadFile" "$1"; then
+        return $?
+    fi
+
+    return 0
+}
+
+# Take all domains of any text file
+extractDomains() {
+    echo
+    echo "Extracting domains..."
+    # Remove whitespace at beginning of the line
+    gawk -i inplace '{gsub(/^[[:space:]]*/,""); print}' "$1"
+    # Remove lines that start with '!'
+    gawk -i inplace '!/^!/' "$1"
+    # Remove '#' and everything that follows
+    gawk -i inplace '{gsub(/#.*/,""); print}' "$1"
+    # Replace with new lines everything that isn't letters, numbers, hyphens and dots
+    gawk -i inplace '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1"
+    # Remove lines that don't have dots
+    gawk -i inplace '/\./' "$1"
+    # Remove lines that don't start with a letter or number
+    gawk -i inplace '/^[a-zA-Z0-9]/' "$1"
+    # Remove lines that end with a dot
+    gawk -i inplace '!/\.$/' "$1"
+    # Removing important system ips
+    gawk -i inplace '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1"
+    # Remove duplicates
+    gawk -i inplace '!x[$0]++' "$1"
+
+    # Count extacted domains
+    domains_counter=$(gawk 'BEGIN{counter=0}{counter++;}END{print counter}' "$1")
+    echo "$domains_counter domains extracted."
+
+    return 0
+}
 
 # We'll block every domain that is inside these files
 BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
@@ -116,7 +159,7 @@ if [ "$1" = "--autorun" ] || [ "$2" = "--autorun" ]; then
     echo "Configuring autorun..."
 
     # Check system compatibility
-    CheckDep crontab
+    checkDep crontab
     if [ ! -d /etc/cron.daily ] || [ ! -d /etc/cron.weekly ] || [ ! -d /etc/cron.monthly ]; then
         echo
         echo "Hosty doesn't know how to autorun in your operating system, you need to configure that by yourself."
@@ -187,18 +230,6 @@ if [ "$1" = "--autorun" ] || [ "$2" = "--autorun" ]; then
     fi
 fi
 
-# Function to download sources
-downloadFile() {
-    tmp_downloadFile=$(mktemp)
-
-    echo "Downloading $1..."
-    if ! curl -fsSL -o "$tmp_downloadFile" "$1"; then
-        return $?
-    fi
-
-    return 0
-}
-
 blacklist_sources=$(mktemp)
 whitelist_sources=$(mktemp)
 
@@ -232,36 +263,6 @@ fi
 if [ -f /etc/hosty/whitelist.sources ]; then
     cat /etc/hosty/whitelist.sources >>"$whitelist_sources"
 fi
-
-# Take all domains of any text file
-extractDomains() {
-    echo
-    echo "Extracting domains..."
-    # Remove whitespace at beginning of the line
-    gawk -i inplace '{gsub(/^[[:space:]]*/,""); print}' "$1"
-    # Remove lines that start with '!'
-    gawk -i inplace '!/^!/' "$1"
-    # Remove '#' and everything that follows
-    gawk -i inplace '{gsub(/#.*/,""); print}' "$1"
-    # Replace with new lines everything that isn't letters, numbers, hyphens and dots
-    gawk -i inplace '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1"
-    # Remove lines that don't have dots
-    gawk -i inplace '/\./' "$1"
-    # Remove lines that don't start with a letter or number
-    gawk -i inplace '/^[a-zA-Z0-9]/' "$1"
-    # Remove lines that end with a dot
-    gawk -i inplace '!/\.$/' "$1"
-    # Removing important system ips
-    gawk -i inplace '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1"
-    # Remove duplicates
-    gawk -i inplace '!x[$0]++' "$1"
-
-    # Count extacted domains
-    domains_counter=$(gawk 'BEGIN{counter=0}{counter++;}END{print counter}' "$1")
-    echo "$domains_counter domains extracted."
-
-    return 0
-}
 
 echo "Downloading blacklists..."
 blacklist_domains=$(mktemp)

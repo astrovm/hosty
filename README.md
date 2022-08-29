@@ -19,7 +19,6 @@ In the predefined list we don't accept political censorship or paternalistic goa
 ## Installation
 
 ### Requirements
-* bash
 * curl
 * gawk
 * gpg/gnupg (optional for automatic hosty version update)

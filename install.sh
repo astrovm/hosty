@@ -1,16 +1,18 @@
 #!/bin/sh
 
+set -euf
+
 echo
 
 # Check dependences
-CheckDep() {
+checkDep() {
     command -v "$1" >/dev/null 2>&1 || {
         echo >&2 "Hosty requires '$1' but it's not installed."
         exit 1
     }
 }
 
-CheckDep curl
+checkDep curl
 
 # Define main function
 MainHosty() {

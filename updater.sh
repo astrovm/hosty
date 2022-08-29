@@ -1,16 +1,17 @@
 #!/bin/sh
 
+set -euf
+
 # Check dependences
-CheckDep() {
+checkDep() {
     command -v "$1" >/dev/null 2>&1 || {
         echo >&2 "Hosty requires '$1' but it's not installed."
         exit 1
     }
 }
 
-CheckDep bash
-CheckDep curl
-CheckDep gpg
+checkDep curl
+checkDep gpg
 
 # Creating tmp files
 astrokeys=$(mktemp)
@@ -42,5 +43,6 @@ if ! gpg --no-default-keyring --keyring "$astrokeys.gpg" --verify "$signature" "
 fi
 
 rm "$astrokeys" "$signature" "$astrokeys.gpg"
-bash "$hosty" "$*"
+# shellcheck source=/dev/null
+. "$hosty"
 rm "$hosty"
