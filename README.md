@@ -1,5 +1,4 @@
-hosty
-=====
+# hosty
 
 [![GitHub code size](https://img.shields.io/github/languages/code-size/astrolince/hosty.svg)
 ![GitHub last commit](https://img.shields.io/github/last-commit/astrolince/hosty.svg)
@@ -19,21 +18,25 @@ In the predefined list we don't accept political censorship or paternalistic goa
 ## Installation
 
 ### Requirements
-* curl
-* gawk
-* gpg/gnupg (optional for automatic hosty version update)
-* crontab/cronie (optional for automatic hosts file update)
+
+- curl
+- gawk
+- gpg/gnupg (optional for automatic hosty version update)
+- crontab/cronie (optional for automatic hosts file update)
 
 ### Install the requirements
 
-* **Ubuntu/Mint/Pop/Debian:**
-`$ sudo apt install bash curl gawk gnupg cron`
+- **Ubuntu/Mint/Pop/Debian:**
+  `$ sudo apt install curl gawk gnupg cron`
 
-* **Arch/Manjaro/Endeavour:**
-`$ sudo pacman -S --needed bash curl gawk gnupg cronie`
+- **Arch/Manjaro/Endeavour:**
+  `$ sudo pacman -S --needed curl gawk gnupg cronie`
 
-* **Fedora/RHEL/Rocky:**
-`$ sudo dnf in bash curl gawk gnupg2 cronie`
+- **Fedora/RHEL/Rocky:**
+  `$ sudo dnf in curl gawk gnupg2 cronie`
+
+- **Mac:**
+  `$ brew install gawk gnupg`
 
 ### Install hosty
 
@@ -45,7 +48,7 @@ The installer will ask you if you want to always run the latest version of hosty
 
 Still, you may not like to trust me, you can also install hosty without automatic code updates and manually check if updates are available.
 
-You will also be asked if you want to automatically run hosty every so often to update your hosts file with latest domains list.  
+You will also be asked if you want to automatically run hosty every so often to update your hosts file with latest domains list.
 
 ## Run hosty
 
@@ -85,7 +88,7 @@ www.astrolince.com
 
 ## Custom sources
 
-If you want to add additional custom sources from the internet,  create a text file in:
+If you want to add additional custom sources from the internet, create a text file in:
 
 `/etc/hosty/blacklist.sources` for files with domains to block
 
