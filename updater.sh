@@ -12,6 +12,7 @@ checkDep() {
 
 checkDep curl
 checkDep gpg
+checkDep mktemp
 
 # Creating tmp files
 astrokeys=$(mktemp)
