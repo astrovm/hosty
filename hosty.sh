@@ -152,48 +152,6 @@ checkDep gawk
 checkDep head
 checkDep cat
 
-# Function to download sources
-downloadFile() {
-    tmp_downloadFile=$(mktemp)
-
-    echo "Downloading $1..."
-    if ! curl -fsSL -o "$tmp_downloadFile" "$1"; then
-        return $?
-    fi
-
-    return 0
-}
-
-# Take all domains of any text file
-extractDomains() {
-    echo
-    echo "Extracting domains..."
-    # Remove whitespace at beginning of the line
-    gawk -i inplace '{gsub(/^[[:space:]]*/,""); print}' "$1"
-    # Remove lines that start with '!'
-    gawk -i inplace '!/^!/' "$1"
-    # Remove '#' and everything that follows
-    gawk -i inplace '{gsub(/#.*/,""); print}' "$1"
-    # Replace with new lines everything that isn't letters, numbers, hyphens and dots
-    gawk -i inplace '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1"
-    # Remove lines that don't have dots
-    gawk -i inplace '/\./' "$1"
-    # Remove lines that don't start with a letter or number
-    gawk -i inplace '/^[a-zA-Z0-9]/' "$1"
-    # Remove lines that end with a dot
-    gawk -i inplace '!/\.$/' "$1"
-    # Removing important system ips
-    gawk -i inplace '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1"
-    # Remove duplicates
-    gawk -i inplace '!x[$0]++' "$1"
-
-    # Count extacted domains
-    domains_counter=$(gawk 'BEGIN{counter=0}{counter++;}END{print counter}' "$1")
-    echo "$domains_counter domains extracted."
-
-    return 0
-}
-
 # We'll block every domain that is inside these files
 BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
 
@@ -363,6 +321,18 @@ if [ "$AUTORUN" ]; then
     fi
 fi
 
+# Function to download sources
+downloadFile() {
+    tmp_downloadFile=$(mktemp)
+
+    echo "Downloading $1..."
+    if ! curl -fsSL -o "$tmp_downloadFile" "$1"; then
+        return $?
+    fi
+
+    return 0
+}
+
 blacklist_sources=$(mktemp)
 whitelist_sources=$(mktemp)
 
@@ -425,6 +395,36 @@ if [ -f /etc/hosty/blacklist ]; then
     echo "Applying user custom blacklist..."
     cat "/etc/hosty/blacklist" >>"$blacklist_domains"
 fi
+
+# Take all domains of any text file
+extractDomains() {
+    echo
+    echo "Extracting domains..."
+    # Remove whitespace at beginning of the line
+    gawk -i inplace '{gsub(/^[[:space:]]*/,""); print}' "$1"
+    # Remove lines that start with '!'
+    gawk -i inplace '!/^!/' "$1"
+    # Remove '#' and everything that follows
+    gawk -i inplace '{gsub(/#.*/,""); print}' "$1"
+    # Replace with new lines everything that isn't letters, numbers, hyphens and dots
+    gawk -i inplace '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1"
+    # Remove lines that don't have dots
+    gawk -i inplace '/\./' "$1"
+    # Remove lines that don't start with a letter or number
+    gawk -i inplace '/^[a-zA-Z0-9]/' "$1"
+    # Remove lines that end with a dot
+    gawk -i inplace '!/\.$/' "$1"
+    # Removing important system ips
+    gawk -i inplace '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1"
+    # Remove duplicates
+    gawk -i inplace '!x[$0]++' "$1"
+
+    # Count extacted domains
+    domains_counter=$(gawk 'BEGIN{counter=0}{counter++;}END{print counter}' "$1")
+    echo "$domains_counter domains extracted."
+
+    return 0
+}
 
 # Extract domains from blacklist sources
 extractDomains "$blacklist_domains"
