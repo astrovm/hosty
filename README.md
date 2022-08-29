@@ -21,8 +21,8 @@ In the predefined list we don't accept political censorship or paternalistic goa
 
 - curl
 - gawk
-- gpg/gnupg (optional for automatic hosty version update)
-- crontab/cronie (optional for automatic hosts file update)
+- gpg (optional for automatic hosty version update)
+- cronie (optional for automatic hosts file update)
 
 ### Install the requirements
 
