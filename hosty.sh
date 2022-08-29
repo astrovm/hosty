@@ -83,7 +83,7 @@ parse() {
         --)
             shift
             while [ $# -gt 0 ]; do
-                REST="${REST} \"\${$(($OPTIND - $#))}\""
+                REST="${REST} \"\${$((OPTIND - $#))}\""
                 shift
             done
             break
@@ -93,7 +93,7 @@ parse() {
             break
             ;;
         *)
-            REST="${REST} \"\${$(($OPTIND - $#))}\""
+            REST="${REST} \"\${$((OPTIND - $#))}\""
             ;;
         esac
         shift
