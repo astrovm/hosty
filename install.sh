@@ -1,19 +1,21 @@
 #!/bin/sh
 
+set -euf
+
 echo
 
 # Check dependences
-CheckDep() {
+checkDep() {
     command -v "$1" >/dev/null 2>&1 || {
         echo >&2 "Hosty requires '$1' but it's not installed."
         exit 1
     }
 }
 
-CheckDep curl
+checkDep curl
 
 # Define main function
-MainHosty() {
+mainHosty() {
     echo
 
     if [ -f /usr/local/bin/hosty ]; then
@@ -42,11 +44,6 @@ MainHosty() {
 
     echo "Fixing permissions..."
     $1 chmod 755 /usr/local/bin/hosty
-    echo
-
-    echo "Checking optional dependencies..."
-    command -v zcat >/dev/null 2>&1 || { echo >&2 "Hosty can require 'zcat' if you want to use custom .zip sources, but it's not installed."; }
-    command -v 7z >/dev/null 2>&1 || { echo >&2 "Hosty can require '7z' if you want to use custom .7z sources, but it's not installed."; }
     echo
 
     echo "Do you want to automatically update your hosts file with latest ads list? (recommended) y/n"
@@ -87,9 +84,9 @@ if [ "$(id -u)" != 0 ]; then
         echo "Using already granted sudo access..."
     fi
 
-    MainHosty sudo
+    mainHosty sudo
     exit 0
 fi
 
 echo "OK"
-MainHosty
+mainHosty
