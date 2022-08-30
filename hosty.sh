@@ -5,6 +5,9 @@ set -euf
 VERSION="1.8.1"
 DATE="29/Aug/22"
 URL="astrolince.com/hosty"
+BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
+WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
+IP="0.0.0.0"
 
 # @getoptions
 parser_definition() {
@@ -152,15 +155,6 @@ checkDep head
 checkDep cat
 checkDep mktemp
 checkDep printf
-
-# We'll block every domain that is inside these files
-BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
-
-# We'll unblock every domain that is inside these files
-WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
-
-# Set IP to redirect
-IP="0.0.0.0"
 
 # Check if running as root
 if [ ! "$DEBUG" ]; then
