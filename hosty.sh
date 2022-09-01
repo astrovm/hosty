@@ -2,12 +2,14 @@
 
 set -euf
 
-VERSION="1.8.1"
-DATE="29/Aug/22"
-URL="astrolince.com/hosty"
+VERSION="1.8.2"
+RELEASE_DATE="31/Aug/22"
+PROJECT_URL="astrolince.com/hosty"
 BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
 WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
-IP="0.0.0.0"
+BLOCK_IP="0.0.0.0"
+INPUT_HOSTS="/etc/hosts"
+OUTPUT_HOSTS="/etc/hosts"
 
 # @getoptions
 parser_definition() {
@@ -137,8 +139,8 @@ GETOPTIONSHERE
 parse "$@"
 eval "set -- $REST"
 
-echo "======== hosty v$VERSION ($DATE) ========"
-echo "========   $URL   ========"
+echo "======== hosty v$VERSION ($RELEASE_DATE) ========"
+echo "========   $PROJECT_URL   ========"
 echo
 
 # Check dependences
@@ -216,7 +218,7 @@ fi
 
 # Copy original hosts file and handle --restore
 user_hosts_file=$(mktemp)
-user_hosts_linesnumber=$(gawk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter-1}' /etc/hosts)
+user_hosts_linesnumber=$(gawk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter-1}' "$INPUT_HOSTS")
 
 # If hosty has never been executed, don't restore anything
 if [ "$user_hosts_linesnumber" -lt 0 ]; then
@@ -226,15 +228,15 @@ if [ "$user_hosts_linesnumber" -lt 0 ]; then
     fi
 
     # If it's the first time running hosty, save the whole /etc/hosts file in the tmp var
-    cat /etc/hosts >"$user_hosts_file"
+    cat "$INPUT_HOSTS" >"$user_hosts_file"
 else
     # Copy original hosts lines
-    head -n "$user_hosts_linesnumber" /etc/hosts >"$user_hosts_file"
+    head -n "$user_hosts_linesnumber" "$INPUT_HOSTS" >"$user_hosts_file"
 
     # If --restore is present, restore original hosts and exit
     if [ "$RESTORE" ]; then
         # Remove empty lines from begin and end
-        gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >/etc/hosts
+        gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >"$OUTPUT_HOSTS"
         echo "/etc/hosts restore completed."
         exit 0
     fi
@@ -470,16 +472,16 @@ echo "Cleaning and de-duplicating..."
 gawk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' "$user_hosts_file" >>"$whitelist_domains"
 
 # Applying the whitelist and dedup
-gawk -v ip=$IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whitelist_domains" "$blacklist_domains" >>"$final_hosts_file"
+gawk -v ip=$BLOCK_IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whitelist_domains" "$blacklist_domains" >>"$final_hosts_file"
 
 # Remove tmp files
 rm "$blacklist_domains" "$whitelist_domains" "$user_hosts_file"
 
 # Count websites blocked
-websites_blocked_counter=$(gawk "/$IP/ {count++} END{print count}" "$final_hosts_file")
+websites_blocked_counter=$(gawk "/$BLOCK_IP/ {count++} END{print count}" "$final_hosts_file")
 
 if [ ! "$DEBUG" ]; then
-    cat "$final_hosts_file" >/etc/hosts
+    cat "$final_hosts_file" >"$OUTPUT_HOSTS"
     rm "$final_hosts_file"
 else
     echo
