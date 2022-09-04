@@ -216,13 +216,12 @@ if [ "$UNINSTALL" ]; then
 
     echo
     echo "hosty uninstalled."
-
     exit 0
 fi
 
 # copy original hosts file and handle --restore
 user_hosts_file=$(mktemp)
-user_hosts_linesnumber=$(gawk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter-1}' "$INPUT_HOSTS")
+user_hosts_linesnumber=$(gawk '/^# [aA]d blocking hosts generated/ {counter=NR} END{print counter-1}' "$INPUT_HOSTS")
 
 # if hosty has never been executed, don't restore anything
 if [ "$user_hosts_linesnumber" -lt 0 ]; then
@@ -326,7 +325,7 @@ fi
 downloadFile() {
     tmp_downloadFile=$(mktemp)
 
-    echo "Downloading $1..."
+    echo "downloading $1..."
     if ! curl -fsSL -o "$tmp_downloadFile" "$1"; then
         return $?
     fi
@@ -339,7 +338,7 @@ whitelist_sources=$(mktemp)
 
 # Remove default sources if the user want that
 if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
-    echo "Downloading default sources..."
+    echo "downloading default sources..."
 
     if ! downloadFile "$BLACKLIST_DEFAULT_SOURCE"; then
         echo "Error downloading $BLACKLIST_DEFAULT_SOURCE"
@@ -375,7 +374,7 @@ if [ -f /etc/hosty/whitelist.sources ]; then
 fi
 
 echo
-echo "Downloading blacklists..."
+echo "downloading blacklists..."
 blacklist_domains=$(mktemp)
 
 # Download blacklist sources and merge into one
@@ -400,7 +399,7 @@ fi
 # Take all domains of any text file
 extractDomains() {
     echo
-    echo "Extracting domains..."
+    echo "extracting domains..."
     # Remove whitespace at beginning of the line
     printf '%s\n' "$(gawk '{gsub(/^[[:space:]]*/,""); print}' "$1")" >"$1"
     # Remove lines that start with '!'
@@ -431,7 +430,7 @@ extractDomains() {
 extractDomains "$blacklist_domains"
 
 echo
-echo "Downloading whitelists..."
+echo "downloading whitelists..."
 whitelist_domains=$(mktemp)
 
 # Download whitelist sources and merge into one
@@ -470,7 +469,7 @@ gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "
 } >>"$final_hosts_file"
 
 echo
-echo "Cleaning and de-duplicating..."
+echo "cleaning and de-duplicating..."
 
 # Here we take the urls from the original hosts file and we add them to the whitelist to ensure that these urls behave like the user expects
 gawk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' "$user_hosts_file" >>"$whitelist_domains"
@@ -491,4 +490,4 @@ echo
 echo "done, $websites_blocked_counter websites blocked."
 echo
 echo "you can always restore your original hosts file with this command:"
-echo " $ sudo hosty -r (--restore)"
+echo "$ sudo hosty -r (--restore)"
