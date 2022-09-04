@@ -20,7 +20,7 @@ In the predefined list we don't accept political censorship or paternalistic goa
 ### Requirements
 
 - curl
-- gawk
+- awk
 - gpg (optional for automatic hosty version update)
 - cronie (optional for automatic hosts file update)
 
@@ -36,7 +36,7 @@ In the predefined list we don't accept political censorship or paternalistic goa
   `$ sudo dnf in curl gawk gnupg2 cronie`
 
 - **Mac:**
-  `$ brew install gawk gnupg`
+  `$ brew install gnupg`
 
 ### Install hosty
 

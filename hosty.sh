@@ -146,7 +146,7 @@ checkDep mktemp
 checkDep sort
 
 VERSION="1.8.2"
-RELEASE_DATE="31/Aug/22"
+RELEASE_DATE="04/sep/22"
 PROJECT_URL="astrolince.com/hosty"
 BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
 WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
