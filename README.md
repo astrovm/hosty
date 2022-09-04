@@ -48,6 +48,8 @@ The installer will ask you if you want to always run the latest version of hosty
 
 Still, you may not like to trust me, you can also install hosty without automatic code updates and manually check if updates are available.
 
+You will also be asked if you want to automatically run hosty to update your hosts file with the latest domains list.
+
 ## Run hosty
 
 Enable system-wide ad blocking with:
