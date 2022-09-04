@@ -139,7 +139,7 @@ checkDep() {
 }
 
 checkDep curl
-checkDep gawk
+checkDep awk
 checkDep head
 checkDep cat
 checkDep mktemp
@@ -220,7 +220,7 @@ fi
 
 # copy original hosts file and handle --restore
 user_hosts_file=$(mktemp)
-user_hosts_linesnumber=$(gawk '/^# [aA]d blocking hosts generated/ {counter=NR} END{print counter-1}' "$INPUT_HOSTS")
+user_hosts_linesnumber=$(awk '/^# [aA]d blocking hosts generated/ {counter=NR} END{print counter-1}' "$INPUT_HOSTS")
 
 # if hosty has never been executed, don't restore anything
 if [ "$user_hosts_linesnumber" -lt 0 ]; then
@@ -238,7 +238,7 @@ else
     # if --restore is present, restore original hosts and exit
     if [ "$RESTORE" ]; then
         # remove empty lines from begin and end
-        gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >"$OUTPUT_HOSTS"
+        awk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >"$OUTPUT_HOSTS"
         echo "$OUTPUT_HOSTS restore completed."
         exit 0
     fi
@@ -400,31 +400,31 @@ extractDomains() {
     echo "extracting domains..."
     tmp_domains=$(mktemp)
     # remove whitespace at beginning of the line
-    gawk '{gsub(/^[[:space:]]*/,""); print}' "$1" >"$tmp_domains"
+    awk '{gsub(/^[[:space:]]*/,""); print}' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove lines that start with '!'
-    gawk '!/^!/' "$1" >"$tmp_domains"
+    awk '!/^!/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove '#' and everything that follows
-    gawk '{gsub(/#.*/,""); print}' "$1" >"$tmp_domains"
+    awk '{gsub(/#.*/,""); print}' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # replace with new lines everything that isn't letters, numbers, hyphens and dots
-    gawk '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1" >"$tmp_domains"
+    awk '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove lines that don't have dots
-    gawk '/\./' "$1" >"$tmp_domains"
+    awk '/\./' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove lines that don't start with a letter or number
-    gawk '/^[a-zA-Z0-9]/' "$1" >"$tmp_domains"
+    awk '/^[a-zA-Z0-9]/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove lines that end with a dot
-    gawk '!/\.$/' "$1" >"$tmp_domains"
+    awk '!/\.$/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # removing important system ips
-    gawk '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1" >"$tmp_domains"
+    awk '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove duplicates
-    gawk '!x[$0]++' "$1" >"$tmp_domains"
+    awk '!x[$0]++' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # sort
     sort "$1" >"$tmp_domains"
@@ -432,7 +432,7 @@ extractDomains() {
 
     rm "$tmp_domains"
     # count extacted domains
-    domains_counter=$(gawk 'BEGIN{counter=0}{counter++;}END{print counter}' "$1")
+    domains_counter=$(awk 'BEGIN{counter=0}{counter++;}END{print counter}' "$1")
     echo "$domains_counter domains extracted."
 
     return 0
@@ -471,7 +471,7 @@ echo "building $OUTPUT_HOSTS..."
 final_hosts_file=$(mktemp)
 
 # remove empty lines from begin and end
-gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >"$final_hosts_file"
+awk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >"$final_hosts_file"
 
 # add blank line at the end
 {
@@ -484,16 +484,16 @@ echo
 echo "cleaning and de-duplicating..."
 
 # here we take the urls from the original hosts file and we add them to the whitelist to ensure that these urls behave like the user expects
-gawk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' "$user_hosts_file" >>"$whitelist_domains"
+awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' "$user_hosts_file" >>"$whitelist_domains"
 
 # applying the whitelist and dedup
-gawk -v ip=$BLOCK_IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whitelist_domains" "$blacklist_domains" >>"$final_hosts_file"
+awk -v ip=$BLOCK_IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whitelist_domains" "$blacklist_domains" >>"$final_hosts_file"
 
 # remove tmp files
 rm "$blacklist_domains" "$whitelist_domains" "$user_hosts_file"
 
 # count websites blocked
-websites_blocked_counter=$(gawk "/$BLOCK_IP/ {count++} END{print count}" "$final_hosts_file")
+websites_blocked_counter=$(awk "/$BLOCK_IP/ {count++} END{print count}" "$final_hosts_file")
 
 cat "$final_hosts_file" >"$OUTPUT_HOSTS"
 rm "$final_hosts_file"
