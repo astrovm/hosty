@@ -130,19 +130,6 @@ GETOPTIONSHERE
 parse "$@"
 eval "set -- $REST"
 
-VERSION="1.8.2"
-RELEASE_DATE="31/Aug/22"
-PROJECT_URL="astrolince.com/hosty"
-BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
-WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
-BLOCK_IP="0.0.0.0"
-INPUT_HOSTS="/etc/hosts"
-OUTPUT_HOSTS="/etc/hosts"
-
-echo "======== hosty v$VERSION ($RELEASE_DATE) ========"
-echo "========   $PROJECT_URL   ========"
-echo
-
 # check dependences
 checkDep() {
     command -v "$1" >/dev/null 2>&1 || {
@@ -157,6 +144,19 @@ checkDep head
 checkDep cat
 checkDep mktemp
 checkDep printf
+
+VERSION="1.8.2"
+RELEASE_DATE="31/Aug/22"
+PROJECT_URL="astrolince.com/hosty"
+BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
+WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
+BLOCK_IP="0.0.0.0"
+INPUT_HOSTS="/etc/hosts"
+OUTPUT_HOSTS="/etc/hosts"
+
+echo "======== hosty v$VERSION ($RELEASE_DATE) ========"
+echo "========   $PROJECT_URL   ========"
+echo
 
 if [ "$DEBUG" ]; then
     AUTORUN=""
