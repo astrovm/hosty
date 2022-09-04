@@ -143,7 +143,7 @@ checkDep gawk
 checkDep head
 checkDep cat
 checkDep mktemp
-checkDep printf
+checkDep sort
 
 VERSION="1.8.2"
 RELEASE_DATE="31/Aug/22"
@@ -244,78 +244,78 @@ else
     fi
 fi
 
-# Cron options
+# cron options
 if [ "$AUTORUN" ]; then
-    echo "Configuring autorun..."
+    echo "configuring autorun..."
 
-    # Check system compatibility
+    # check system compatibility
     checkDep crontab
     if [ ! -d /etc/cron.daily ] || [ ! -d /etc/cron.weekly ] || [ ! -d /etc/cron.monthly ]; then
         echo
-        echo "Hosty doesn't know how to autorun in your operating system, you need to configure that by yourself."
+        echo "hosty doesn't know how to autorun in your operating system, you need to configure that by yourself."
         exit 1
     fi
 
-    # Ask user for autorun period
+    # ask user for autorun period
     echo
-    echo "How often do you want to run hosty automatically?"
-    echo "Enter 'daily', 'weekly', 'monthly' or 'never':"
+    echo "how often do you want to run hosty automatically?"
+    echo "enter 'daily', 'weekly', 'monthly' or 'never':"
     read -r period
 
-    # Check user answer
+    # check user answer
     if [ "$period" != "daily" ] && [ "$period" != "weekly" ] && [ "$period" != "monthly" ] && [ "$period" != "never" ]; then
         echo
-        echo "Bad answer, exiting..."
+        echo "bad answer, exiting..."
         exit 1
     else
-        # Remove previous config
+        # remove previous config
         if [ -f /etc/cron.daily/hosty ]; then
             echo
-            echo "Removing /etc/cron.daily/hosty..."
+            echo "removing /etc/cron.daily/hosty..."
             rm /etc/cron.daily/hosty
         fi
 
         if [ -f /etc/cron.weekly/hosty ]; then
             echo
-            echo "Removing /etc/cron.weekly/hosty..."
+            echo "removing /etc/cron.weekly/hosty..."
             rm /etc/cron.weekly/hosty
         fi
 
         if [ -f /etc/cron.monthly/hosty ]; then
             echo
-            echo "Removing /etc/cron.monthly/hosty..."
+            echo "removing /etc/cron.monthly/hosty..."
             rm /etc/cron.monthly/hosty
         fi
 
-        # Stop here if the user has chosen 'never'
+        # stop here if the user has chosen 'never'
         if [ "$period" = "never" ]; then
             echo
-            echo "Done."
+            echo "done."
             exit 0
         fi
 
-        # Set cron file with user choice
+        # set cron file with user choice
         cron_file="/etc/cron.$period/hosty"
 
-        # Create the file
+        # create the file
         echo
-        echo "Creating $cron_file..."
+        echo "creating $cron_file..."
         echo '#!/bin/sh' >"$cron_file"
 
-        # If user have passed the --ignore-default-sources argument, autorun with that
+        # if user have passed the --ignore-default-sources argument, autorun with that
         if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
             echo '/usr/local/bin/hosty' >>"$cron_file"
         else
             echo
-            echo "Config hosty with --ignore-default-sources..."
-            echo '/usr/local/bin/hosty --ignore-default-sources' >>"$cron_file"
+            echo "config hosty with --ignore-default-sources..."
+            echo '/usr/local/bin/hosty -i' >>"$cron_file"
         fi
 
-        # Set permissions
+        # set permissions
         chmod 755 "$cron_file"
 
         echo
-        echo "Done."
+        echo "done."
         exit 0
     fi
 fi
@@ -335,12 +335,12 @@ downloadFile() {
 blacklist_sources=$(mktemp)
 whitelist_sources=$(mktemp)
 
-# Remove default sources if the user want that
+# remove default sources if the user want that
 if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
     echo "downloading default sources..."
 
     if ! downloadFile "$BLACKLIST_DEFAULT_SOURCE"; then
-        echo "Error downloading $BLACKLIST_DEFAULT_SOURCE"
+        echo "error downloading $BLACKLIST_DEFAULT_SOURCE"
         rm "$tmp_downloadFile"
         exit 1
     fi
@@ -349,7 +349,7 @@ if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
     rm "$tmp_downloadFile"
 
     if ! downloadFile "$WHITELIST_DEFAULT_SOURCE"; then
-        echo "Error downloading $WHITELIST_DEFAULT_SOURCE"
+        echo "error downloading $WHITELIST_DEFAULT_SOURCE"
         rm "$tmp_downloadFile"
         exit 1
     fi
@@ -358,17 +358,17 @@ if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
     rm "$tmp_downloadFile"
 fi
 
-# User custom blacklist sources
+# user custom blacklist sources
 if [ -f /etc/hosty/blacklist.sources ]; then
     echo
-    echo "Adding custom blacklist sources..."
+    echo "adding custom blacklist sources..."
     cat /etc/hosty/blacklist.sources >>"$blacklist_sources"
 fi
 
-# User custom whitelist sources
+# user custom whitelist sources
 if [ -f /etc/hosty/whitelist.sources ]; then
     echo
-    echo "Adding custom whitelist sources..."
+    echo "adding custom whitelist sources..."
     cat /etc/hosty/whitelist.sources >>"$whitelist_sources"
 fi
 
@@ -376,11 +376,10 @@ echo
 echo "downloading blacklists..."
 blacklist_domains=$(mktemp)
 
-# Download blacklist sources and merge into one
-
+# download blacklist sources and merge into one
 while read -r line; do
     if ! downloadFile "$line"; then
-        echo "Error downloading $line"
+        echo "error downloading $line"
         rm "$tmp_downloadFile"
         break
     fi
@@ -391,51 +390,65 @@ done <"$blacklist_sources"
 
 if [ -f /etc/hosty/blacklist ]; then
     echo
-    echo "Applying user custom blacklist..."
+    echo "applying user custom blacklist..."
     cat "/etc/hosty/blacklist" >>"$blacklist_domains"
 fi
 
-# Take all domains of any text file
+# take all domains of any text file
 extractDomains() {
     echo
     echo "extracting domains..."
-    # Remove whitespace at beginning of the line
-    printf '%s\n' "$(gawk '{gsub(/^[[:space:]]*/,""); print}' "$1")" >"$1"
-    # Remove lines that start with '!'
-    printf '%s\n' "$(gawk '!/^!/' "$1")" >"$1"
-    # Remove '#' and everything that follows
-    printf '%s\n' "$(gawk '{gsub(/#.*/,""); print}' "$1")" >"$1"
-    # Replace with new lines everything that isn't letters, numbers, hyphens and dots
-    printf '%s\n' "$(gawk '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1")" >"$1"
-    # Remove lines that don't have dots
-    printf '%s\n' "$(gawk '/\./' "$1")" >"$1"
-    # Remove lines that don't start with a letter or number
-    printf '%s\n' "$(gawk '/^[a-zA-Z0-9]/' "$1")" >"$1"
-    # Remove lines that end with a dot
-    printf '%s\n' "$(gawk '!/\.$/' "$1")" >"$1"
-    # Removing important system ips
-    printf '%s\n' "$(gawk '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1")" >"$1"
-    # Remove duplicates
-    printf '%s\n' "$(gawk '!x[$0]++' "$1")" >"$1"
+    tmp_domains=$(mktemp)
+    # remove whitespace at beginning of the line
+    gawk '{gsub(/^[[:space:]]*/,""); print}' "$1" >"$tmp_domains"
+    cp "$tmp_domains" "$1"
+    # remove lines that start with '!'
+    gawk '!/^!/' "$1" >"$tmp_domains"
+    cp "$tmp_domains" "$1"
+    # remove '#' and everything that follows
+    gawk '{gsub(/#.*/,""); print}' "$1" >"$tmp_domains"
+    cp "$tmp_domains" "$1"
+    # replace with new lines everything that isn't letters, numbers, hyphens and dots
+    gawk '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1" >"$tmp_domains"
+    cp "$tmp_domains" "$1"
+    # remove lines that don't have dots
+    gawk '/\./' "$1" >"$tmp_domains"
+    cp "$tmp_domains" "$1"
+    # remove lines that don't start with a letter or number
+    gawk '/^[a-zA-Z0-9]/' "$1" >"$tmp_domains"
+    cp "$tmp_domains" "$1"
+    # remove lines that end with a dot
+    gawk '!/\.$/' "$1" >"$tmp_domains"
+    cp "$tmp_domains" "$1"
+    # removing important system ips
+    gawk '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1" >"$tmp_domains"
+    cp "$tmp_domains" "$1"
+    # remove duplicates
+    gawk '!x[$0]++' "$1" >"$tmp_domains"
+    cp "$tmp_domains" "$1"
+    # sort
+    sort "$1" >"$tmp_domains"
+    cp "$tmp_domains" "$1"
 
-    # Count extacted domains
+    rm "$tmp_domains"
+    # count extacted domains
     domains_counter=$(gawk 'BEGIN{counter=0}{counter++;}END{print counter}' "$1")
     echo "$domains_counter domains extracted."
 
     return 0
 }
 
-# Extract domains from blacklist sources
+# extract domains from blacklist sources
 extractDomains "$blacklist_domains"
 
 echo
 echo "downloading whitelists..."
 whitelist_domains=$(mktemp)
 
-# Download whitelist sources and merge into one
+# download whitelist sources and merge into one
 while read -r line; do
     if ! downloadFile "$line"; then
-        echo "Error downloading $line"
+        echo "error downloading $line"
         rm "$tmp_downloadFile"
         break
     fi
@@ -446,21 +459,21 @@ done <"$whitelist_sources"
 
 if [ -f /etc/hosty/whitelist ]; then
     echo
-    echo "Applying user custom whitelist..."
+    echo "applying user custom whitelist..."
     cat "/etc/hosty/whitelist" >>"$whitelist_domains"
 fi
 
-# Extract domains from whitelist sources
+# extract domains from whitelist sources
 extractDomains "$whitelist_domains"
 
 echo
 echo "building $OUTPUT_HOSTS..."
 final_hosts_file=$(mktemp)
 
-# Remove empty lines from begin and end
+# remove empty lines from begin and end
 gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >"$final_hosts_file"
 
-# Add blank line at the end
+# add blank line at the end
 {
     echo
     echo "# Ad blocking hosts generated $(date)"
@@ -470,16 +483,16 @@ gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "
 echo
 echo "cleaning and de-duplicating..."
 
-# Here we take the urls from the original hosts file and we add them to the whitelist to ensure that these urls behave like the user expects
+# here we take the urls from the original hosts file and we add them to the whitelist to ensure that these urls behave like the user expects
 gawk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' "$user_hosts_file" >>"$whitelist_domains"
 
-# Applying the whitelist and dedup
+# applying the whitelist and dedup
 gawk -v ip=$BLOCK_IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whitelist_domains" "$blacklist_domains" >>"$final_hosts_file"
 
-# Remove tmp files
+# remove tmp files
 rm "$blacklist_domains" "$whitelist_domains" "$user_hosts_file"
 
-# Count websites blocked
+# count websites blocked
 websites_blocked_counter=$(gawk "/$BLOCK_IP/ {count++} END{print count}" "$final_hosts_file")
 
 cat "$final_hosts_file" >"$OUTPUT_HOSTS"
