@@ -161,7 +161,6 @@ echo
 # avoid all system changes if debug mode is enabled
 if [ "$DEBUG" ]; then
     AUTORUN=""
-    RESTORE=""
     UNINSTALL=""
     OUTPUT_HOSTS=$(mktemp)
     echo "******** DEBUG MODE ON ********"
@@ -233,14 +232,14 @@ if [ "$user_hosts_linesnumber" -lt 0 ]; then
     # if it's the first time running hosty, save the whole /etc/hosts file in the tmp var
     cat "$INPUT_HOSTS" >"$user_hosts_file"
 else
-    # Copy original hosts lines
+    # copy original hosts lines
     head -n "$user_hosts_linesnumber" "$INPUT_HOSTS" >"$user_hosts_file"
 
-    # If --restore is present, restore original hosts and exit
+    # if --restore is present, restore original hosts and exit
     if [ "$RESTORE" ]; then
-        # Remove empty lines from begin and end
+        # remove empty lines from begin and end
         gawk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >"$OUTPUT_HOSTS"
-        echo "/etc/hosts restore completed."
+        echo "$OUTPUT_HOSTS restore completed."
         exit 0
     fi
 fi
