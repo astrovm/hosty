@@ -22,7 +22,7 @@ In the predefined list we don't accept political censorship or paternalistic goa
 - curl
 - awk
 - gpg (optional for automatic hosty version update)
-- cronie (optional for automatic hosts file update)
+- crontab (optional for automatic hosts file update)
 
 ### Install the requirements
 

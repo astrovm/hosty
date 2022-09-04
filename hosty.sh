@@ -250,10 +250,38 @@ if [ "$AUTORUN" ]; then
 
     # check system compatibility
     checkDep crontab
-    if [ ! -d /etc/cron.daily ] || [ ! -d /etc/cron.weekly ] || [ ! -d /etc/cron.monthly ]; then
+    previous_crontab=$(mktemp)
+    (crontab -l 2>/dev/null || true) >"$previous_crontab"
+
+    # remove previous config
+    if [ -f /etc/cron.daily/hosty ]; then
         echo
-        echo "hosty doesn't know how to autorun in your operating system, you need to configure that by yourself."
-        exit 1
+        echo "removing /etc/cron.daily/hosty..."
+        rm /etc/cron.daily/hosty
+    fi
+
+    if [ -f /etc/cron.weekly/hosty ]; then
+        echo
+        echo "removing /etc/cron.weekly/hosty..."
+        rm /etc/cron.weekly/hosty
+    fi
+
+    if [ -f /etc/cron.monthly/hosty ]; then
+        echo
+        echo "removing /etc/cron.monthly/hosty..."
+        rm /etc/cron.monthly/hosty
+    fi
+
+    new_crontab=$(mktemp)
+    awk '!/\/usr\/local\/bin\/hosty/' "$previous_crontab" >"$new_crontab"
+
+    # if user have passed the --ignore-default-sources argument, autorun with that
+    if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
+        hosty_cmd="/usr/local/bin/hosty"
+    else
+        echo
+        echo "autorunning with --ignore-default-sources..."
+        hosty_cmd="/usr/local/bin/hosty -i"
     fi
 
     # ask user for autorun period
@@ -263,61 +291,26 @@ if [ "$AUTORUN" ]; then
     read -r period
 
     # check user answer
-    if [ "$period" != "daily" ] && [ "$period" != "weekly" ] && [ "$period" != "monthly" ] && [ "$period" != "never" ]; then
+    if [ "$period" = "daily" ]; then
+        echo "0 0 * * * $hosty_cmd" >>"$new_crontab"
+        crontab "$new_crontab"
+    elif [ "$period" = "weekly" ]; then
+        echo "0 0 * * 0 $hosty_cmd" >>"$new_crontab"
+        crontab "$new_crontab"
+    elif [ "$period" = "monthly" ]; then
+        echo "0 0 1 * * $hosty_cmd" >>"$new_crontab"
+        crontab "$new_crontab"
+    elif [ "$period" = "never" ]; then
+        crontab "$new_crontab"
+    else
         echo
         echo "bad answer, exiting..."
         exit 1
-    else
-        # remove previous config
-        if [ -f /etc/cron.daily/hosty ]; then
-            echo
-            echo "removing /etc/cron.daily/hosty..."
-            rm /etc/cron.daily/hosty
-        fi
-
-        if [ -f /etc/cron.weekly/hosty ]; then
-            echo
-            echo "removing /etc/cron.weekly/hosty..."
-            rm /etc/cron.weekly/hosty
-        fi
-
-        if [ -f /etc/cron.monthly/hosty ]; then
-            echo
-            echo "removing /etc/cron.monthly/hosty..."
-            rm /etc/cron.monthly/hosty
-        fi
-
-        # stop here if the user has chosen 'never'
-        if [ "$period" = "never" ]; then
-            echo
-            echo "done."
-            exit 0
-        fi
-
-        # set cron file with user choice
-        cron_file="/etc/cron.$period/hosty"
-
-        # create the file
-        echo
-        echo "creating $cron_file..."
-        echo '#!/bin/sh' >"$cron_file"
-
-        # if user have passed the --ignore-default-sources argument, autorun with that
-        if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
-            echo '/usr/local/bin/hosty' >>"$cron_file"
-        else
-            echo
-            echo "config hosty with --ignore-default-sources..."
-            echo '/usr/local/bin/hosty -i' >>"$cron_file"
-        fi
-
-        # set permissions
-        chmod 755 "$cron_file"
-
-        echo
-        echo "done."
-        exit 0
     fi
+
+    echo
+    echo "done."
+    exit 0
 fi
 
 # function to download sources
@@ -487,7 +480,7 @@ echo "cleaning and de-duplicating..."
 awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' "$user_hosts_file" >>"$whitelist_domains"
 
 # applying the whitelist and dedup
-awk -v ip=$BLOCK_IP 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whitelist_domains" "$blacklist_domains" >>"$final_hosts_file"
+awk -v ip="$BLOCK_IP" 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whitelist_domains" "$blacklist_domains" >>"$final_hosts_file"
 
 # remove tmp files
 rm "$blacklist_domains" "$whitelist_domains" "$user_hosts_file"
