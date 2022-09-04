@@ -314,7 +314,9 @@ if [ "$AUTORUN" ]; then
         echo "0 0 1 * * $hosty_cmd" >>"$new_crontab"
         crontab "$new_crontab"
     elif [ "$period" = "never" ]; then
-        crontab "$new_crontab"
+        if grep "/usr/local/bin/hosty" "$previous_crontab" >/dev/null 2>&1; then
+            crontab "$new_crontab"
+        fi
     else
         echo
         echo "bad answer, exiting..."
