@@ -144,6 +144,7 @@ checkDep head
 checkDep cat
 checkDep mktemp
 checkDep sort
+checkDep grep
 
 VERSION="1.8.2"
 RELEASE_DATE="04/sep/22"
@@ -194,26 +195,37 @@ if [ "$UNINSTALL" ]; then
     # remove autorun config
     if [ -f /etc/cron.daily/hosty ]; then
         echo "removing /etc/cron.daily/hosty..."
-        echo
         rm /etc/cron.daily/hosty
+        echo
     fi
 
     if [ -f /etc/cron.weekly/hosty ]; then
         echo "removing /etc/cron.weekly/hosty..."
-        echo
         rm /etc/cron.weekly/hosty
+        echo
     fi
 
     if [ -f /etc/cron.monthly/hosty ]; then
         echo "removing /etc/cron.monthly/hosty..."
-        echo
         rm /etc/cron.monthly/hosty
+        echo
     fi
 
-    echo "uninstalling hosty..."
-    rm /usr/local/bin/hosty
+    previous_crontab=$(mktemp)
+    if crontab -l 2>/dev/null >"$previous_crontab" && grep "/usr/local/bin/hosty" "$previous_crontab" >/dev/null 2>&1; then
+        echo "removing from crontab..."
+        new_crontab=$(mktemp)
+        awk '!/\/usr\/local\/bin\/hosty/' "$previous_crontab" >"$new_crontab"
+        crontab "$new_crontab"
+        echo
+    fi
 
-    echo
+    if [ -f /usr/local/bin/hosty ]; then
+        echo "uninstalling hosty..."
+        rm /usr/local/bin/hosty
+        echo
+    fi
+
     echo "hosty uninstalled."
     exit 0
 fi
@@ -250,10 +262,8 @@ if [ "$AUTORUN" ]; then
 
     # check system compatibility
     checkDep crontab
-    previous_crontab=$(mktemp)
-    (crontab -l 2>/dev/null || true) >"$previous_crontab"
 
-    # remove previous config
+    # remove old config
     if [ -f /etc/cron.daily/hosty ]; then
         echo
         echo "removing /etc/cron.daily/hosty..."
@@ -272,9 +282,6 @@ if [ "$AUTORUN" ]; then
         rm /etc/cron.monthly/hosty
     fi
 
-    new_crontab=$(mktemp)
-    awk '!/\/usr\/local\/bin\/hosty/' "$previous_crontab" >"$new_crontab"
-
     # if user have passed the --ignore-default-sources argument, autorun with that
     if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
         hosty_cmd="/usr/local/bin/hosty"
@@ -289,6 +296,12 @@ if [ "$AUTORUN" ]; then
     echo "how often do you want to run hosty automatically?"
     echo "enter 'daily', 'weekly', 'monthly' or 'never':"
     read -r period
+
+    # clean crontab from previous config
+    previous_crontab=$(mktemp)
+    (crontab -l 2>/dev/null || true) >"$previous_crontab"
+    new_crontab=$(mktemp)
+    awk '!/\/usr\/local\/bin\/hosty/' "$previous_crontab" >"$new_crontab"
 
     # check user answer
     if [ "$period" = "daily" ]; then
