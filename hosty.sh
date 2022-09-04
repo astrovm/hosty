@@ -164,78 +164,74 @@ if [ "$DEBUG" ]; then
     RESTORE=""
     UNINSTALL=""
     OUTPUT_HOSTS=$(mktemp)
-fi
-
-# check if running as root
-if [ ! "$DEBUG" ]; then
-    if [ "$(id -u)" != 0 ]; then
-        echo "Please run as root"
-        exit 1
-    fi
-
-    # --uninstall option
-    if [ "$UNINSTALL" ]; then
-        if [ -d /etc/hosty ]; then
-            # Ask user to remove hosty config
-            echo "Do you want to remove /etc/hosty configs directory? y/n"
-            read -r answer
-            echo
-
-            # Check user answer
-            if [ "$answer" = "y" ]; then
-                echo "Removing hosty configs directory..."
-                rm -R /etc/hosty
-                echo
-            elif [ "$answer" != "n" ]; then
-                echo "Bad answer, exiting..."
-                exit 1
-            fi
-        fi
-
-        # Remove autorun config
-        if [ -f /etc/cron.daily/hosty ]; then
-            echo "Removing /etc/cron.daily/hosty..."
-            echo
-            rm /etc/cron.daily/hosty
-        fi
-
-        if [ -f /etc/cron.weekly/hosty ]; then
-            echo "Removing /etc/cron.weekly/hosty..."
-            echo
-            rm /etc/cron.weekly/hosty
-        fi
-
-        if [ -f /etc/cron.monthly/hosty ]; then
-            echo "Removing /etc/cron.monthly/hosty..."
-            echo
-            rm /etc/cron.monthly/hosty
-        fi
-
-        echo "Uninstalling hosty..."
-        rm /usr/local/bin/hosty
-
-        echo
-        echo "Hosty uninstalled."
-
-        exit 0
-    fi
-else
     echo "******** DEBUG MODE ON ********"
     echo
 fi
 
-# Copy original hosts file and handle --restore
+# check if running as root
+if [ "$(id -u)" != 0 ] && [ ! "$DEBUG" ]; then
+    echo "please run as root."
+    exit 1
+fi
+
+# --uninstall option
+if [ "$UNINSTALL" ]; then
+    if [ -d /etc/hosty ]; then
+        # ask user to remove hosty config
+        echo "do you want to remove /etc/hosty configs directory? y/n"
+        read -r answer
+        echo
+
+        if [ "$answer" = "y" ] || [ "$answer" = "Y" ] || [ "$answer" = "yes" ] || [ "$answer" = "YES" ]; then
+            echo "removing hosty configs directory..."
+            rm -R /etc/hosty
+            echo
+        elif [ "$answer" != "n" ] && [ "$answer" != "N" ] && [ "$answer" != "no" ] && [ "$answer" != "NO" ]; then
+            echo "bad answer, exiting..."
+            exit 1
+        fi
+    fi
+
+    # remove autorun config
+    if [ -f /etc/cron.daily/hosty ]; then
+        echo "removing /etc/cron.daily/hosty..."
+        echo
+        rm /etc/cron.daily/hosty
+    fi
+
+    if [ -f /etc/cron.weekly/hosty ]; then
+        echo "removing /etc/cron.weekly/hosty..."
+        echo
+        rm /etc/cron.weekly/hosty
+    fi
+
+    if [ -f /etc/cron.monthly/hosty ]; then
+        echo "removing /etc/cron.monthly/hosty..."
+        echo
+        rm /etc/cron.monthly/hosty
+    fi
+
+    echo "uninstalling hosty..."
+    rm /usr/local/bin/hosty
+
+    echo
+    echo "hosty uninstalled."
+
+    exit 0
+fi
+
+# copy original hosts file and handle --restore
 user_hosts_file=$(mktemp)
 user_hosts_linesnumber=$(gawk '/^# Ad blocking hosts generated/ {counter=NR} END{print counter-1}' "$INPUT_HOSTS")
 
-# If hosty has never been executed, don't restore anything
+# if hosty has never been executed, don't restore anything
 if [ "$user_hosts_linesnumber" -lt 0 ]; then
     if [ "$RESTORE" ]; then
-        echo "There is nothing to restore."
+        echo "there is nothing to restore."
         exit 0
     fi
 
-    # If it's the first time running hosty, save the whole /etc/hosts file in the tmp var
+    # if it's the first time running hosty, save the whole /etc/hosts file in the tmp var
     cat "$INPUT_HOSTS" >"$user_hosts_file"
 else
     # Copy original hosts lines
@@ -326,7 +322,7 @@ if [ "$AUTORUN" ]; then
     fi
 fi
 
-# Function to download sources
+# function to download sources
 downloadFile() {
     tmp_downloadFile=$(mktemp)
 
