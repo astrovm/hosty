@@ -2,15 +2,6 @@
 
 set -euf
 
-VERSION="1.8.2"
-RELEASE_DATE="31/Aug/22"
-PROJECT_URL="astrolince.com/hosty"
-BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
-WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
-BLOCK_IP="0.0.0.0"
-INPUT_HOSTS="/etc/hosts"
-OUTPUT_HOSTS="/etc/hosts"
-
 # @getoptions
 parser_definition() {
     setup REST help:usage -- "usage: hosty [-airduhv]" ''
@@ -109,12 +100,12 @@ parse() {
         return 0
     }
     case $1 in
-    unknown) set "Unrecognized option: $2" "$@" ;;
-    noarg) set "Does not allow an argument: $2" "$@" ;;
-    required) set "Requires an argument: $2" "$@" ;;
-    pattern:*) set "Does not match the pattern (${1#*:}): $2" "$@" ;;
-    notcmd) set "Not a command: $2" "$@" ;;
-    *) set "Validation error ($1): $2" "$@" ;;
+    unknown) set "unrecognized option: $2" "$@" ;;
+    noarg) set "does not allow an argument: $2" "$@" ;;
+    required) set "requires an argument: $2" "$@" ;;
+    pattern:*) set "does not match the pattern (${1#*:}): $2" "$@" ;;
+    notcmd) set "not a command: $2" "$@" ;;
+    *) set "validation error ($1): $2" "$@" ;;
     esac
     echo "$1" >&2
     exit 1
@@ -139,6 +130,15 @@ GETOPTIONSHERE
 parse "$@"
 eval "set -- $REST"
 
+VERSION="1.8.2"
+RELEASE_DATE="31/Aug/22"
+PROJECT_URL="astrolince.com/hosty"
+BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
+WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
+BLOCK_IP="0.0.0.0"
+INPUT_HOSTS="/etc/hosts"
+OUTPUT_HOSTS="/etc/hosts"
+
 echo "======== hosty v$VERSION ($RELEASE_DATE) ========"
 echo "========   $PROJECT_URL   ========"
 echo
@@ -158,7 +158,13 @@ checkDep cat
 checkDep mktemp
 checkDep printf
 
-# Check if running as root
+if [ "$DEBUG" ]; then
+    AUTORUN=""
+    RESTORE=""
+    UNINSTALL=""
+fi
+
+# check if running as root
 if [ ! "$DEBUG" ]; then
     if [ "$(id -u)" != 0 ]; then
         echo "Please run as root"
