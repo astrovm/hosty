@@ -20,7 +20,7 @@ hosty=$(mktemp)
 signature=$(mktemp)
 
 # download function
-downloadFiles() {
+downloadFile() {
     if ! curl -H 'Cache-Control: no-cache' -fsSL -o "$1" "$2"; then
         echo "error downloading $2"
         rm "$astrokeys" "$hosty" "$signature"
@@ -29,9 +29,9 @@ downloadFiles() {
 }
 
 # download files
-downloadFiles "$astrokeys" https://keybase.io/astrolince/pgp_keys.asc
-downloadFiles "$hosty" https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
-downloadFiles "$signature" https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh.sig
+downloadFile "$astrokeys" https://keybase.io/astrolince/pgp_keys.asc
+downloadFile "$hosty" https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
+downloadFile "$signature" https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh.sig
 
 # verify signature
 gpg --dearmor "$astrokeys" >/dev/null 2>&1
