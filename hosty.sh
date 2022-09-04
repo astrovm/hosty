@@ -158,10 +158,12 @@ echo "======== hosty v$VERSION ($RELEASE_DATE) ========"
 echo "========   $PROJECT_URL   ========"
 echo
 
+# avoid all system changes if debug mode is enabled
 if [ "$DEBUG" ]; then
     AUTORUN=""
     RESTORE=""
     UNINSTALL=""
+    OUTPUT_HOSTS=$(mktemp)
 fi
 
 # check if running as root
@@ -458,7 +460,7 @@ fi
 extractDomains "$whitelist_domains"
 
 echo
-echo "Building /etc/hosts..."
+echo "building $OUTPUT_HOSTS..."
 final_hosts_file=$(mktemp)
 
 # Remove empty lines from begin and end
@@ -486,16 +488,11 @@ rm "$blacklist_domains" "$whitelist_domains" "$user_hosts_file"
 # Count websites blocked
 websites_blocked_counter=$(gawk "/$BLOCK_IP/ {count++} END{print count}" "$final_hosts_file")
 
-if [ ! "$DEBUG" ]; then
-    cat "$final_hosts_file" >"$OUTPUT_HOSTS"
-    rm "$final_hosts_file"
-else
-    echo
-    echo "You can see the results in $final_hosts_file"
-fi
+cat "$final_hosts_file" >"$OUTPUT_HOSTS"
+rm "$final_hosts_file"
 
 echo
-echo "Done, $websites_blocked_counter websites blocked."
+echo "done, $websites_blocked_counter websites blocked."
 echo
-echo "You can always restore your original hosts file with this command:"
-echo "  $ sudo hosty --restore"
+echo "you can always restore your original hosts file with this command:"
+echo " $ sudo hosty -r (--restore)"
