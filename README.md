@@ -48,8 +48,6 @@ The installer will ask you if you want to always run the latest version of hosty
 
 Still, you may not like to trust me, you can also install hosty without automatic code updates and manually check if updates are available.
 
-You will also be asked if you want to automatically run hosty every so often to update your hosts file with latest domains list.
-
 ## Run hosty
 
 Enable system-wide ad blocking with:
@@ -62,7 +60,7 @@ You probably want to run it periodically to update your hosts file with latest d
 
 Hosty can be configured to periodically update your hosts file with:
 
-`$ sudo hosty --autorun`
+`$ sudo hosty -a (--autorun)`
 
 It will ask how often you want to execute it. A `hosty` file in `/etc/cron.daily`, `/etc/cron.weekly` or `/etc/cron.monthly` will be created.
 
@@ -106,11 +104,11 @@ ABP, uBlock Origin, Brave and AdGuard files are accepted too, but take in accoun
 
 You can also run hosty using ONLY your custom sources with:
 
-`$ sudo hosty --ignore-default-sources`
+`$ sudo hosty -i (--ignore-default-sources)`
 
 and you can config autorun to run that way too:
 
-`$ sudo hosty --autorun --ignore-default-sources`
+`$ sudo hosty -ai (--autorun --ignore-default-sources)`
 
 Keep in mind that this is an advanced function that we do not recommend using, hosty is designed and tested to be used with the default configuration and in that way we believe that it will give you the best experience.
 
@@ -118,19 +116,19 @@ Keep in mind that this is an advanced function that we do not recommend using, h
 
 If you want to disable hosty ad blocking:
 
-`$ sudo hosty --restore`
+`$ sudo hosty -r (--restore)`
 
 ## Read the modified hosts without modifying your system
 
 You can debug what hosty will do to your system with:
 
-`$ hosty --debug`
+`$ hosty -d (--debug)`
 
 ## Uninstalling hosty
 
 If you don't use it anymore:
 
-`$ sudo hosty --uninstall`
+`$ sudo hosty -u (--uninstall)`
 
 If your want to restore your original hosts file, run that option first.
 
