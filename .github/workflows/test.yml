@@ -40,8 +40,8 @@ jobs:
       #  run: sudo $GITHUB_WORKSPACE/install.sh
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
-  test-windows:
-    runs-on: windows-latest
+  test-alpine:
+    runs-on: ubuntu-latest
     container: alpine:latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
