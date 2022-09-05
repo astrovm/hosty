@@ -16,7 +16,7 @@ checkDep curl
 mainHosty() {
     if [ -f /usr/local/bin/hosty ]; then
         echo "removing existing hosty..."
-        rm /usr/local/bin/hosty
+        $1 rm /usr/local/bin/hosty
         echo
     fi
 
@@ -26,11 +26,11 @@ mainHosty() {
 
     if [ "$answer" = "y" ] || [ "$answer" = "Y" ] || [ "$answer" = "yes" ] || [ "$answer" = "YES" ]; then
         echo "installing hosty..."
-        curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/updater.sh
+        $1 curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/updater.sh
         echo
     elif [ "$answer" = "n" ] || [ "$answer" = "N" ] || [ "$answer" = "no" ] || [ "$answer" = "NO" ]; then
         echo "installing hosty..."
-        curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
+        $1 curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
         echo
     else
         echo "bad answer, exiting..."
@@ -38,7 +38,7 @@ mainHosty() {
     fi
 
     echo "fixing permissions..."
-    chmod 755 /usr/local/bin/hosty
+    $1 chmod 755 /usr/local/bin/hosty
     echo
 
     if command -v "crontab" >/dev/null 2>&1; then
@@ -48,7 +48,7 @@ mainHosty() {
 
         # check user answer
         if [ "$answer" = "y" ] || [ "$answer" = "Y" ] || [ "$answer" = "yes" ] || [ "$answer" = "YES" ]; then
-            /usr/local/bin/hosty -a </dev/tty
+            $1 /usr/local/bin/hosty -a </dev/tty
             exit 0
         elif [ "$answer" != "n" ] && [ "$answer" != "N" ] && [ "$answer" != "no" ] && [ "$answer" != "NO" ]; then
             echo "bad answer, exiting..."
