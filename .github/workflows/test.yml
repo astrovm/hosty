@@ -1,0 +1,26 @@
+name: Test
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  test-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+      - name: Run hosty in debug mode
+        run: $GITHUB_WORKSPACE/hosty.sh -d
+  test-mac:
+    runs-on: macos-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+      - name: Run hosty in debug mode
+        run: $GITHUB_WORKSPACE/hosty.sh -d

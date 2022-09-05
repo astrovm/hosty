@@ -146,8 +146,8 @@ checkDep mktemp
 checkDep sort
 checkDep grep
 
-VERSION="1.9.0"
-RELEASE_DATE="04/sep/22"
+VERSION="1.9.1"
+RELEASE_DATE="05/sep/22"
 PROJECT_URL="astrolince.com/hosty"
 BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
 WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
@@ -389,7 +389,7 @@ while read -r line; do
     if ! downloadFile "$line"; then
         echo "error downloading $line"
         rm "$tmp_downloadFile"
-        break
+        exit 1
     fi
 
     cat "$tmp_downloadFile" >>"$blacklist_domains"
@@ -458,7 +458,7 @@ while read -r line; do
     if ! downloadFile "$line"; then
         echo "error downloading $line"
         rm "$tmp_downloadFile"
-        break
+        exit 1
     fi
 
     cat "$tmp_downloadFile" >>"$whitelist_domains"
