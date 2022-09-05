@@ -64,7 +64,7 @@ Hosty can be configured to periodically update your hosts file with:
 
 `$ sudo hosty -a (--autorun)`
 
-It will ask how often you want to execute it. A `hosty` file in `/etc/cron.daily`, `/etc/cron.weekly` or `/etc/cron.monthly` will be created.
+It will ask how often you want to execute it and change your crontab.
 
 ## Blacklist
 
