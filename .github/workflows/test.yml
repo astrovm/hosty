@@ -46,8 +46,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
-      - name: Run hosty with sudo
-        run: sudo $GITHUB_WORKSPACE/hosty.sh
+      - name: Run hosty
+        run: $GITHUB_WORKSPACE/hosty.sh
       - name: Run hosty in debug mode
         run: $GITHUB_WORKSPACE/hosty.sh -d
       #- name: Run hosty installer without sudo
