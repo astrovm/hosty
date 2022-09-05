@@ -389,7 +389,7 @@ while read -r line; do
     if ! downloadFile "$line"; then
         echo "error downloading $line"
         rm "$tmp_downloadFile"
-        break
+        exit 1
     fi
 
     cat "$tmp_downloadFile" >>"$blacklist_domains"
@@ -458,7 +458,7 @@ while read -r line; do
     if ! downloadFile "$line"; then
         echo "error downloading $line"
         rm "$tmp_downloadFile"
-        break
+        exit 1
     fi
 
     cat "$tmp_downloadFile" >>"$whitelist_domains"
