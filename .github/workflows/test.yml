@@ -15,7 +15,6 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
-
       - name: Run hosty in debug mode
         run: $GITHUB_WORKSPACE/hosty.sh -d
   test-mac:
@@ -23,6 +22,5 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
-
       - name: Run hosty in debug mode
         run: $GITHUB_WORKSPACE/hosty.sh -d
