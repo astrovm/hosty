@@ -67,7 +67,6 @@ echo "checking if user has root access..."
 
 if [ "$(id -u)" != 0 ]; then
     echo
-
     if ! prompt=$(sudo -nv 2>&1); then
         if ! echo "$prompt" | grep -q '^sudo:'; then
             echo "you don't have sudo access, please fix that or run from root."
