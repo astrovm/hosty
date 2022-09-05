@@ -42,7 +42,7 @@ In the predefined list we don't accept political censorship or paternalistic goa
 
 Just run:
 
-`$ curl -L git.io/hosty | sudo sh`
+`$ curl -L git.io/hosty | sh`
 
 The installer will ask you if you want to always run the latest version of hosty code, to achieve this, code updates are downloaded from this repository in each execution. A verification mechanism is included, hosty will make sure automatically that the updates are signed by me.
 
