@@ -15,14 +15,14 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
-      - name: Run hosty in debug mode
-        run: $GITHUB_WORKSPACE/hosty.sh -d
       - name: Run hosty with sudo
         run: sudo $GITHUB_WORKSPACE/hosty.sh
-      - name: Run hosty installer without sudo
-        run: $GITHUB_WORKSPACE/install.sh
-      - name: Run hosty installer with sudo
-        run: sudo $GITHUB_WORKSPACE/install.sh
+      - name: Run hosty in debug mode
+        run: $GITHUB_WORKSPACE/hosty.sh -d
+      #- name: Run hosty installer without sudo
+      #  run: $GITHUB_WORKSPACE/install.sh
+      #- name: Run hosty installer with sudo
+      #  run: sudo $GITHUB_WORKSPACE/install.sh
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
   test-mac:
@@ -30,13 +30,13 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
-      - name: Run hosty in debug mode
-        run: $GITHUB_WORKSPACE/hosty.sh -d
       - name: Run hosty with sudo
         run: sudo $GITHUB_WORKSPACE/hosty.sh
-      - name: Run hosty installer without sudo
-        run: $GITHUB_WORKSPACE/install.sh
-      - name: Run hosty installer with sudo
-        run: sudo $GITHUB_WORKSPACE/install.sh
+      - name: Run hosty in debug mode
+        run: $GITHUB_WORKSPACE/hosty.sh -d
+      #- name: Run hosty installer without sudo
+      #  run: $GITHUB_WORKSPACE/install.sh
+      #- name: Run hosty installer with sudo
+      #  run: sudo $GITHUB_WORKSPACE/install.sh
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
