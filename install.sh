@@ -14,6 +14,7 @@ checkDep curl
 
 # define main function
 mainHosty() {
+    echo
     if [ -f /usr/local/bin/hosty ]; then
         echo "removing existing hosty..."
         $1 rm /usr/local/bin/hosty
