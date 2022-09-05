@@ -46,6 +46,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: apk add curl
       - name: Run hosty
         run: $GITHUB_WORKSPACE/hosty.sh
       - name: Run hosty in debug mode
