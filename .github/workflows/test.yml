@@ -31,8 +31,6 @@ jobs:
         run: sudo $GITHUB_WORKSPACE/hosty.sh -r
       - name: Run hosty with --uninstall
         run: sudo $GITHUB_WORKSPACE/hosty.sh -u
-      - name: Run hosty readme install command
-        run: expect -c "spawn curl -L git.io/hosty | sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\";expect eof"
   test-mac:
     runs-on: macos-latest
     steps:
