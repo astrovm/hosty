@@ -22,7 +22,7 @@ jobs:
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
       - name: Run hosty installer without sudo
-        run: $GITHUB_WORKSPACE/install.sh.exp
+        run: expect -c 'spawn $GITHUB_WORKSPACE/install.sh; expect "y/n\r"; send -- "y\r"; expect "y/n\r"; send -- "y\r"; expect "or '\''never'\'':\r"; send -- "daily\r";expect eof'
       - name: Run hosty with --restore
         run: sudo $GITHUB_WORKSPACE/hosty.sh -r
       - name: Run hosty with --uninstall
