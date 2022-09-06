@@ -21,6 +21,8 @@ jobs:
         run: $GITHUB_WORKSPACE/hosty.sh -d
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
+      - name: Run hosty installer without sudo
+        run: $GITHUB_WORKSPACE/install.sh.exp
       - name: Run hosty with --restore
         run: sudo $GITHUB_WORKSPACE/hosty.sh -r
       - name: Run hosty with --uninstall
