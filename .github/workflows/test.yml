@@ -21,6 +21,10 @@ jobs:
         run: $GITHUB_WORKSPACE/hosty.sh -d
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
+      - name: Run hosty with --restore
+        run: sudo $GITHUB_WORKSPACE/hosty.sh -r
+      - name: Run hosty with --uninstall
+        run: sudo $GITHUB_WORKSPACE/hosty.sh -u
   test-mac:
     runs-on: macos-latest
     steps:
@@ -32,6 +36,10 @@ jobs:
         run: $GITHUB_WORKSPACE/hosty.sh -d
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
+      - name: Run hosty with --restore
+        run: sudo $GITHUB_WORKSPACE/hosty.sh -r
+      - name: Run hosty with --uninstall
+        run: sudo $GITHUB_WORKSPACE/hosty.sh -u
   test-alpine:
     runs-on: ubuntu-latest
     container: alpine:latest
@@ -46,3 +54,7 @@ jobs:
         run: $GITHUB_WORKSPACE/hosty.sh -d
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
+      - name: Run hosty with --restore
+        run: $GITHUB_WORKSPACE/hosty.sh -r
+      - name: Run hosty with --uninstall
+        run: $GITHUB_WORKSPACE/hosty.sh -u
