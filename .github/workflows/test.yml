@@ -26,11 +26,11 @@ jobs:
       - name: Run hosty installer answering n/n
         run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"n\r\"; expect \"y/n\r\"; send -- \"n\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty installer without sudo and with cat
-        run: expect -c "spawn sh -c {cat $GITHUB_WORKSPACE/install.sh | sh}; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect eof"
+        run: expect -c "spawn sh -c {cat $GITHUB_WORKSPACE/install.sh | sh}; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty installer without sudo
-        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect eof"
+        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty installer with sudo
-        run: expect -c "spawn sudo $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect eof"
+        run: expect -c "spawn sudo $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty with --restore
         run: sudo $GITHUB_WORKSPACE/hosty.sh -r
       - name: Run hosty with --uninstall
