@@ -87,9 +87,9 @@ if command -v "crontab" >/dev/null 2>&1; then
 
     if [ "$answer" = "y" ] || [ "$answer" = "Y" ] || [ "$answer" = "yes" ] || [ "$answer" = "YES" ]; then
         if [ "$REQUEST_SUDO" ]; then
-            sudo /usr/local/bin/hosty -a
+            sudo /usr/local/bin/hosty -a </dev/tty
         else
-            /usr/local/bin/hosty -a
+            /usr/local/bin/hosty -a </dev/tty
         fi
         exit 0
     elif [ "$answer" != "n" ] && [ "$answer" != "N" ] && [ "$answer" != "no" ] && [ "$answer" != "NO" ]; then
