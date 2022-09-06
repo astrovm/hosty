@@ -87,6 +87,7 @@ if command -v "crontab" >/dev/null 2>&1; then
 
     if [ "$answer" = "y" ] || [ "$answer" = "Y" ] || [ "$answer" = "yes" ] || [ "$answer" = "YES" ]; then
         if [ "$REQUEST_SUDO" ]; then
+            # shellcheck disable=SC2024
             sudo /usr/local/bin/hosty -a </dev/tty
         else
             /usr/local/bin/hosty -a </dev/tty
