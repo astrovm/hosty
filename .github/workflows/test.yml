@@ -46,6 +46,14 @@ jobs:
         run: $GITHUB_WORKSPACE/hosty.sh -d
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
+      - name: Run hosty installer answering n/n
+        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"n\r\"; expect \"y/n\r\"; send -- \"n\r\"; expect \"done.\r\"; expect eof"
+      - name: Run hosty installer without sudo and with cat
+        run: expect -c "spawn sh -c {cat $GITHUB_WORKSPACE/install.sh | sh}; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
+      - name: Run hosty installer without sudo
+        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
+      - name: Run hosty installer with sudo
+        run: expect -c "spawn sudo $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty with --restore
         run: sudo $GITHUB_WORKSPACE/hosty.sh -r
       - name: Run hosty with --uninstall
@@ -57,13 +65,19 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
       - name: Install dependencies
-        run: apk add curl gnupg
+        run: apk add curl gnupg expect
       - name: Run hosty without sudo
         run: $GITHUB_WORKSPACE/hosty.sh
       - name: Run hosty in debug mode
         run: $GITHUB_WORKSPACE/hosty.sh -d
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
+      - name: Run hosty installer answering n/n
+        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"n\r\"; expect \"y/n\r\"; send -- \"n\r\"; expect \"done.\r\"; expect eof"
+      - name: Run hosty installer without sudo and with cat
+        run: expect -c "spawn sh -c {cat $GITHUB_WORKSPACE/install.sh | sh}; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
+      - name: Run hosty installer without sudo
+        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty with --restore
         run: $GITHUB_WORKSPACE/hosty.sh -r
       - name: Run hosty with --uninstall
