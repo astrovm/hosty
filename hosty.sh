@@ -146,8 +146,8 @@ checkDep mktemp
 checkDep sort
 checkDep grep
 
-VERSION="1.9.1"
-RELEASE_DATE="05/sep/22"
+VERSION="1.9.2"
+RELEASE_DATE="07/sep/22"
 PROJECT_URL="astrolince.com/hosty"
 BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
 WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
@@ -160,7 +160,7 @@ echo "========   $PROJECT_URL   ========"
 echo
 
 # avoid all system changes if debug mode is enabled
-if [ "$DEBUG" ]; then
+if [ "$DEBUG" = 1 ]; then
     AUTORUN=""
     UNINSTALL=""
     OUTPUT_HOSTS=$(mktemp)
@@ -169,13 +169,13 @@ if [ "$DEBUG" ]; then
 fi
 
 # check if running as root
-if [ "$(id -u)" != 0 ] && [ ! "$DEBUG" ]; then
+if [ "$(id -u)" != 0 ] && [ "$DEBUG" != 1 ]; then
     echo "please run as root."
     exit 1
 fi
 
 # --uninstall option
-if [ "$UNINSTALL" ]; then
+if [ "$UNINSTALL" = 1 ]; then
     if [ -d /etc/hosty ]; then
         # ask user to remove hosty config
         echo "do you want to remove /etc/hosty configs directory? y/n"
@@ -236,7 +236,7 @@ user_hosts_linesnumber=$(awk '/^# [aA]d blocking hosts generated/ {counter=NR} E
 
 # if hosty has never been executed, don't restore anything
 if [ "$user_hosts_linesnumber" -lt 0 ]; then
-    if [ "$RESTORE" ]; then
+    if [ "$RESTORE" = 1 ]; then
         echo "there is nothing to restore."
         exit 0
     fi
@@ -248,7 +248,7 @@ else
     head -n "$user_hosts_linesnumber" "$INPUT_HOSTS" >"$user_hosts_file"
 
     # if --restore is present, restore original hosts and exit
-    if [ "$RESTORE" ]; then
+    if [ "$RESTORE" = 1 ]; then
         # remove empty lines from begin and end
         awk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$user_hosts_file" "$user_hosts_file" >"$OUTPUT_HOSTS"
         echo "$OUTPUT_HOSTS restore completed."
@@ -257,7 +257,7 @@ else
 fi
 
 # cron options
-if [ "$AUTORUN" ]; then
+if [ "$AUTORUN" = 1 ]; then
     echo "configuring autorun..."
 
     # check system compatibility
@@ -283,7 +283,7 @@ if [ "$AUTORUN" ]; then
     fi
 
     # if user have passed the --ignore-default-sources argument, autorun with that
-    if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
+    if [ "$IGNORE_DEFAULT_SOURCES" != 1 ]; then
         hosty_cmd="/usr/local/bin/hosty"
     else
         echo
@@ -344,7 +344,7 @@ blacklist_sources=$(mktemp)
 whitelist_sources=$(mktemp)
 
 # remove default sources if the user want that
-if [ ! "$IGNORE_DEFAULT_SOURCES" ]; then
+if [ "$IGNORE_DEFAULT_SOURCES" != 1 ]; then
     echo "downloading default sources..."
 
     if ! downloadFile "$BLACKLIST_DEFAULT_SOURCE"; then
