@@ -21,7 +21,7 @@ signature=$(mktemp)
 
 # download function
 downloadFile() {
-    if ! curl -H 'Cache-Control: no-cache' -fsSL -o "$1" "$2"; then
+    if ! curl -sSL --retry 3 -o "$1" "$2"; then
         echo "error downloading $2"
         rm "$astrokeys" "$hosty" "$signature"
         exit 1
