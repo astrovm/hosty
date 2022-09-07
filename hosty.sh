@@ -146,7 +146,7 @@ checkDep mktemp
 checkDep sort
 checkDep grep
 
-VERSION="1.9.2"
+VERSION="1.9.3"
 RELEASE_DATE="07/sep/22"
 PROJECT_URL="astrolince.com/hosty"
 BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
@@ -334,10 +334,10 @@ downloadFile() {
 
     echo "downloading $1..."
     if ! curl -fsSL -o "$tmp_downloadFile" "$1"; then
-        return $?
+        echo "error downloading $1"
+        rm "$tmp_downloadFile"
+        exit 1
     fi
-
-    return 0
 }
 
 blacklist_sources=$(mktemp)
@@ -347,21 +347,11 @@ whitelist_sources=$(mktemp)
 if [ "$IGNORE_DEFAULT_SOURCES" != 1 ]; then
     echo "downloading default sources..."
 
-    if ! downloadFile "$BLACKLIST_DEFAULT_SOURCE"; then
-        echo "error downloading $BLACKLIST_DEFAULT_SOURCE"
-        rm "$tmp_downloadFile"
-        exit 1
-    fi
-
+    downloadFile "$BLACKLIST_DEFAULT_SOURCE"
     cat "$tmp_downloadFile" >>"$blacklist_sources"
     rm "$tmp_downloadFile"
 
-    if ! downloadFile "$WHITELIST_DEFAULT_SOURCE"; then
-        echo "error downloading $WHITELIST_DEFAULT_SOURCE"
-        rm "$tmp_downloadFile"
-        exit 1
-    fi
-
+    downloadFile "$WHITELIST_DEFAULT_SOURCE"
     cat "$tmp_downloadFile" >>"$whitelist_sources"
     rm "$tmp_downloadFile"
 fi
@@ -386,12 +376,7 @@ blacklist_domains=$(mktemp)
 
 # download blacklist sources and merge into one
 while read -r line; do
-    if ! downloadFile "$line"; then
-        echo "error downloading $line"
-        rm "$tmp_downloadFile"
-        exit 1
-    fi
-
+    downloadFile "$line"
     cat "$tmp_downloadFile" >>"$blacklist_domains"
     rm "$tmp_downloadFile"
 done <"$blacklist_sources"
@@ -455,12 +440,7 @@ whitelist_domains=$(mktemp)
 
 # download whitelist sources and merge into one
 while read -r line; do
-    if ! downloadFile "$line"; then
-        echo "error downloading $line"
-        rm "$tmp_downloadFile"
-        exit 1
-    fi
-
+    downloadFile "$line"
     cat "$tmp_downloadFile" >>"$whitelist_domains"
     rm "$tmp_downloadFile"
 done <"$whitelist_sources"
