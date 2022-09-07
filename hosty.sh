@@ -333,7 +333,7 @@ downloadFile() {
     tmp_downloadFile=$(mktemp)
 
     echo "downloading $1..."
-    if ! curl -sSL --retry 5 -o "$tmp_downloadFile" "$1"; then
+    if ! curl -sSL --retry 3 -o "$tmp_downloadFile" "$1"; then
         echo "error downloading $1"
         rm "$tmp_downloadFile"
         exit 1
