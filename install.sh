@@ -39,7 +39,7 @@ fi
 echo
 if [ -f /usr/local/bin/hosty ]; then
     echo "removing existing hosty..."
-    if "$REQUEST_SUDO"; then
+    if [ "$REQUEST_SUDO" = 1 ]; then
         sudo rm /usr/local/bin/hosty
     else
         rm /usr/local/bin/hosty
@@ -53,7 +53,7 @@ echo
 
 if [ "$answer" = "y" ] || [ "$answer" = "Y" ] || [ "$answer" = "yes" ] || [ "$answer" = "YES" ]; then
     echo "installing hosty..."
-    if "$REQUEST_SUDO"; then
+    if [ "$REQUEST_SUDO" = 1 ]; then
         sudo curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/updater.sh
     else
         curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/updater.sh
@@ -61,7 +61,7 @@ if [ "$answer" = "y" ] || [ "$answer" = "Y" ] || [ "$answer" = "yes" ] || [ "$an
     echo
 elif [ "$answer" = "n" ] || [ "$answer" = "N" ] || [ "$answer" = "no" ] || [ "$answer" = "NO" ]; then
     echo "installing hosty..."
-    if "$REQUEST_SUDO"; then
+    if [ "$REQUEST_SUDO" = 1 ]; then
         sudo curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
     else
         curl -L -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
@@ -73,7 +73,7 @@ else
 fi
 
 echo "fixing permissions..."
-if "$REQUEST_SUDO"; then
+if [ "$REQUEST_SUDO" = 1 ]; then
     sudo chmod 755 /usr/local/bin/hosty
 else
     chmod 755 /usr/local/bin/hosty
@@ -86,7 +86,7 @@ if command -v "crontab" >/dev/null 2>&1; then
     echo
 
     if [ "$answer" = "y" ] || [ "$answer" = "Y" ] || [ "$answer" = "yes" ] || [ "$answer" = "YES" ]; then
-        if "$REQUEST_SUDO"; then
+        if [ "$REQUEST_SUDO" = 1 ]; then
             # shellcheck disable=SC2024
             sudo /usr/local/bin/hosty -a </dev/tty
         else
