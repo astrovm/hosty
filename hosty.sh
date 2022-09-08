@@ -392,11 +392,8 @@ extractDomains() {
     echo
     echo "extracting domains..."
     tmp_domains=$(mktemp)
-    # remove whitespace at beginning of the line
-    awk '{gsub(/^\s+/,""); print}' "$1" >"$tmp_domains"
-    cp "$tmp_domains" "$1"
-    # remove lines that don't start with a letter/number/:
-    awk '/^[a-zA-Z0-9:]/' "$1" >"$tmp_domains"
+    # remove lines that don't start with a letter/number/: (ignoring whitespace)
+    awk '/^\s*[a-zA-Z0-9:]/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove '#' and everything that follows
     awk '{gsub(/#.*/,""); print}' "$1" >"$tmp_domains"
