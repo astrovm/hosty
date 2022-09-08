@@ -146,7 +146,7 @@ checkDep mktemp
 checkDep sort
 checkDep grep
 
-VERSION="1.9.4"
+VERSION="1.9.5"
 RELEASE_DATE="08/sep/22"
 PROJECT_URL="astrolince.com/hosty"
 BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
@@ -393,10 +393,10 @@ extractDomains() {
     echo "extracting domains..."
     tmp_domains=$(mktemp)
     # remove whitespace at beginning of the line
-    awk '{gsub(/^[[:space:]]*/,""); print}' "$1" >"$tmp_domains"
+    awk '{gsub(/^\s+/,""); print}' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
-    # remove lines that don't start with a letter/number
-    awk '/^[a-zA-Z0-9]/' "$1" >"$tmp_domains"
+    # remove lines that don't start with a letter/number/:
+    awk '/^[a-zA-Z0-9:]/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove '#' and everything that follows
     awk '{gsub(/#.*/,""); print}' "$1" >"$tmp_domains"
