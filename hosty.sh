@@ -2,6 +2,15 @@
 
 set -euf
 
+VERSION="1.9.6"
+RELEASE_DATE="08/sep/22"
+PROJECT_URL="astrolince.com/hosty"
+BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
+WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
+BLOCK_IP="0.0.0.0"
+INPUT_HOSTS="/etc/hosts"
+OUTPUT_HOSTS="/etc/hosts"
+
 # @getoptions
 parser_definition() {
     setup REST help:usage -- "usage: hosty [-airduhv]" ''
@@ -145,15 +154,6 @@ checkDep cat
 checkDep mktemp
 checkDep sort
 checkDep grep
-
-VERSION="1.9.5"
-RELEASE_DATE="08/sep/22"
-PROJECT_URL="astrolince.com/hosty"
-BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
-WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
-BLOCK_IP="0.0.0.0"
-INPUT_HOSTS="/etc/hosts"
-OUTPUT_HOSTS="/etc/hosts"
 
 echo "======== hosty v$VERSION ($RELEASE_DATE) ========"
 echo "========   $PROJECT_URL   ========"
@@ -410,9 +410,6 @@ extractDomains() {
     # remove lines that end/start with a hyphen/dot
     awk '!/^[\.\-]|[\.\-]$/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
-    # removing important system ips
-    awk '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1" >"$tmp_domains"
-    cp "$tmp_domains" "$1"
     # remove duplicates and sort
     awk '!x[$0]++' "$1" >"$tmp_domains"
     sort "$tmp_domains" >"$1"
@@ -442,8 +439,8 @@ if [ -f /etc/hosty/whitelist ]; then
     cat "/etc/hosty/whitelist" >>"$whitelist_domains"
 fi
 
-# here we take the urls from the original hosts file and we add them to the whitelist to ensure that these urls behave like the user expects
-cat "$user_hosts_file" >>"$whitelist_domains"
+# whitelist sources and original hosts file domains
+cat "$blacklist_sources" "$whitelist_sources" "$user_hosts_file" >>"$whitelist_domains"
 
 # extract domains from whitelist sources
 extractDomains "$whitelist_domains"
