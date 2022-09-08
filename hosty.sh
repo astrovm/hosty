@@ -404,8 +404,8 @@ extractDomains() {
     # replace with new lines everything that isn't letters, numbers, hyphens and dots
     awk '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
-    # remove lines that don't have a dot
-    awk '/\./' "$1" >"$tmp_domains"
+    # remove lines that don't have a dot&letter
+    awk '/\./ && /[a-zA-Z]/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove lines that end/start with a hyphen/dot
     awk '!/^[\.\-]|[\.\-]$/' "$1" >"$tmp_domains"
@@ -442,6 +442,9 @@ if [ -f /etc/hosty/whitelist ]; then
     cat "/etc/hosty/whitelist" >>"$whitelist_domains"
 fi
 
+# here we take the urls from the original hosts file and we add them to the whitelist to ensure that these urls behave like the user expects
+cat "$user_hosts_file" >>"$whitelist_domains"
+
 # extract domains from whitelist sources
 extractDomains "$whitelist_domains"
 
@@ -461,9 +464,6 @@ awk 'NR==FNR{if (NF) { if (!beg) beg=NR; end=NR } next} FNR>=beg && FNR<=end' "$
 
 echo
 echo "cleaning and de-duplicating..."
-
-# here we take the urls from the original hosts file and we add them to the whitelist to ensure that these urls behave like the user expects
-awk '/^\s*[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/ {print $2}' "$user_hosts_file" >>"$whitelist_domains"
 
 # applying the whitelist and dedup
 awk -v ip="$BLOCK_IP" 'FNR==NR {arr[$1]++} FNR!=NR {if (!arr[$1]++) print ip, $1}' "$whitelist_domains" "$blacklist_domains" >>"$final_hosts_file"
