@@ -395,7 +395,7 @@ extractDomains() {
     # remove whitespace at beginning of the line
     awk '{gsub(/^[[:space:]]*/,""); print}' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
-    # remove lines that don't start with a letter or number
+    # remove lines that don't start with a letter/number
     awk '/^[a-zA-Z0-9]/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove '#' and everything that follows
@@ -407,7 +407,7 @@ extractDomains() {
     # remove lines that don't have a dot
     awk '/\./' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
-    # remove lines that end or start with a hyphen or a dot
+    # remove lines that end/start with a hyphen/dot
     awk '!/^[\.\-]|[\.\-]$/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # removing important system ips
