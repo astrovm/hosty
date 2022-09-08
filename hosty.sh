@@ -146,8 +146,8 @@ checkDep mktemp
 checkDep sort
 checkDep grep
 
-VERSION="1.9.3"
-RELEASE_DATE="07/sep/22"
+VERSION="1.9.4"
+RELEASE_DATE="08/sep/22"
 PROJECT_URL="astrolince.com/hosty"
 BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
 WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
@@ -332,7 +332,7 @@ fi
 downloadFile() {
     tmp_downloadFile=$(mktemp)
 
-    echo "downloading $1..."
+    echo "downloading $1"
     if ! curl -sSL --retry 3 -o "$tmp_downloadFile" "$1"; then
         echo "error downloading $1"
         rm "$tmp_downloadFile"
@@ -395,8 +395,8 @@ extractDomains() {
     # remove whitespace at beginning of the line
     awk '{gsub(/^[[:space:]]*/,""); print}' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
-    # remove lines that start with '!'
-    awk '!/^!/' "$1" >"$tmp_domains"
+    # remove lines that don't start with a letter or number
+    awk '/^[a-zA-Z0-9]/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # remove '#' and everything that follows
     awk '{gsub(/#.*/,""); print}' "$1" >"$tmp_domains"
@@ -404,31 +404,22 @@ extractDomains() {
     # replace with new lines everything that isn't letters, numbers, hyphens and dots
     awk '{gsub(/[^a-zA-Z0-9\.\-]/,"\n"); print}' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
-    # remove lines that don't have dots
+    # remove lines that don't have a dot
     awk '/\./' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
-    # remove lines that don't start with a letter or number
-    awk '/^[a-zA-Z0-9]/' "$1" >"$tmp_domains"
-    cp "$tmp_domains" "$1"
-    # remove lines that end with a dot
-    awk '!/\.$/' "$1" >"$tmp_domains"
+    # remove lines that end or start with a hyphen or a dot
+    awk '!/^[\.\-]|[\.\-]$/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
     # removing important system ips
     awk '!/^(127\.0\.0\.1|255\.255\.255\.255|0\.0\.0\.0|255\.255\.255\.0|localhost\.localdomain)$/' "$1" >"$tmp_domains"
     cp "$tmp_domains" "$1"
-    # remove duplicates
+    # remove duplicates and sort
     awk '!x[$0]++' "$1" >"$tmp_domains"
-    cp "$tmp_domains" "$1"
-    # sort
-    sort "$1" >"$tmp_domains"
-    cp "$tmp_domains" "$1"
-
+    sort "$tmp_domains" >"$1"
     rm "$tmp_domains"
     # count extacted domains
     domains_counter=$(awk 'BEGIN{counter=0}{counter++;}END{print counter}' "$1")
     echo "$domains_counter domains extracted."
-
-    return 0
 }
 
 # extract domains from blacklist sources
@@ -455,7 +446,7 @@ fi
 extractDomains "$whitelist_domains"
 
 echo
-echo "building $OUTPUT_HOSTS..."
+echo "building $OUTPUT_HOSTS"
 final_hosts_file=$(mktemp)
 
 # remove empty lines from begin and end
