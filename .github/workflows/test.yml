@@ -34,13 +34,13 @@ jobs:
       - name: Run hosty installer with sudo
         run: expect -c "spawn sudo $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty with --help
-        run: hosty -h
+        run: $GITHUB_WORKSPACE/hosty.sh -h
       - name: Run hosty with --version
-        run: hosty -v
+        run: $GITHUB_WORKSPACE/hosty.sh -v
       - name: Run hosty with --restore
-        run: sudo hosty -r
+        run: sudo $GITHUB_WORKSPACE/hosty.sh -r
       - name: Run hosty with --uninstall
-        run: sudo hosty -u
+        run: sudo $GITHUB_WORKSPACE/hosty.sh -u
   test-mac:
     runs-on: macos-latest
     steps:
@@ -63,13 +63,13 @@ jobs:
       - name: Run hosty installer with sudo
         run: expect -c "spawn sudo $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty with --help
-        run: hosty -h
+        run: $GITHUB_WORKSPACE/hosty.sh -h
       - name: Run hosty with --version
-        run: hosty -v
+        run: $GITHUB_WORKSPACE/hosty.sh -v
       - name: Run hosty with --restore
-        run: sudo hosty -r
+        run: sudo $GITHUB_WORKSPACE/hosty.sh -r
       - name: Run hosty with --uninstall
-        run: sudo hosty -u
+        run: sudo $GITHUB_WORKSPACE/hosty.sh -u
   test-alpine:
     runs-on: ubuntu-latest
     container: alpine:latest
@@ -93,10 +93,10 @@ jobs:
       - name: Run hosty installer without sudo
         run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty with --help
-        run: hosty -h
+        run: $GITHUB_WORKSPACE/hosty.sh -h
       - name: Run hosty with --version
-        run: hosty -v
+        run: $GITHUB_WORKSPACE/hosty.sh -v
       - name: Run hosty with --restore
-        run: hosty -r
+        run: $GITHUB_WORKSPACE/hosty.sh -r
       - name: Run hosty with --uninstall
-        run: hosty -u
+        run: $GITHUB_WORKSPACE/hosty.sh -u
