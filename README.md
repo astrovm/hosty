@@ -21,22 +21,18 @@ In the predefined list we don't accept political censorship or paternalistic goa
 
 - curl
 - awk
-- gpg (optional for automatic hosty version update)
 - crontab (optional for automatic hosts file update)
 
 ### Install the requirements
 
 - **Ubuntu/Mint/Pop/Debian:**
-  `$ sudo apt install curl gawk gnupg cron`
+  `$ sudo apt install curl gawk cron`
 
 - **Arch/Manjaro/Endeavour:**
-  `$ sudo pacman -S --needed curl gawk gnupg cronie`
+  `$ sudo pacman -S --needed curl gawk cronie`
 
 - **Fedora/RHEL/Rocky:**
-  `$ sudo dnf in curl gawk gnupg2 cronie`
-
-- **Mac:**
-  `$ brew install gnupg`
+  `$ sudo dnf in curl gawk cronie`
 
 ### Install hosty
 
@@ -44,11 +40,7 @@ Just run:
 
 `$ curl -L https://4st.li/hosty/install.sh | sh`
 
-The installer will ask you if you want to always run the latest version of hosty code, to achieve this, code updates are downloaded from this repository in each execution. A verification mechanism is included, hosty will make sure automatically that the updates are signed by me.
-
-Still, you may not like to trust me, you can also install hosty without automatic code updates and manually check if updates are available.
-
-You will also be asked if you want to automatically run hosty to update your hosts file with the latest domains list.
+You will be asked if you want to automatically run hosty to update your hosts file with the latest domains list.
 
 ## Run hosty
 

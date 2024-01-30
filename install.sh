@@ -13,7 +13,7 @@ checkDep() {
 checkDep curl
 
 echo "======== welcome to hosty installer ========"
-echo "========    astrolince.com/hosty    ========"
+echo "========        4st.li/hosty        ========"
 echo
 echo "checking if user has root access..."
 
@@ -47,30 +47,13 @@ if [ -f /usr/local/bin/hosty ]; then
     echo
 fi
 
-echo "do you want to always run the latest version of hosty? (recommended) y/n"
-read -r answer </dev/tty
-echo
-
-if [ "$answer" = "y" ] || [ "$answer" = "Y" ] || [ "$answer" = "yes" ] || [ "$answer" = "YES" ]; then
-    echo "installing hosty..."
-    if [ "$REQUEST_SUDO" = 1 ]; then
-        sudo curl -L --retry 3 -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/updater.sh
-    else
-        curl -L --retry 3 -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/updater.sh
-    fi
-    echo
-elif [ "$answer" = "n" ] || [ "$answer" = "N" ] || [ "$answer" = "no" ] || [ "$answer" = "NO" ]; then
-    echo "installing hosty..."
-    if [ "$REQUEST_SUDO" = 1 ]; then
-        sudo curl -L --retry 3 -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
-    else
-        curl -L --retry 3 -o /usr/local/bin/hosty https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
-    fi
-    echo
+echo "installing hosty..."
+if [ "$REQUEST_SUDO" = 1 ]; then
+    sudo curl -L --retry 3 -o /usr/local/bin/hosty https://4st.li/hosty/hosty.sh
 else
-    echo "bad answer, exiting..."
-    exit 1
+    curl -L --retry 3 -o /usr/local/bin/hosty https://4st.li/hosty/hosty.sh
 fi
+echo
 
 echo "fixing permissions..."
 if [ "$REQUEST_SUDO" = 1 ]; then
