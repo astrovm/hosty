@@ -2,11 +2,11 @@
 
 set -euf
 
-VERSION="1.9.6"
-RELEASE_DATE="08/sep/22"
-PROJECT_URL="astrolince.com/hosty"
-BLACKLIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/blacklist.sources"
-WHITELIST_DEFAULT_SOURCE="https://raw.githubusercontent.com/astrolince/hosty/master/lists/whitelist.sources"
+VERSION="1.9.7"
+RELEASE_DATE="29/jan/24"
+PROJECT_URL="4st.li/hosty"
+BLACKLIST_DEFAULT_SOURCE="https://4st.li/hosty/lists/blacklist.sources"
+WHITELIST_DEFAULT_SOURCE="https://4st.li/hosty/lists/whitelist.sources"
 BLOCK_IP="0.0.0.0"
 INPUT_HOSTS="/etc/hosts"
 OUTPUT_HOSTS="/etc/hosts"

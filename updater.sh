@@ -30,8 +30,8 @@ downloadFile() {
 
 # download files
 downloadFile "$astrokeys" https://keybase.io/astrolince/pgp_keys.asc
-downloadFile "$hosty" https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh
-downloadFile "$signature" https://raw.githubusercontent.com/astrolince/hosty/master/hosty.sh.sig
+downloadFile "$hosty" https://4st.li/hosty/hosty.sh
+downloadFile "$signature" https://4st.li/hosty/hosty.sh.sig
 
 # verify signature
 gpg --dearmor "$astrokeys" >/dev/null 2>&1
