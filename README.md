@@ -1,11 +1,11 @@
 # hosty
 
-[![GitHub code size](https://img.shields.io/github/languages/code-size/astrolince/hosty.svg)
-![GitHub last commit](https://img.shields.io/github/last-commit/astrolince/hosty.svg)
-![GitHub license](https://img.shields.io/github/license/astrolince/hosty.svg)
-![GitHub watchers](https://img.shields.io/github/watchers/astrolince/hosty.svg?label=Watch&style=social)
-![GitHub stars](https://img.shields.io/github/stars/astrolince/hosty.svg?label=Star&style=social)
-![GitHub forks](https://img.shields.io/github/forks/astrolince/hosty.svg?label=Fork&style=social)](https://github.com/astrolince/hosty)
+[![GitHub code size](https://img.shields.io/github/languages/code-size/astrovm/hosty.svg)
+![GitHub last commit](https://img.shields.io/github/last-commit/astrovm/hosty.svg)
+![GitHub license](https://img.shields.io/github/license/astrovm/hosty.svg)
+![GitHub watchers](https://img.shields.io/github/watchers/astrovm/hosty.svg?label=Watch&style=social)
+![GitHub stars](https://img.shields.io/github/stars/astrovm/hosty.svg?label=Star&style=social)
+![GitHub forks](https://img.shields.io/github/forks/astrovm/hosty.svg?label=Fork&style=social)](https://github.com/astrovm/hosty)
 
 System-wide ad blocker for Linux/Unix/BSD/Mac.
 
@@ -42,7 +42,7 @@ In the predefined list we don't accept political censorship or paternalistic goa
 
 Just run:
 
-`$ curl -L https://astrolince.com/hosty/install.sh | sh`
+`$ curl -L https://4st.li/hosty/install.sh | sh`
 
 The installer will ask you if you want to always run the latest version of hosty code, to achieve this, code updates are downloaded from this repository in each execution. A verification mechanism is included, hosty will make sure automatically that the updates are signed by me.
 
@@ -82,8 +82,8 @@ wwww.facebook.com
 You can include exceptions editing the file `/etc/hosty/whitelist` (with root permissions), one domain name per line:
 
 ```
-astrolince.com
-www.astrolince.com
+4st.li
+www.4st.li
 ```
 
 ## Custom sources
