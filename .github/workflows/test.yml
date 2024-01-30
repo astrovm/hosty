@@ -1,4 +1,4 @@
-name: Test
+name: Test in Ubuntu/Mac/Alpine
 
 on:
   push:
@@ -25,8 +25,8 @@ jobs:
         run: $GITHUB_WORKSPACE/hosty.sh -di
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
-      - name: Run hosty installer answering n/n
-        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"n\r\"; expect \"y/n\r\"; send -- \"n\r\"; expect \"done.\r\"; expect eof"
+      - name: Run hosty installer answering n
+        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"n\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty installer without sudo and with cat
         run: expect -c "spawn sh -c {cat $GITHUB_WORKSPACE/install.sh | sh}; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty installer without sudo
@@ -54,8 +54,8 @@ jobs:
         run: $GITHUB_WORKSPACE/hosty.sh -di
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
-      - name: Run hosty installer answering n/n
-        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"n\r\"; expect \"y/n\r\"; send -- \"n\r\"; expect \"done.\r\"; expect eof"
+      - name: Run hosty installer answering n
+        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"n\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty installer without sudo and with cat
         run: expect -c "spawn sh -c {cat $GITHUB_WORKSPACE/install.sh | sh}; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty installer without sudo
@@ -86,8 +86,8 @@ jobs:
         run: $GITHUB_WORKSPACE/hosty.sh -di
       - name: Run hosty updater in debug mode
         run: $GITHUB_WORKSPACE/updater.sh -d
-      - name: Run hosty installer answering n/n
-        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"n\r\"; expect \"y/n\r\"; send -- \"n\r\"; expect \"done.\r\"; expect eof"
+      - name: Run hosty installer answering n
+        run: expect -c "spawn $GITHUB_WORKSPACE/install.sh; expect \"y/n\r\"; send -- \"n\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty installer without sudo and with cat
         run: expect -c "spawn sh -c {cat $GITHUB_WORKSPACE/install.sh | sh}; expect \"y/n\r\"; send -- \"y\r\"; expect \"y/n\r\"; send -- \"y\r\"; expect \"or 'never':\r\"; send -- \"daily\r\"; expect \"done.\r\"; expect eof"
       - name: Run hosty installer without sudo
