@@ -156,7 +156,7 @@ checkDep sort
 checkDep grep
 
 echo "======== hosty v$VERSION ($RELEASE_DATE) ========"
-echo "========   $PROJECT_URL   ========"
+echo "========       $PROJECT_URL       ========"
 echo
 
 # avoid all system changes if debug mode is enabled
