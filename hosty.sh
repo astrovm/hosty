@@ -2,8 +2,8 @@
 
 set -euf
 
-VERSION="1.9.7"
-RELEASE_DATE="29/jan/24"
+VERSION="1.9.8"
+RELEASE_DATE="11/aug/25"
 PROJECT_URL="4st.li/hosty"
 BLACKLIST_DEFAULT_SOURCE="https://4st.li/hosty/lists/blacklist.sources"
 WHITELIST_DEFAULT_SOURCE="https://4st.li/hosty/lists/whitelist.sources"
