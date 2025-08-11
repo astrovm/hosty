@@ -340,6 +340,17 @@ downloadFile() {
     fi
 }
 
+# Function to download white/blacklist
+downloadList() {
+    tmp_downloadFile=$(mktemp)
+
+    echo "downloading $1"
+    if ! curl -sSL --retry 1 --max-time 10 -o "$tmp_downloadFile" "$1"; then
+        echo "error downloading $1"
+        rm "$tmp_downloadFile"
+    fi
+}
+
 blacklist_sources=$(mktemp)
 whitelist_sources=$(mktemp)
 
@@ -376,9 +387,11 @@ blacklist_domains=$(mktemp)
 
 # download blacklist sources and merge into one
 while read -r line; do
-    downloadFile "$line"
-    cat "$tmp_downloadFile" >>"$blacklist_domains"
-    rm "$tmp_downloadFile"
+    downloadList "$line"
+    if [ -f "$tmp_downloadFile" ]; then
+        cat "$tmp_downloadFile" >>"$blacklist_domains"
+        rm "$tmp_downloadFile"
+    fi
 done <"$blacklist_sources"
 
 if [ -f /etc/hosty/blacklist ]; then
@@ -425,9 +438,11 @@ whitelist_domains=$(mktemp)
 
 # download whitelist sources and merge into one
 while read -r line; do
-    downloadFile "$line"
-    cat "$tmp_downloadFile" >>"$whitelist_domains"
-    rm "$tmp_downloadFile"
+    downloadList "$line"
+    if [ -f "$tmp_downloadFile" ]; then
+        cat "$tmp_downloadFile" >>"$whitelist_domains"
+        rm "$tmp_downloadFile"
+    fi
 done <"$whitelist_sources"
 
 if [ -f /etc/hosty/whitelist ]; then
