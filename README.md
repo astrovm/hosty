@@ -124,4 +124,14 @@ If you don't use it anymore:
 
 `$ sudo hosty -u (--uninstall)`
 
-If your want to restore your original hosts file, run that option first.
+If you want to restore your original hosts file, run that option first.
+
+## Development
+
+Contributions are welcome. Before submitting changes:
+
+- Format scripts with `shfmt -i 4 -ci -sr -w *.sh`
+- Lint scripts with `shellcheck hosty.sh install.sh`
+- Smoke test with `./hosty.sh -d` and `./hosty.sh -di`
+
+These steps help ensure consistent style and basic correctness.
