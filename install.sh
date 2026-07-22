@@ -84,7 +84,10 @@ cleanup_tmp() {
     run_priv rm -f "$tmp" 2> /dev/null || true
 }
 
-trap cleanup_tmp EXIT INT TERM
+# Cleanup on EXIT; INT/TERM must exit so the EXIT trap still runs once.
+trap cleanup_tmp EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 case "$hosty_url" in
     https://* | file://*)
@@ -104,6 +107,7 @@ trap - EXIT INT TERM
 echo
 if ! version=$("$dest" -v 2> /dev/null); then
     echo "installed file does not look like a working hosty binary." >&2
+    run_priv rm -f "$dest"
     exit 1
 fi
 echo "installed hosty v$version"

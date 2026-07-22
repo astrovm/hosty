@@ -138,7 +138,7 @@ GETOPTIONSHERE
 
 # --- helpers -----------------------------------------------------------------
 
-# Tracked temps are removed on EXIT/INT/TERM. Debug OUTPUT_HOSTS is not tracked
+# Tracked temps are removed on EXIT. Debug OUTPUT_HOSTS is not tracked
 # so the built hosts file remains for inspection after the run.
 TEMPS=""
 
@@ -148,10 +148,23 @@ cleanup_temps() {
     done
 }
 
-trap cleanup_temps EXIT INT TERM
+# Cleanup on EXIT; INT/TERM must exit so the EXIT trap still runs once.
+trap cleanup_temps EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 add_temp() {
     TEMPS="$TEMPS $1"
+}
+
+# Stop tracking a temp so EXIT cleanup leaves it for recovery.
+forget_temp() {
+    _keep=""
+    for _t in $TEMPS; do
+        [ "$_t" = "$1" ] && continue
+        _keep="$_keep $_t"
+    done
+    TEMPS=$_keep
 }
 
 mktemp_file() {
@@ -208,9 +221,9 @@ remove_cron_scripts() {
 }
 
 # Publish built hosts content to OUTPUT_HOSTS.
-# Stage fully first, then prefer mv (new inode). Fall back to in-place overwrite
-# when the path is busy or otherwise not replaceable (common for /etc/hosts).
-# mktemp files are often 0600 — chmod so world-readable hosts stay readable.
+# Stage fully first, then prefer mv (new inode) only when the staged file is
+# mode 644. Fall back to in-place overwrite when mv fails (busy /etc/hosts) or
+# chmod failed (keeps existing destination permissions when the path exists).
 install_hosts_file() {
     _src=$1
     _dest=$OUTPUT_HOSTS
@@ -218,14 +231,23 @@ install_hosts_file() {
     _tmp=$(mktemp "$_dir/.hosty.XXXXXX" 2> /dev/null) || _tmp=$(mktemp) || exit 1
     add_temp "$_tmp"
     cat "$_src" > "$_tmp"
-    chmod 644 "$_tmp" 2> /dev/null || true
 
-    if mv -f "$_tmp" "$_dest" 2> /dev/null; then
+    # Only mv after a successful chmod — otherwise a 0600 inode would replace
+    # a world-readable /etc/hosts (the CI failure mode).
+    if chmod 644 "$_tmp" 2> /dev/null && mv -f "$_tmp" "$_dest" 2> /dev/null; then
         return 0
     fi
 
-    cat "$_tmp" > "$_dest"
-    rm -f "$_tmp"
+    # In-place write: preserves dest mode/owner when the file already exists.
+    if cat "$_tmp" > "$_dest"; then
+        rm -f "$_tmp"
+        return 0
+    fi
+
+    # Publish failed after possible truncate; keep staging file for recovery.
+    echo "failed to write $_dest; recovery copy kept at $_tmp" >&2
+    forget_temp "$_tmp"
+    exit 1
 }
 
 # Required download (default source lists). Exits on failure.
@@ -268,9 +290,11 @@ downloadSourcesInto() {
 }
 
 # Extract hostnames from mixed hosts/domain/list formats into $1 (sorted unique).
+# awk and sort are separate steps so set -e catches awk failures (no pipefail).
 extractDomains() {
     echo
     echo "extracting domains..."
+    tmp_raw=$(mktemp_file)
     tmp_domains=$(mktemp_file)
     awk '
         /^\s*[a-zA-Z0-9:]/ {
@@ -284,7 +308,8 @@ extractDomains() {
                     print d
             }
         }
-    ' "$1" | sort -u > "$tmp_domains"
+    ' "$1" > "$tmp_raw"
+    sort -u "$tmp_raw" > "$tmp_domains"
     cat "$tmp_domains" > "$1"
     domains_counter=$(awk 'END { print NR + 0 }' "$1")
     echo "$domains_counter domains extracted."
@@ -418,14 +443,7 @@ if [ "$AUTORUN" = 1 ]; then
     checkDep crontab
 
     # remove legacy cron.* scripts if present
-    for _period in daily weekly monthly; do
-        _f="/etc/cron.$_period/hosty"
-        if [ -f "$_f" ]; then
-            echo
-            echo "removing $_f..."
-            rm -f "$_f"
-        fi
-    done
+    remove_cron_scripts
 
     # if user passed --ignore-default-sources, autorun with that
     if [ "$IGNORE_DEFAULT_SOURCES" != 1 ]; then
