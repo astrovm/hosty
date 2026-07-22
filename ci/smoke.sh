@@ -38,8 +38,8 @@ version_out=$("$HOSTY" -v 2>&1)
 expected_version=$(awk -F\" '/^VERSION=/ {print $2; exit}' "$HOSTY")
 assert_eq "$version_out" "$expected_version" "version should match VERSION in hosty.sh"
 
-# POSIX shell execution (when dash is available)
-if command -v dash > /dev/null 2>&1; then
+# POSIX shell execution (when a real dash is available — not a busybox multi-call stub)
+if command -v dash > /dev/null 2>&1 && dash -c 'exit 0' 2> /dev/null; then
     log "-- dash -n + dash help/version --"
     dash -n "$HOSTY"
     dash -n "$INSTALL"
@@ -47,7 +47,7 @@ if command -v dash > /dev/null 2>&1; then
     dash_ver=$(dash "$HOSTY" -v)
     assert_eq "$dash_ver" "$expected_version" "dash hosty -v should match"
 else
-    log "-- dash not installed; skipping POSIX shell runtime checks --"
+    log "-- dash not available; skipping POSIX shell runtime checks --"
 fi
 
 # sh -n syntax

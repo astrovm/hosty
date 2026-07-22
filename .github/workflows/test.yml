@@ -97,15 +97,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install dependencies
-        run: apk add --no-cache curl bash expect cronie coreutils
+        run: apk add --no-cache curl expect cronie coreutils dash
 
       - name: Run offline smoke suite
         run: |
           chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
-          # Alpine image runs as root; provide dash via busybox ash symlink check
-          if ! command -v dash >/dev/null 2>&1; then
-            ln -sf /bin/sh /usr/local/bin/dash 2>/dev/null || true
-          fi
           ./ci/smoke.sh
 
       - name: Upload CI logs on failure
