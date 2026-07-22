@@ -1,0 +1,4 @@
+# Domains used by CI offline smoke tests (not real trackers).
+ads.example.test
+tracker.example.test
+malware.example.test

@@ -1,0 +1,45 @@
+#!/usr/bin/expect -f
+# Install hosty, enable autorun, choose daily schedule.
+# Usage: install-yes.exp <command> [args...]
+set timeout 180
+
+if {[llength $argv] < 1} {
+    puts stderr "usage: install-yes.exp <command> \[args...\]"
+    exit 2
+}
+
+log_user 1
+eval spawn $argv
+
+expect {
+    -re {y/n} {
+        send -- "y\r"
+        exp_continue
+    }
+    -re {daily', 'weekly', 'monthly' or 'never'} {
+        send -- "daily\r"
+        exp_continue
+    }
+    -re {done\.} {}
+    timeout {
+        puts stderr "timeout waiting for installer (yes/daily path)"
+        exit 1
+    }
+    eof {}
+}
+
+expect {
+    eof {}
+    timeout {
+        puts stderr "timeout waiting for installer exit"
+        exit 1
+    }
+}
+
+catch wait result
+set exitcode [lindex $result 3]
+if {$exitcode != 0} {
+    puts stderr "installer exited with $exitcode"
+    exit $exitcode
+}
+exit 0

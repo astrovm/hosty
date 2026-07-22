@@ -47,20 +47,36 @@ if [ -f /usr/local/bin/hosty ]; then
     echo
 fi
 
+# HOSTY_URL: https URL, file:// URL, or local path (CI uses the workspace copy).
+# http:// is rejected — install is privileged and the source must be trusted.
+hosty_url="${HOSTY_URL:-https://4st.li/hosty/hosty.sh}"
+dest=/usr/local/bin/hosty
+
+run_priv() {
+    if [ "$request_sudo" = 1 ]; then
+        sudo "$@"
+    else
+        "$@"
+    fi
+}
+
 echo "installing hosty..."
-if [ "$request_sudo" = 1 ]; then
-    sudo curl -L --retry 3 -o /usr/local/bin/hosty https://4st.li/hosty/hosty.sh
-else
-    curl -L --retry 3 -o /usr/local/bin/hosty https://4st.li/hosty/hosty.sh
-fi
+case "$hosty_url" in
+    http://*)
+        echo "HOSTY_URL must be https://, file://, or a local path (got http://)." >&2
+        exit 1
+        ;;
+    https://* | file://*)
+        run_priv curl -fL --retry 3 -o "$dest" "$hosty_url"
+        ;;
+    *)
+        run_priv cp "$hosty_url" "$dest"
+        ;;
+esac
 echo
 
 echo "fixing permissions..."
-if [ "$request_sudo" = 1 ]; then
-    sudo chmod 755 /usr/local/bin/hosty
-else
-    chmod 755 /usr/local/bin/hosty
-fi
+run_priv chmod 755 "$dest"
 echo
 
 if command -v "crontab" > /dev/null 2>&1; then

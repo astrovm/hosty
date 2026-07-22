@@ -1,0 +1,2 @@
+# Domains that must not be blocked when present in the blacklist fixture.
+tracker.example.test
