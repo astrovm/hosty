@@ -19,9 +19,10 @@ on:
     - cron: "0 0 * * 0"
   workflow_dispatch:
 
+# Cancel superseded PR/push runs, but never cancel scheduled health checks.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 env:
   HOSTY_CI_LOG_DIR: ${{ github.workspace }}/ci-logs
@@ -92,7 +93,7 @@ jobs:
     needs: lint
     runs-on: ubuntu-26.04
     timeout-minutes: 20
-    container: alpine:latest
+    container: alpine:3.21
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -149,7 +150,11 @@ jobs:
   source-health:
     name: Source URL health
     needs: lint
+    # Always on PRs/pushes (soft budget for third-party), plus schedule/manual.
+    # List-only edits get signal before merge without waiting for the weekly job.
     if: >
+      github.event_name == 'pull_request' ||
+      github.event_name == 'push' ||
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-26.04

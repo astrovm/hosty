@@ -155,6 +155,6 @@ RUN_NETWORK=1 RUN_PRODUCTION_INSTALL=1 ./ci/smoke.sh
 | **Lint** | Every PR/push | `shfmt -d`, `shellcheck`, `dash -n` |
 | **Smoke** | Every PR/push | Ubuntu, macOS, Alpine offline suite (`ci/smoke.sh`) with assertions |
 | **Network** | `main` push, weekly schedule, manual | Default remote sources + production install from `4st.li` |
-| **Source health** | Weekly schedule, manual | Project URLs must pass; third-party lists allow a soft failure budget |
+| **Source health** | Every PR/push, weekly schedule, manual | Project URLs must pass; third-party lists allow a soft failure budget |
 
-Installer tests set `HOSTY_URL` to the workspace `hosty.sh` so PRs exercise local changes, not only the live release.
+Installer tests set `HOSTY_URL` to the workspace `hosty.sh` so PRs exercise local changes, not only the live release. `HOSTY_URL` accepts `https://`, `file://`, or a local path (not plain `http://`).

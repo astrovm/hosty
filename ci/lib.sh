@@ -46,11 +46,18 @@ assert_gt() {
     actual=$1
     min=$2
     msg=${3:-"expected $actual > $min"}
-    # POSIX arithmetic comparison
     [ "$actual" -gt "$min" ] || die "$msg"
 }
 
-# Run a command as root when needed. Prefer existing root; else sudo.
+# Parse "done, N websites blocked." from a log file.
+blocked_count_from() {
+    awk '/^done, / {
+        for (i = 1; i <= NF; i++)
+            if ($i ~ /^[0-9]+$/) { print $i; exit }
+    }' "$1"
+}
+
+# Run a command as root when needed.
 as_root() {
     if [ "$(id -u)" -eq 0 ]; then
         "$@"
@@ -63,8 +70,5 @@ can_as_root() {
     if [ "$(id -u)" -eq 0 ]; then
         return 0
     fi
-    if command -v sudo > /dev/null 2>&1 && sudo -n true 2> /dev/null; then
-        return 0
-    fi
-    return 1
+    command -v sudo > /dev/null 2>&1 && sudo -n true 2> /dev/null
 }

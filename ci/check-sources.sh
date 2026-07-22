@@ -1,8 +1,8 @@
 #!/bin/sh
-# Health-check project and lists/*.sources URLs.
-# Project (4st.li) URLs must succeed. Third-party list URLs may flake; the job
-# fails only if more than MAX_THIRD_PARTY_FAILURE_PCT of them fail.
-set -euf
+# Health-check project URLs and every URL in lists/*.sources.
+# Project URLs must pass. Third-party lists may flake; fail only above the budget.
+# Note: do not use set -f (noglob) — we need *.sources expansion.
+set -eu
 
 # shellcheck disable=SC1091
 . "$(dirname "$0")/lib.sh"
@@ -10,6 +10,7 @@ set -euf
 ROOT=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 LOG_DIR=${HOSTY_CI_LOG_DIR:-$ROOT/ci-logs}
 MAX_THIRD_PARTY_FAILURE_PCT=${MAX_THIRD_PARTY_FAILURE_PCT:-25}
+
 mkdir -p "$LOG_DIR"
 report="$LOG_DIR/source-check.txt"
 : > "$report"
@@ -18,6 +19,7 @@ report="$LOG_DIR/source-check.txt"
 project_failures=0
 third_checked=0
 third_failures=0
+lists_found=0
 
 check_url() {
     url=$1
@@ -48,6 +50,7 @@ done
 log "== checking lists/*.sources entries (third-party, soft threshold) =="
 for list in "$ROOT"/lists/*.sources; do
     [ -f "$list" ] || continue
+    lists_found=$((lists_found + 1))
     log "-- $(basename "$list") --" | tee -a "$report"
     while IFS= read -r line || [ -n "$line" ]; do
         case "$line" in
@@ -60,6 +63,9 @@ for list in "$ROOT"/lists/*.sources; do
     done < "$list"
 done
 
+[ "$lists_found" -gt 0 ] || die "no lists/*.sources files found under $ROOT/lists"
+[ "$third_checked" -gt 0 ] || die "lists/*.sources files exist but contain no URLs"
+
 log
 log "project_failures=$project_failures third_checked=$third_checked third_failures=$third_failures"
 
@@ -67,13 +73,10 @@ if [ "$project_failures" -gt 0 ]; then
     die "$project_failures project URL(s) failed (see $report)"
 fi
 
-if [ "$third_checked" -gt 0 ]; then
-    # Integer percent: failures * 100 / checked
-    pct=$((third_failures * 100 / third_checked))
-    log "third-party failure rate: ${pct}% (max allowed ${MAX_THIRD_PARTY_FAILURE_PCT}%)"
-    if [ "$pct" -gt "$MAX_THIRD_PARTY_FAILURE_PCT" ]; then
-        die "too many third-party source failures: ${pct}% > ${MAX_THIRD_PARTY_FAILURE_PCT}%"
-    fi
+pct=$((third_failures * 100 / third_checked))
+log "third-party failure rate: ${pct}% (max allowed ${MAX_THIRD_PARTY_FAILURE_PCT}%)"
+if [ "$pct" -gt "$MAX_THIRD_PARTY_FAILURE_PCT" ]; then
+    die "too many third-party source failures: ${pct}% > ${MAX_THIRD_PARTY_FAILURE_PCT}%"
 fi
 
 log "source URL health checks passed"

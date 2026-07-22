@@ -16,7 +16,7 @@ expect {
         send -- "y\r"
         exp_continue
     }
-    -re {never} {
+    -re {daily', 'weekly', 'monthly' or 'never'} {
         send -- "daily\r"
         exp_continue
     }
