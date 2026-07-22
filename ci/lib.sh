@@ -72,3 +72,60 @@ can_as_root() {
     fi
     command -v sudo > /dev/null 2>&1 && sudo -n true 2> /dev/null
 }
+
+# Portable file mode bits (e.g. 644). GNU stat -c %a, BSD/macOS stat -f %OLp.
+file_mode() {
+    if _mode=$(stat -c '%a' "$1" 2> /dev/null); then
+        printf '%s\n' "$_mode"
+        return 0
+    fi
+    if _mode=$(stat -f '%OLp' "$1" 2> /dev/null); then
+        printf '%s\n' "$_mode"
+        return 0
+    fi
+    return 1
+}
+
+# Accept 644 or 0644.
+assert_mode() {
+    _file=$1
+    _expected=$2
+    _msg=${3:-"$_file should have mode $_expected"}
+    _mode=$(file_mode "$_file") || die "$_msg (cannot stat mode)"
+    case $_mode in
+        "$_expected" | "0$_expected") ;;
+        *) die "$_msg (got $_mode)" ;;
+    esac
+}
+
+# Fail if any regular file under dir exists other than keep (absolute path).
+assert_no_extra_files() {
+    _dir=$1
+    _keep=$2
+    _msg=${3:-"unexpected files under $_dir"}
+    _list=$(mktemp) || die "mktemp failed"
+    find "$_dir" -type f > "$_list" 2> /dev/null || true
+    _leaked=""
+    while IFS= read -r _f || [ -n "$_f" ]; do
+        [ -n "$_f" ] || continue
+        [ "$_f" = "$_keep" ] && continue
+        _leaked="$_f"
+        break
+    done < "$_list"
+    rm -f "$_list"
+    [ -z "$_leaked" ] || die "$_msg: $_leaked"
+}
+
+# No leftover installer staging files in /usr/local/bin.
+assert_no_hosty_staging() {
+    _msg=${1:-"leftover /usr/local/bin/.hosty.* staging files"}
+    _list=$(mktemp) || die "mktemp failed"
+    # find may need root when dir entries are root-only; redirect stays local.
+    as_root find /usr/local/bin -maxdepth 1 -name '.hosty.*' > "$_list" 2> /dev/null || true
+    if [ -s "$_list" ]; then
+        _leaked=$(cat "$_list")
+        rm -f "$_list"
+        die "$_msg: $_leaked"
+    fi
+    rm -f "$_list"
+}
