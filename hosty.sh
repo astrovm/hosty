@@ -207,14 +207,25 @@ remove_cron_scripts() {
     done
 }
 
-# Atomically replace destination with source contents (same-dir temp + mv).
+# Publish built hosts content to OUTPUT_HOSTS.
+# Stage fully first, then prefer mv (new inode). Fall back to in-place overwrite
+# when the path is busy or otherwise not replaceable (common for /etc/hosts).
+# mktemp files are often 0600 — chmod so world-readable hosts stay readable.
 install_hosts_file() {
     _src=$1
-    _dir=$(dirname "$OUTPUT_HOSTS")
-    _tmp=$(mktemp "$_dir/.hosty.XXXXXX") || exit 1
+    _dest=$OUTPUT_HOSTS
+    _dir=$(dirname "$_dest")
+    _tmp=$(mktemp "$_dir/.hosty.XXXXXX" 2> /dev/null) || _tmp=$(mktemp) || exit 1
     add_temp "$_tmp"
     cat "$_src" > "$_tmp"
-    mv -f "$_tmp" "$OUTPUT_HOSTS"
+    chmod 644 "$_tmp" 2> /dev/null || true
+
+    if mv -f "$_tmp" "$_dest" 2> /dev/null; then
+        return 0
+    fi
+
+    cat "$_tmp" > "$_dest"
+    rm -f "$_tmp"
 }
 
 # Required download (default source lists). Exits on failure.
