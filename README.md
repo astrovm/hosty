@@ -128,10 +128,33 @@ If you want to restore your original hosts file, run that option first.
 
 ## Development
 
-Contributions are welcome. Before submitting changes:
+Contributions are welcome. Before submitting changes, match what CI enforces:
 
-- Format scripts with `shfmt -i 4 -ci -sr -w *.sh`
-- Lint scripts with `shellcheck hosty.sh install.sh`
-- Smoke test with `./hosty.sh -d` and `./hosty.sh -di`
+```sh
+# Format (write)
+shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh
 
-These steps help ensure consistent style and basic correctness.
+# Lint
+shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh
+shellcheck hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+
+# Offline smoke (needs root or passwordless sudo + expect)
+./ci/smoke.sh
+
+# Optional: full network path + production install check
+RUN_NETWORK=1 RUN_PRODUCTION_INSTALL=1 ./ci/smoke.sh
+
+# Optional: list URL health
+./ci/check-sources.sh
+```
+
+### CI overview
+
+| Job | When | What |
+|-----|------|------|
+| **Lint** | Every PR/push | `shfmt -d`, `shellcheck`, `dash -n` |
+| **Smoke** | Every PR/push | Ubuntu, macOS, Alpine offline suite (`ci/smoke.sh`) with assertions |
+| **Network** | `main` push, weekly schedule, manual | Default remote sources + production install from `4st.li` |
+| **Source health** | Weekly schedule, manual | Project URLs must pass; third-party lists allow a soft failure budget |
+
+Installer tests set `HOSTY_URL` to the workspace `hosty.sh` so PRs exercise local changes, not only the live release.
