@@ -167,10 +167,12 @@ forget_temp() {
     TEMPS=$_keep
 }
 
+# Create a temp file and track it for EXIT cleanup.
+# Sets LAST_TEMP to the path. Must not run under $() — a subshell would
+# leave TEMPS empty in the parent and leak files.
 mktemp_file() {
-    _t=$(mktemp) || exit 1
-    add_temp "$_t"
-    printf '%s\n' "$_t"
+    LAST_TEMP=$(mktemp) || exit 1
+    add_temp "$LAST_TEMP"
 }
 
 checkDep() {
@@ -221,9 +223,11 @@ remove_cron_scripts() {
 }
 
 # Publish built hosts content to OUTPUT_HOSTS.
-# Stage fully first, then prefer mv (new inode) only when the staged file is
-# mode 644. Fall back to in-place overwrite when mv fails (busy /etc/hosts) or
-# chmod failed (keeps existing destination permissions when the path exists).
+# Stage fully first. When dest already exists, overwrite in place so
+# owner/group (and xattrs on many systems) are preserved, then force mode
+# 644 so /etc/hosts stays world-readable. When dest is missing, chmod the
+# staged file then mv so the new inode is not left at mktemp's default 0600.
+# Fall back between in-place and mv when one path fails (e.g. busy /etc/hosts).
 install_hosts_file() {
     _src=$1
     _dest=$OUTPUT_HOSTS
@@ -232,14 +236,21 @@ install_hosts_file() {
     add_temp "$_tmp"
     cat "$_src" > "$_tmp"
 
-    # Only mv after a successful chmod — otherwise a 0600 inode would replace
-    # a world-readable /etc/hosts (the CI failure mode).
+    if [ -f "$_dest" ]; then
+        if cat "$_tmp" > "$_dest" 2> /dev/null; then
+            chmod 644 "$_dest" 2> /dev/null || true
+            rm -f "$_tmp"
+            return 0
+        fi
+    fi
+
     if chmod 644 "$_tmp" 2> /dev/null && mv -f "$_tmp" "$_dest" 2> /dev/null; then
         return 0
     fi
 
-    # In-place write: preserves dest mode/owner when the file already exists.
-    if cat "$_tmp" > "$_dest"; then
+    # Last resort in-place (busy path may reject mv).
+    if cat "$_tmp" > "$_dest" 2> /dev/null; then
+        chmod 644 "$_dest" 2> /dev/null || true
         rm -f "$_tmp"
         return 0
     fi
@@ -253,7 +264,8 @@ install_hosts_file() {
 # Required download (default source lists). Exits on failure.
 # Sets tmp_download_file to the path of the downloaded content.
 downloadFile() {
-    tmp_download_file=$(mktemp_file)
+    mktemp_file
+    tmp_download_file=$LAST_TEMP
     echo "downloading $1"
     if ! curl -sSL --retry 3 -o "$tmp_download_file" "$1"; then
         echo "error downloading $1"
@@ -264,7 +276,8 @@ downloadFile() {
 # Optional download (per-list entries). Continues on failure.
 # Sets tmp_download_file on success; clears it on failure.
 downloadList() {
-    tmp_download_file=$(mktemp_file)
+    mktemp_file
+    tmp_download_file=$LAST_TEMP
     echo "downloading $1"
     if ! curl -sSL --retry 1 --max-time 10 -o "$tmp_download_file" "$1"; then
         echo "error downloading $1"
@@ -294,8 +307,10 @@ downloadSourcesInto() {
 extractDomains() {
     echo
     echo "extracting domains..."
-    tmp_raw=$(mktemp_file)
-    tmp_domains=$(mktemp_file)
+    mktemp_file
+    tmp_raw=$LAST_TEMP
+    mktemp_file
+    tmp_domains=$LAST_TEMP
     awk '
         /^\s*[a-zA-Z0-9:]/ {
             line = $0
@@ -380,10 +395,12 @@ if [ "$UNINSTALL" = 1 ]; then
 
     remove_cron_scripts
 
-    previous_crontab=$(mktemp_file)
+    mktemp_file
+    previous_crontab=$LAST_TEMP
     if crontab -l 2> /dev/null > "$previous_crontab" && grep "/usr/local/bin/hosty" "$previous_crontab" > /dev/null 2>&1; then
         echo "removing from crontab..."
-        new_crontab=$(mktemp_file)
+        mktemp_file
+        new_crontab=$LAST_TEMP
         awk '!/\/usr\/local\/bin\/hosty/' "$previous_crontab" > "$new_crontab"
         crontab "$new_crontab"
         echo
@@ -400,7 +417,8 @@ if [ "$UNINSTALL" = 1 ]; then
 fi
 
 # copy original hosts file and handle --restore
-user_hosts_file=$(mktemp_file)
+mktemp_file
+user_hosts_file=$LAST_TEMP
 user_hosts_line_number=$(awk '
     /^# [aA]d blocking hosts generated/ { counter = NR }
     END {
@@ -428,7 +446,8 @@ else
 
     # if --restore is present, restore original hosts and exit
     if [ "$RESTORE" = 1 ]; then
-        restored_hosts=$(mktemp_file)
+        mktemp_file
+        restored_hosts=$LAST_TEMP
         trim_empty_lines "$user_hosts_file" > "$restored_hosts"
         install_hosts_file "$restored_hosts"
         echo "$OUTPUT_HOSTS restore completed."
@@ -459,9 +478,11 @@ if [ "$AUTORUN" = 1 ]; then
     echo "enter 'daily', 'weekly', 'monthly' or 'never':"
     period=$(read_line)
 
-    previous_crontab=$(mktemp_file)
+    mktemp_file
+    previous_crontab=$LAST_TEMP
     (crontab -l 2> /dev/null || true) > "$previous_crontab"
-    new_crontab=$(mktemp_file)
+    mktemp_file
+    new_crontab=$LAST_TEMP
     awk '!/\/usr\/local\/bin\/hosty/' "$previous_crontab" > "$new_crontab"
 
     case $period in
@@ -494,8 +515,10 @@ if [ "$AUTORUN" = 1 ]; then
     exit 0
 fi
 
-blacklist_sources=$(mktemp_file)
-whitelist_sources=$(mktemp_file)
+mktemp_file
+blacklist_sources=$LAST_TEMP
+mktemp_file
+whitelist_sources=$LAST_TEMP
 
 # remove default sources if the user wants that
 if [ "$IGNORE_DEFAULT_SOURCES" != 1 ]; then
@@ -524,7 +547,8 @@ fi
 
 echo
 echo "downloading blacklists..."
-blacklist_domains=$(mktemp_file)
+mktemp_file
+blacklist_domains=$LAST_TEMP
 downloadSourcesInto "$blacklist_sources" "$blacklist_domains"
 
 if [ -f /etc/hosty/blacklist ]; then
@@ -537,7 +561,8 @@ extractDomains "$blacklist_domains"
 
 echo
 echo "downloading whitelists..."
-whitelist_domains=$(mktemp_file)
+mktemp_file
+whitelist_domains=$LAST_TEMP
 downloadSourcesInto "$whitelist_sources" "$whitelist_domains"
 
 if [ -f /etc/hosty/whitelist ]; then
@@ -553,7 +578,8 @@ extractDomains "$whitelist_domains"
 
 echo
 echo "building $OUTPUT_HOSTS"
-final_hosts_file=$(mktemp_file)
+mktemp_file
+final_hosts_file=$LAST_TEMP
 
 trim_empty_lines "$user_hosts_file" > "$final_hosts_file"
 

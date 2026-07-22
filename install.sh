@@ -101,15 +101,17 @@ esac
 echo
 echo "fixing permissions..."
 run_priv chmod 755 "$tmp"
-run_priv mv -f "$tmp" "$dest"
-trap - EXIT INT TERM
 
+# Verify the staged file before replacing any existing install so a bad
+# payload cannot remove a working /usr/local/bin/hosty.
 echo
-if ! version=$("$dest" -v 2> /dev/null); then
-    echo "installed file does not look like a working hosty binary." >&2
-    run_priv rm -f "$dest"
+if ! version=$(run_priv "$tmp" -v 2> /dev/null); then
+    echo "staged file does not look like a working hosty binary." >&2
     exit 1
 fi
+
+run_priv mv -f "$tmp" "$dest"
+trap - EXIT INT TERM
 echo "installed hosty v$version"
 echo
 
