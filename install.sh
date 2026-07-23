@@ -36,30 +36,32 @@ echo "checking if user has root access..."
 hosty_url="${HOSTY_URL:-https://4st.li/hosty/hosty.sh}"
 dest_dir=/usr/local/bin
 dest="$dest_dir/hosty"
+privilege_tool=""
 
 if [ "$(id -u)" != 0 ]; then
     echo
-    if ! command -v sudo > /dev/null 2>&1; then
-        echo "you don't have sudo access, please fix that or run from root."
+    if command -v sudo > /dev/null 2>&1; then
+        privilege_tool=sudo
+        if sudo -n true 2> /dev/null; then
+            echo "using already granted sudo access..."
+        else
+            echo "requesting sudo..."
+            sudo -v
+        fi
+    elif command -v doas > /dev/null 2>&1; then
+        privilege_tool=doas
+        echo "using doas..."
+    else
+        echo "you don't have sudo or doas access; run the installer as root or configure one of them."
         exit 1
     fi
-
-    if sudo -n true 2> /dev/null; then
-        echo "using already granted sudo access..."
-    else
-        echo "requesting sudo..."
-        sudo -v
-    fi
-
-    request_sudo=1
 else
-    request_sudo=0
     echo "OK"
 fi
 
 run_priv() {
-    if [ "$request_sudo" = 1 ]; then
-        sudo "$@"
+    if [ -n "$privilege_tool" ]; then
+        "$privilege_tool" "$@"
     else
         "$@"
     fi
