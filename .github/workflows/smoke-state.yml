@@ -103,7 +103,19 @@ jobs:
       - name: Run smoke suite
         run: |
           chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
-          ./ci/smoke.sh
+          mkdir -p ci-logs
+          if ! ./ci/smoke.sh > ci-logs/smoke-state.out 2>&1; then
+            cat ci-logs/smoke-state.out
+            exit 1
+          fi
+
+      - name: Upload CI logs on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: smoke-state-logs
+          path: ci-logs/
+          if-no-files-found: ignore
 
       - name: Verify restored state
         run: |
