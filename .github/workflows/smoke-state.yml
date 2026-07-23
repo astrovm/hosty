@@ -1,0 +1,49 @@
+permissions:
+  contents: read
+
+name: Smoke state preservation
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "ci/**"
+      - "hosty.sh"
+      - "install.sh"
+      - ".github/workflows/smoke-state.yml"
+  workflow_dispatch:
+
+jobs:
+  preserve-state:
+    name: Preserve existing Hosty state
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install dependencies
+        run: |
+          sudo apt -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
+            expect dash cron
+
+      - name: Seed existing state
+        run: |
+          sudo cp /etc/hosts /tmp/hosty-hosts.before
+          sudo mkdir -p /etc/hosty
+          printf '%s\n' preserve-me | sudo tee /etc/hosty/preserved >/dev/null
+          printf '%s\n' '#!/bin/sh' 'printf "%s\n" preserve-me' | sudo tee /usr/local/bin/hosty >/dev/null
+          sudo chmod 755 /usr/local/bin/hosty
+          printf '%s\n' '17 3 * * * echo preserve-me # hosty-ci-preserve' | sudo crontab -
+
+      - name: Run smoke suite
+        run: |
+          chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
+          ./ci/smoke.sh
+
+      - name: Verify restored state
+        run: |
+          sudo cmp /tmp/hosty-hosts.before /etc/hosts
+          test "$(sudo cat /etc/hosty/preserved)" = preserve-me
+          test "$(sudo /usr/local/bin/hosty)" = preserve-me
+          sudo crontab -l | grep -qF -e '# hosty-ci-preserve'
