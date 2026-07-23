@@ -91,7 +91,6 @@ jobs:
       - name: Seed existing state
         run: |
           sudo cp /etc/hosts /tmp/hosty-hosts.before
-          sudo chmod 600 /etc/hosts
           sudo mkdir -p /etc/hosty /etc/cron.daily
           printf '%s\n' preserve-me | sudo tee /etc/hosty/preserved >/dev/null
           printf '%s\n' '#!/bin/sh' 'printf "%s\n" preserve-me' | sudo tee /usr/local/bin/hosty >/dev/null
@@ -120,9 +119,27 @@ jobs:
       - name: Verify restored state
         run: |
           sudo cmp /tmp/hosty-hosts.before /etc/hosts
-          test "$(stat -c '%a' /etc/hosts)" = 600
+          test "$(stat -c '%a' /etc/hosts)" = 644
           test "$(sudo cat /etc/hosty/preserved)" = preserve-me
           test "$(sudo /usr/local/bin/hosty)" = preserve-me
           test "$(sudo /etc/cron.daily/hosty)" = preserve-cron
           test "$(stat -c '%a' /etc/cron.daily/hosty)" = 700
           sudo crontab -l | grep -qF -e '# hosty-ci-preserve'
+
+      - name: Test hosts metadata restoration
+        run: |
+          mode_core=$(mktemp)
+          cleanup() {
+            sudo chmod 644 /etc/hosts
+            rm -f "$mode_core"
+          }
+          trap cleanup EXIT
+
+          cat > "$mode_core" <<'EOF_CORE'
+          #!/bin/sh
+          sudo chmod 644 /etc/hosts
+          EOF_CORE
+
+          sudo chmod 600 /etc/hosts
+          HOSTY_SMOKE_CORE="$mode_core" ./ci/smoke.sh
+          test "$(stat -c '%a' /etc/hosts)" = 600
