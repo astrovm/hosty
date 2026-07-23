@@ -42,7 +42,21 @@ jobs:
             shellcheck shfmt dash
 
       - name: Format
-        run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh ci/smoke-core
+        run: shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh ci/smoke-core
+
+      - name: Verify format
+        run: git diff --exit-code
+
+      - name: Upload formatted scripts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: shfmt-output
+          path: |
+            hosty.sh
+            install.sh
+            ci/*.sh
+            ci/smoke-core
 
       - name: ShellCheck (POSIX sh)
         run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh
