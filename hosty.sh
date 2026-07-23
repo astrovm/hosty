@@ -18,6 +18,7 @@ RESTORE=0
 DEBUG=0
 UNINSTALL=0
 WORK_DIR=""
+REPLY=""
 
 usage() {
     cat << 'EOF_USAGE'
@@ -79,12 +80,13 @@ parse_args() {
                 [ "$#" -eq 0 ] || fail "unexpected argument: $1"
                 break
                 ;;
+            --*) fail "unrecognized option: $1" ;;
             -?*)
-                _options=${1#-}
-                while [ -n "$_options" ]; do
-                    _option=${_options%"${_options#?}"}
-                    _options=${_options#?}
-                    set_short_option "$_option"
+                parse_options=${1#-}
+                while [ -n "$parse_options" ]; do
+                    parse_option=${parse_options%"${parse_options#?}"}
+                    parse_options=${parse_options#?}
+                    set_short_option "$parse_option"
                 done
                 ;;
             *) fail "unexpected argument: $1" ;;
@@ -115,7 +117,7 @@ read_reply() {
     if IFS= read -r REPLY; then
         return 0
     fi
-    if [ -r /dev/tty ] && IFS= read -r REPLY < /dev/tty; then
+    if ( : < /dev/tty ) 2> /dev/null && IFS= read -r REPLY < /dev/tty; then
         return 0
     fi
     fail "failed to read input."
@@ -128,85 +130,88 @@ cleanup() {
 }
 
 remove_legacy_cron_scripts() {
-    for _period in daily weekly monthly; do
-        _file="/etc/cron.$_period/hosty"
-        if [ -f "$_file" ]; then
-            printf 'removing %s...\n\n' "$_file"
-            rm -f "$_file"
+    for remove_cron_period in daily weekly monthly; do
+        remove_cron_file="/etc/cron.$remove_cron_period/hosty"
+        if [ -f "$remove_cron_file" ]; then
+            printf 'removing %s...\n\n' "$remove_cron_file"
+            rm -f "$remove_cron_file"
         fi
     done
 }
 
-# Publish a complete hosts file without exposing a partially written file.
-# Existing files are overwritten in place first to preserve ownership and metadata.
+# Stage complete content first. Prefer an in-place write for an existing file to
+# preserve ownership and metadata; fall back to rename when needed.
 install_hosts_file() {
-    _source=$1
-    _destination=$OUTPUT_HOSTS
-    _directory=$(dirname "$_destination")
-    _staged=$(mktemp "$_directory/.hosty.XXXXXX" 2> /dev/null) || _staged=$(mktemp) || exit 1
+    install_hosts_source=$1
+    install_hosts_destination=$OUTPUT_HOSTS
+    install_hosts_directory=$(dirname "$install_hosts_destination")
+    install_hosts_staged=$(mktemp "$install_hosts_directory/.hosty.XXXXXX" 2> /dev/null) ||
+        install_hosts_staged=$(mktemp) || exit 1
 
-    cat "$_source" > "$_staged"
+    cat "$install_hosts_source" > "$install_hosts_staged"
 
-    if [ -f "$_destination" ] && cat "$_staged" > "$_destination" 2> /dev/null; then
-        chmod 644 "$_destination" 2> /dev/null || true
-        rm -f "$_staged"
+    if [ -f "$install_hosts_destination" ] &&
+        cat "$install_hosts_staged" > "$install_hosts_destination" 2> /dev/null; then
+        chmod 644 "$install_hosts_destination" 2> /dev/null || true
+        rm -f "$install_hosts_staged"
         return 0
     fi
 
-    if chmod 644 "$_staged" 2> /dev/null && mv -f "$_staged" "$_destination" 2> /dev/null; then
+    if chmod 644 "$install_hosts_staged" 2> /dev/null &&
+        mv -f "$install_hosts_staged" "$install_hosts_destination" 2> /dev/null; then
         return 0
     fi
 
     # A busy mount may reject rename while still permitting an in-place write.
-    if cat "$_staged" > "$_destination" 2> /dev/null; then
-        chmod 644 "$_destination" 2> /dev/null || true
-        rm -f "$_staged"
+    if cat "$install_hosts_staged" > "$install_hosts_destination" 2> /dev/null; then
+        chmod 644 "$install_hosts_destination" 2> /dev/null || true
+        rm -f "$install_hosts_staged"
         return 0
     fi
 
-    fail "failed to write $_destination; recovery copy kept at $_staged"
+    fail "failed to write $install_hosts_destination; recovery copy kept at $install_hosts_staged"
 }
 
 download_required() {
-    _url=$1
-    _destination=$2
-    printf 'downloading %s\n' "$_url"
-    if ! curl -fsSL --retry 3 -o "$_destination" "$_url"; then
-        fail "error downloading $_url"
+    download_required_url=$1
+    download_required_target=$2
+    printf 'downloading %s\n' "$download_required_url"
+    if ! curl -fsSL --retry 3 -o "$download_required_target" "$download_required_url"; then
+        fail "error downloading $download_required_url"
     fi
 }
 
 download_optional() {
-    _url=$1
-    _destination=$2
-    printf 'downloading %s\n' "$_url"
-    if ! curl -fsSL --retry 1 --max-time 10 -o "$_destination" "$_url"; then
-        printf 'error downloading %s\n' "$_url" >&2
-        rm -f "$_destination"
+    download_optional_url=$1
+    download_optional_target=$2
+    printf 'downloading %s\n' "$download_optional_url"
+    if ! curl -fsSL --retry 1 --max-time 10 -o "$download_optional_target" "$download_optional_url"; then
+        printf 'error downloading %s\n' "$download_optional_url" >&2
+        rm -f "$download_optional_target"
         return 1
     fi
 }
 
 download_sources_into() {
-    _sources=$1
-    _destination=$2
-    _download="$WORK_DIR/download"
+    download_sources_file=$1
+    download_sources_target=$2
+    download_sources_temp="$WORK_DIR/download"
 
-    while IFS= read -r _url || [ -n "$_url" ]; do
-        case $_url in
+    while IFS= read -r download_sources_url || [ -n "$download_sources_url" ]; do
+        case $download_sources_url in
             '' | \#*) continue ;;
         esac
-        if download_optional "$_url" "$_download"; then
-            cat "$_download" >> "$_destination"
+        if download_optional "$download_sources_url" "$download_sources_temp"; then
+            cat "$download_sources_temp" >> "$download_sources_target"
         fi
-    done < "$_sources"
+    done < "$download_sources_file"
 }
 
-# Extract valid-looking hostnames from hosts files, domain lists, and filter lists.
+# Extract hostnames from hosts-style files and plain domain lists.
 extract_domains() {
-    _file=$1
-    _raw="$WORK_DIR/domains.raw"
-    _sorted="$WORK_DIR/domains.sorted"
+    extract_domains_file=$1
+    extract_domains_raw="$WORK_DIR/domains.raw"
+    extract_domains_sorted="$WORK_DIR/domains.sorted"
 
     printf '\nextracting domains...\n'
     awk '
@@ -222,11 +227,11 @@ extract_domains() {
                     print domain
             }
         }
-    ' "$_file" > "$_raw"
-    sort -u "$_raw" > "$_sorted"
-    cat "$_sorted" > "$_file"
-    _count=$(awk 'END { print NR + 0 }' "$_file")
-    printf '%s domains extracted.\n' "$_count"
+    ' "$extract_domains_file" > "$extract_domains_raw"
+    sort -u "$extract_domains_raw" > "$extract_domains_sorted"
+    cat "$extract_domains_sorted" > "$extract_domains_file"
+    extract_domains_count=$(awk 'END { print NR + 0 }' "$extract_domains_file")
+    printf '%s domains extracted.\n' "$extract_domains_count"
 }
 
 trim_empty_lines() {
@@ -240,10 +245,28 @@ trim_empty_lines() {
     FNR >= first && FNR <= last' "$1" "$1"
 }
 
+append_blocked_domains() {
+    append_blocked_allow_file=$1
+    append_blocked_deny_file=$2
+    append_blocked_output=$3
+
+    awk -v ip="$BLOCK_IP" -v allow_file="$append_blocked_allow_file" '
+        BEGIN {
+            while ((getline domain < allow_file) > 0)
+                seen[domain] = 1
+            close(allow_file)
+        }
+        !seen[$1] {
+            seen[$1] = 1
+            print ip, $1
+        }
+    ' "$append_blocked_deny_file" >> "$append_blocked_output"
+}
+
 parse_args "$@"
 
-for _dependency in curl awk head cat mktemp sort grep dirname chmod mv rm; do
-    check_dep "$_dependency"
+for dependency in curl awk head cat mktemp sort grep dirname chmod mv rm id date; do
+    check_dep "$dependency"
 done
 
 printf '======== hosty v%s (%s) ========\n' "$VERSION" "$RELEASE_DATE"
@@ -282,7 +305,7 @@ if [ "$UNINSTALL" -eq 1 ]; then
     previous_crontab="$WORK_DIR/crontab.previous"
     if command -v crontab > /dev/null 2>&1 &&
         crontab -l 2> /dev/null > "$previous_crontab" &&
-        grep -F "$INSTALL_PATH" "$previous_crontab" > /dev/null 2>&1; then
+        grep -F -e "$INSTALL_PATH" "$previous_crontab" > /dev/null 2>&1; then
         printf 'removing hosty from crontab...\n\n'
         new_crontab="$WORK_DIR/crontab.new"
         awk -v path="$INSTALL_PATH" 'index($0, path) == 0' "$previous_crontab" > "$new_crontab"
@@ -355,7 +378,7 @@ if [ "$AUTORUN" -eq 1 ]; then
         weekly) printf '0 0 * * 0 %s\n' "$hosty_command" >> "$new_crontab" ;;
         monthly) printf '0 0 1 * * %s\n' "$hosty_command" >> "$new_crontab" ;;
         never)
-            if grep -F "$INSTALL_PATH" "$previous_crontab" > /dev/null 2>&1; then
+            if grep -F -e "$INSTALL_PATH" "$previous_crontab" > /dev/null 2>&1; then
                 crontab "$new_crontab"
             fi
             printf '\ndone.\n'
@@ -425,10 +448,7 @@ trim_empty_lines "$user_hosts_file" > "$final_hosts_file"
 } >> "$final_hosts_file"
 
 printf '\ncleaning and de-duplicating...\n'
-awk -v ip="$BLOCK_IP" '
-    FNR == NR { seen[$1] = 1; next }
-    !seen[$1] { seen[$1] = 1; print ip, $1 }
-' "$whitelist_domains" "$blacklist_domains" >> "$final_hosts_file"
+append_blocked_domains "$whitelist_domains" "$blacklist_domains" "$final_hosts_file"
 
 websites_blocked=$(awk -v ip="$BLOCK_IP" '$1 == ip { count++ } END { print count + 0 }' "$final_hosts_file")
 install_hosts_file "$final_hosts_file"
