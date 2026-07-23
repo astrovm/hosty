@@ -52,12 +52,12 @@ curl -fsSL https://4st.li/hosty/install.sh | sh
 The installer:
 
 - runs directly when the current account is root
-- otherwise uses `sudo`, falling back to `doas`
+- otherwise uses a working `sudo`, falling back to a working `doas`
 - downloads and validates Hosty before replacing an existing installation
 - installs the executable at `/usr/local/bin/hosty`
 - optionally configures automatic updates when `crontab` and a controlling terminal are available
 
-Without a controlling terminal, installation remains non-interactive and skips the automatic-update prompt. Configure it later with `hosty --autorun` as root.
+Without a controlling terminal, installation remains non-interactive and skips the automatic-update prompt. Privileged installation must already be allowed without a password. Configure automatic updates later with `hosty --autorun` as root.
 
 ## Usage
 
@@ -171,7 +171,9 @@ shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh
 
 # POSIX-oriented lint and syntax checks
 shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
-dash -n hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh; do
+    dash -n "$script"
+done
 
 # Offline functional tests; requires root or passwordless sudo/doas
 ./ci/smoke.sh
