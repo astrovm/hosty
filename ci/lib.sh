@@ -1,6 +1,8 @@
 # Shared helpers for hosty CI scripts (sourced, not executed).
 # shellcheck shell=sh
 
+ROOT_TOOL=""
+
 log() {
     printf '%s\n' "$*"
 }
@@ -61,24 +63,34 @@ blocked_count_from() {
     }' "$1"
 }
 
+select_root_tool() {
+    if [ "$(id -u)" -eq 0 ]; then
+        ROOT_TOOL=""
+        return 0
+    fi
+
+    for select_root_candidate in sudo doas; do
+        if command -v "$select_root_candidate" > /dev/null 2>&1 &&
+            "$select_root_candidate" -n true 2> /dev/null; then
+            ROOT_TOOL=$select_root_candidate
+            return 0
+        fi
+    done
+    return 1
+}
+
 as_root() {
     if [ "$(id -u)" -eq 0 ]; then
         "$@"
-    elif command -v sudo > /dev/null 2>&1; then
-        sudo "$@"
-    else
-        doas "$@"
+        return
     fi
+
+    [ -n "$ROOT_TOOL" ] || select_root_tool || return 1
+    "$ROOT_TOOL" "$@"
 }
 
 can_as_root() {
-    if [ "$(id -u)" -eq 0 ]; then
-        return 0
-    fi
-    if command -v sudo > /dev/null 2>&1 && sudo -n true 2> /dev/null; then
-        return 0
-    fi
-    command -v doas > /dev/null 2>&1 && doas -n true 2> /dev/null
+    select_root_tool
 }
 
 # Portable file mode bits (for example 644).
