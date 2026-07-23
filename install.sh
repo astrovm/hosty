@@ -2,12 +2,20 @@
 
 set -euf
 
-# check dependencies
-checkDep() {
-    command -v "$1" > /dev/null 2>&1 || {
-        echo >&2 "installer requires '$1' but it's not installed."
-        exit 1
-    }
+HOSTY_URL=${HOSTY_URL:-https://4st.li/hosty/hosty.sh}
+DEST_DIR=/usr/local/bin
+DEST="$DEST_DIR/hosty"
+PRIVILEGE_TOOL=""
+DOWNLOAD_TMP=""
+STAGED_TMP=""
+
+fail() {
+    printf '%s\n' "$*" >&2
+    exit 1
+}
+
+check_dep() {
+    command -v "$1" > /dev/null 2>&1 || fail "installer requires '$1', but it is not installed."
 }
 
 is_yes() {
@@ -24,112 +32,92 @@ is_no() {
     esac
 }
 
-checkDep curl
-
-echo "======== welcome to hosty installer ========"
-echo "========        4st.li/hosty        ========"
-echo
-echo "checking if user has root access..."
-
-# HOSTY_URL: https URL, file:// URL, or local path (CI uses the workspace copy).
-# http:// is rejected — install is privileged and the source must be trusted.
-hosty_url="${HOSTY_URL:-https://4st.li/hosty/hosty.sh}"
-dest_dir=/usr/local/bin
-dest="$dest_dir/hosty"
-privilege_tool=""
-
-if [ "$(id -u)" != 0 ]; then
-    echo
-    if command -v sudo > /dev/null 2>&1; then
-        privilege_tool=sudo
-        if sudo -n true 2> /dev/null; then
-            echo "using already granted sudo access..."
-        else
-            echo "requesting sudo..."
-            sudo -v
-        fi
-    elif command -v doas > /dev/null 2>&1; then
-        privilege_tool=doas
-        echo "using doas..."
-    else
-        echo "you don't have sudo or doas access; run the installer as root or configure one of them."
-        exit 1
-    fi
-else
-    echo "OK"
-fi
-
-run_priv() {
-    if [ -n "$privilege_tool" ]; then
-        "$privilege_tool" "$@"
+run_privileged() {
+    if [ -n "$PRIVILEGE_TOOL" ]; then
+        "$PRIVILEGE_TOOL" "$@"
     else
         "$@"
     fi
 }
 
-echo
-echo "installing hosty..."
-
-case "$hosty_url" in
-    http://*)
-        echo "HOSTY_URL must be https://, file://, or a local path (got http://)." >&2
-        exit 1
-        ;;
-esac
-
-# Stage into the destination directory, then mv into place so a failed
-# download never leaves a missing or truncated /usr/local/bin/hosty.
-run_priv mkdir -p "$dest_dir"
-tmp=$(run_priv mktemp "$dest_dir/.hosty.XXXXXX")
-
-cleanup_tmp() {
-    run_priv rm -f "$tmp" 2> /dev/null || true
+cleanup() {
+    if [ -n "$DOWNLOAD_TMP" ]; then
+        rm -f "$DOWNLOAD_TMP"
+    fi
+    if [ -n "$STAGED_TMP" ]; then
+        run_privileged rm -f "$STAGED_TMP" 2> /dev/null || true
+    fi
 }
 
-# Cleanup on EXIT; INT/TERM must exit so the EXIT trap still runs once.
-trap cleanup_tmp EXIT
+check_dep curl
+check_dep mktemp
+
+printf '======== welcome to hosty installer ========\n'
+printf '========        4st.li/hosty        ========\n\n'
+
+if [ "$(id -u)" -ne 0 ]; then
+    if command -v sudo > /dev/null 2>&1; then
+        PRIVILEGE_TOOL=sudo
+    elif command -v doas > /dev/null 2>&1; then
+        PRIVILEGE_TOOL=doas
+    else
+        fail "run this installer as root, or install and configure sudo or doas."
+    fi
+    printf 'using %s for privileged operations.\n' "$PRIVILEGE_TOOL"
+else
+    printf 'running as root.\n'
+fi
+
+DOWNLOAD_TMP=$(mktemp) || exit 1
+trap cleanup 0
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-case "$hosty_url" in
+printf '\ndownloading hosty...\n'
+case $HOSTY_URL in
     https://* | file://*)
-        run_priv curl -fL --retry 3 -o "$tmp" "$hosty_url"
+        curl -fsSL --retry 3 -o "$DOWNLOAD_TMP" "$HOSTY_URL"
+        ;;
+    *://*)
+        fail "HOSTY_URL must be https://, file://, or a local path."
         ;;
     *)
-        run_priv cp "$hosty_url" "$tmp"
+        cp "$HOSTY_URL" "$DOWNLOAD_TMP"
         ;;
 esac
 
-echo
-echo "fixing permissions..."
-run_priv chmod 755 "$tmp"
-
-# Verify the staged file before replacing any existing install so a bad
-# payload cannot remove a working /usr/local/bin/hosty.
-echo
-if ! version=$(run_priv "$tmp" -v 2> /dev/null); then
-    echo "staged file does not look like a working hosty binary." >&2
-    exit 1
+chmod 755 "$DOWNLOAD_TMP"
+if ! version=$("$DOWNLOAD_TMP" -v 2> /dev/null); then
+    fail "staged file does not look like a working hosty binary."
 fi
 
-run_priv mv -f "$tmp" "$dest"
-trap - EXIT INT TERM
-echo "installed hosty v$version"
-echo
+printf '\ninstalling hosty...\n'
+run_privileged mkdir -p "$DEST_DIR"
+STAGED_TMP=$(run_privileged mktemp "$DEST_DIR/.hosty.XXXXXX") || exit 1
+run_privileged cp "$DOWNLOAD_TMP" "$STAGED_TMP"
+run_privileged chmod 755 "$STAGED_TMP"
+run_privileged mv -f "$STAGED_TMP" "$DEST"
+STAGED_TMP=""
+
+printf 'installed hosty v%s\n\n' "$version"
 
 if command -v crontab > /dev/null 2>&1; then
-    echo "do you want to automatically update your hosts file with the latest ads list? (recommended) y/n"
-    read -r answer < /dev/tty
-    echo
+    if [ -r /dev/tty ]; then
+        printf 'configure automatic hosts-file updates now? y/n\n'
+        IFS= read -r answer < /dev/tty || fail "failed to read input."
+        printf '\n'
 
-    if is_yes "$answer"; then
-        # Redirect applies to the privileged hosty process (needs a TTY under curl|sh).
-        # shellcheck disable=SC2024
-        run_priv "$dest" -a < /dev/tty
-    elif ! is_no "$answer"; then
-        echo "bad answer, exiting..."
-        exit 1
+        if is_yes "$answer"; then
+            run_privileged "$DEST" -a < /dev/tty
+        elif ! is_no "$answer"; then
+            fail "bad answer."
+        fi
+    else
+        printf 'no terminal available; run hosty -a as root to configure automatic updates.\n'
     fi
 fi
 
-echo "done."
+trap - 0 INT TERM
+rm -f "$DOWNLOAD_TMP"
+DOWNLOAD_TMP=""
+printf 'done.\n'
