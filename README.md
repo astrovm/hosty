@@ -22,7 +22,7 @@ Required:
 - a POSIX-compatible `/bin/sh`
 - `curl`
 - `awk`
-- common Unix utilities: `cat`, `chmod`, `date`, `dirname`, `grep`, `head`, `id`, `mktemp`, `mv`, `rm`, and `sort`
+- common Unix utilities: `cat`, `chmod`, `cp`, `date`, `dirname`, `grep`, `head`, `id`, `mkdir`, `mktemp`, `mv`, `rm`, and `sort`
 
 Optional:
 
@@ -167,7 +167,7 @@ Before submitting changes, run the same checks used by CI:
 
 ```sh
 # Format
-shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh
+shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh ci/smoke-core
 
 # POSIX-oriented lint and syntax checks
 shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh
@@ -185,6 +185,6 @@ RUN_NETWORK=1 RUN_PRODUCTION_INSTALL=1 ./ci/smoke.sh
 ./ci/check-sources.sh
 ```
 
-The smoke suite snapshots and restores `/etc/hosts`, `/etc/hosty`, `/usr/local/bin/hosty`, and the root user's crontab, including when a test fails.
+The smoke suite snapshots and restores `/etc/hosts`, `/etc/hosty`, `/usr/local/bin/hosty`, the root user's crontab, and legacy Hosty scripts under `/etc/cron.daily`, `/etc/cron.weekly`, and `/etc/cron.monthly`, including when a test fails.
 
 `HOSTY_URL` lets installer tests use an HTTPS URL, a `file://` URL, or a local path. Plain HTTP and other URL schemes are rejected.
