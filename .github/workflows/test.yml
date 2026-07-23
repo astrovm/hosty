@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install tools
-        run: sudo apt-get update && sudo apt-get install -y shellcheck shfmt
+        run: sudo apt update && sudo apt install -y shellcheck shfmt
 
       - name: shfmt (check only)
         run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh
@@ -46,7 +46,7 @@ jobs:
 
       - name: POSIX syntax (dash -n)
         run: |
-          sudo apt-get install -y dash
+          sudo apt install -y dash
           dash -n hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/lib.sh
 
   smoke:
@@ -68,8 +68,8 @@ jobs:
       - name: Install dependencies (Ubuntu)
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y expect dash cron
+          sudo apt update
+          sudo apt install -y expect dash cron
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
@@ -128,8 +128,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y expect dash cron
+          sudo apt update
+          sudo apt install -y expect dash cron
 
       - name: Run smoke with network + production install
         env:
