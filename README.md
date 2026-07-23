@@ -171,7 +171,6 @@ shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh
 
 # POSIX-oriented lint and syntax checks
 shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
-checkbashisms -f hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
 dash -n hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
 
 # Offline functional tests; requires root or passwordless sudo/doas
