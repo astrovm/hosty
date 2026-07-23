@@ -23,7 +23,7 @@ snapshot_system_state() {
         fi
     done
 
-    as_root cp /etc/hosts "$STATE_DIR/etc-hosts" ||
+    as_root cp -Pp /etc/hosts "$STATE_DIR/etc-hosts" ||
         die "could not back up /etc/hosts"
 
     if [ -d /etc/hosty ] || [ -L /etc/hosty ]; then
@@ -37,6 +37,14 @@ snapshot_system_state() {
             die "could not back up $DEST_BIN"
         HOSTY_BINARY_PRESENT=1
     fi
+
+    for snapshot_cron_period in daily weekly monthly; do
+        snapshot_cron_path="/etc/cron.$snapshot_cron_period/hosty"
+        if [ -f "$snapshot_cron_path" ] || [ -L "$snapshot_cron_path" ]; then
+            as_root cp -Pp "$snapshot_cron_path" "$STATE_DIR/cron-$snapshot_cron_period-hosty" ||
+                die "could not back up $snapshot_cron_path"
+        fi
+    done
 
     if command -v crontab > /dev/null 2>&1 &&
         as_root crontab -l > "$STATE_DIR/root-crontab" 2> /dev/null; then
@@ -59,7 +67,7 @@ cleanup() {
     trap - 0 INT TERM
 
     if [ "$SYSTEM_STATE_SAVED" -eq 1 ]; then
-        if ! as_root cp "$STATE_DIR/etc-hosts" /etc/hosts 2> /dev/null; then
+        if ! as_root cp -Pp "$STATE_DIR/etc-hosts" /etc/hosts 2> /dev/null; then
             cleanup_failed=1
         fi
 
@@ -78,6 +86,18 @@ cleanup() {
             ! as_root cp -Pp "$STATE_DIR/hosty-bin" "$DEST_BIN" 2> /dev/null; then
             cleanup_failed=1
         fi
+
+        for cleanup_cron_period in daily weekly monthly; do
+            cleanup_cron_path="/etc/cron.$cleanup_cron_period/hosty"
+            cleanup_cron_backup="$STATE_DIR/cron-$cleanup_cron_period-hosty"
+            if ! as_root rm -f "$cleanup_cron_path" 2> /dev/null; then
+                cleanup_failed=1
+            fi
+            if { [ -f "$cleanup_cron_backup" ] || [ -L "$cleanup_cron_backup" ]; } &&
+                ! as_root cp -Pp "$cleanup_cron_backup" "$cleanup_cron_path" 2> /dev/null; then
+                cleanup_failed=1
+            fi
+        done
 
         if command -v crontab > /dev/null 2>&1; then
             if [ "$ROOT_CRONTAB_PRESENT" -eq 1 ]; then
