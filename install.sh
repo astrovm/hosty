@@ -37,6 +37,28 @@ has_terminal() {
     (: < /dev/tty) 2> /dev/null
 }
 
+privilege_tool_works() {
+    privilege_tool_works_command=$1
+
+    if "$privilege_tool_works_command" -n true 2> /dev/null; then
+        return 0
+    fi
+
+    has_terminal || return 1
+    "$privilege_tool_works_command" true < /dev/tty
+}
+
+select_privilege_tool() {
+    for select_privilege_candidate in sudo doas; do
+        command -v "$select_privilege_candidate" > /dev/null 2>&1 || continue
+        if privilege_tool_works "$select_privilege_candidate"; then
+            PRIVILEGE_TOOL=$select_privilege_candidate
+            return 0
+        fi
+    done
+    return 1
+}
+
 is_version() {
     is_version_value=$1
     is_version_major=${is_version_value%%.*}
@@ -102,13 +124,8 @@ printf '======== welcome to hosty installer ========\n'
 printf '========        4st.li/hosty        ========\n\n'
 
 if [ "$(id -u)" -ne 0 ]; then
-    if command -v sudo > /dev/null 2>&1; then
-        PRIVILEGE_TOOL=sudo
-    elif command -v doas > /dev/null 2>&1; then
-        PRIVILEGE_TOOL=doas
-    else
-        fail "run this installer as root, or install and configure sudo or doas."
-    fi
+    select_privilege_tool ||
+        fail "run this installer as root, or configure sudo or doas for this account."
     printf 'using %s for privileged operations.\n' "$PRIVILEGE_TOOL"
 else
     printf 'running as root.\n'
