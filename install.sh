@@ -34,7 +34,7 @@ is_no() {
 }
 
 has_terminal() {
-    ( : < /dev/tty ) 2> /dev/null
+    (: < /dev/tty) 2> /dev/null
 }
 
 is_version() {
