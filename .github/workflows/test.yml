@@ -131,10 +131,43 @@ jobs:
           path: ci-logs/
           if-no-files-found: ignore
 
+  smoke-openbsd:
+    name: Smoke (OpenBSD 7.9)
+    needs: lint
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run offline smoke suite in OpenBSD
+        uses: vmactions/openbsd-vm@6fac4962055fe9952d29930942445739e509fecd # v1.4.2
+        with:
+          release: "7.9"
+          usesh: true
+          prepare: |
+            pkg_add curl expect
+            useradd -m hostyci
+            printf '%s\n' \
+              'permit nopass root as hostyci' \
+              'permit nopass hostyci as root' > /etc/doas.conf
+          run: |
+            chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
+            ./ci/smoke.sh
+
+            cp hosty.sh install.sh /tmp/
+            chmod 755 /tmp/hosty.sh /tmp/install.sh
+            doas -u hostyci env HOSTY_URL=/tmp/hosty.sh sh /tmp/install.sh </dev/null
+            test "$(/usr/local/bin/hosty -v)" = "$(./hosty.sh -v)"
+            rm -f /usr/local/bin/hosty /tmp/hosty.sh /tmp/install.sh
+
   smoke-freebsd:
     name: Smoke (FreeBSD 15.0)
     needs: lint
-    runs-on: ubuntu-24.04
+    if: >
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -145,24 +178,6 @@ jobs:
           release: "15.0"
           usesh: true
           prepare: pkg install -y curl expect
-          run: |
-            chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
-            ./ci/smoke.sh
-
-  smoke-openbsd:
-    name: Smoke (OpenBSD 7.9)
-    needs: lint
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Run offline smoke suite in OpenBSD
-        uses: vmactions/openbsd-vm@6fac4962055fe9952d29930942445739e509fecd # v1.4.2
-        with:
-          release: "7.9"
-          usesh: true
-          prepare: pkg_add curl expect
           run: |
             chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
             ./ci/smoke.sh
