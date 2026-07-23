@@ -159,7 +159,7 @@ Hosty uses these conventional paths and interfaces:
 - `/usr/local/bin/hosty`
 - the root user's `crontab`
 
-CI runs static POSIX-shell checks plus functional smoke tests on Ubuntu, Alpine Linux with BusyBox `ash`, macOS, FreeBSD, and OpenBSD.
+Every pull request runs static POSIX-shell checks plus functional smoke tests on Ubuntu, Alpine Linux with BusyBox `ash`, macOS, and OpenBSD. FreeBSD runs on pushes to `main`, weekly schedules, and manual workflows.
 
 ## Development
 
