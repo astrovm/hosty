@@ -7,9 +7,9 @@
 ![GitHub stars](https://img.shields.io/github/stars/astrovm/hosty.svg?label=Star&style=social)
 ![GitHub forks](https://img.shields.io/github/forks/astrovm/hosty.svg?label=Fork&style=social)](https://github.com/astrovm/hosty)
 
-Hosty is a system-wide hosts-file blocker for Unix-like operating systems. It is written in portable POSIX `sh` and supports Linux distributions, Alpine Linux, macOS, FreeBSD, and OpenBSD without requiring Bash or GNU-only tools.
+Hosty is a system-wide hosts-file blocker for Unix-like operating systems. Its scripts use portable POSIX `sh` syntax and common Unix utilities; CI exercises Ubuntu, Alpine/BusyBox, macOS, FreeBSD, and OpenBSD.
 
-Hosty downloads domain lists, combines them with your custom rules, applies your whitelist, and writes the result to `/etc/hosts` without discarding your existing entries.
+Hosty downloads domain lists, combines them with custom rules, applies a whitelist, and writes the result to `/etc/hosts` without discarding existing entries.
 
 The default lists focus on ads, tracking, spyware, malware, and other privacy threats. They intentionally avoid political censorship and paternalistic categories such as pornography or gambling.
 
@@ -22,14 +22,14 @@ Required:
 - a POSIX-compatible `/bin/sh`
 - `curl`
 - `awk`
-- common Unix utilities: `cat`, `chmod`, `dirname`, `grep`, `head`, `mktemp`, `mv`, `rm`, and `sort`
+- common Unix utilities: `cat`, `chmod`, `date`, `dirname`, `grep`, `head`, `id`, `mktemp`, `mv`, `rm`, and `sort`
 
 Optional:
 
 - `crontab`, for automatic updates
 - `sudo` or `doas`, when installing or running Hosty from a non-root account
 
-Most required utilities are already included in the base system. Install the missing packages for your platform:
+Most required utilities are included in the base system. Install missing packages with the platform package manager:
 
 | Platform | Command |
 |---|---|
@@ -41,7 +41,7 @@ Most required utilities are already included in the base system. Install the mis
 | FreeBSD | `pkg install curl` |
 | OpenBSD | `pkg_add curl` |
 
-Run package-manager commands as root. Prefix them with `sudo` or `doas` when your system is configured that way.
+Run package-manager commands as root. Prefix them with `sudo` or `doas` when configured.
 
 ## Install
 
@@ -51,17 +51,17 @@ curl -fsSL https://4st.li/hosty/install.sh | sh
 
 The installer:
 
-- uses the current account when it is already root
+- runs directly when the current account is root
 - otherwise uses `sudo`, falling back to `doas`
 - downloads and validates Hosty before replacing an existing installation
 - installs the executable at `/usr/local/bin/hosty`
-- optionally configures automatic updates when a terminal and `crontab` are available
+- optionally configures automatic updates when `crontab` and a controlling terminal are available
 
-To install non-interactively, run the command above without a terminal. The installer skips the automatic-update prompt; configure it later with `hosty -a` as root.
+Without a controlling terminal, installation remains non-interactive and skips the automatic-update prompt. Configure it later with `hosty --autorun` as root.
 
 ## Usage
 
-Hosty must run as root when it changes the system. Use whichever privilege mechanism your system provides:
+Hosty must run as root when it changes the system:
 
 ```sh
 sudo hosty
@@ -134,7 +134,7 @@ Example:
 https://example.com/hosts.txt
 ```
 
-Hosty accepts hosts-style files, plain domain lists, and common ABP/uBlock Origin/Brave/AdGuard-style filter lists. It extracts every valid-looking domain from uncommented content, so review third-party sources carefully. Whitelisting an unfamiliar filter source is safer than blacklisting it.
+Source files may contain plain domain names or hosts-style entries. Hosty extracts valid-looking domains from uncommented lines. It does not interpret browser filter-list syntax such as ABP, uBlock Origin, or AdGuard rules; use hosts-format versions of those lists instead.
 
 Run only with custom sources and local rules:
 
@@ -150,9 +150,16 @@ sudo hosty --autorun --ignore-default-sources
 
 ## Portability
 
-The scripts use POSIX shell syntax and portable `awk` expressions. They do not depend on Bash, GNU `sed`, GNU `awk`, systemd, or Linux-specific APIs.
+The scripts avoid Bash-specific syntax and GNU-only text-processing behavior. They use POSIX shell syntax together with `curl`, `mktemp`, and common Unix utilities available on the supported systems.
 
-Hosty uses `/etc/hosts`, `/etc/hosty`, `/usr/local/bin`, and the root user's crontab. These locations and interfaces are available on the supported Linux, Alpine, macOS, FreeBSD, and OpenBSD systems.
+Hosty uses these conventional paths and interfaces:
+
+- `/etc/hosts`
+- `/etc/hosty`
+- `/usr/local/bin/hosty`
+- the root user's `crontab`
+
+CI runs static POSIX-shell checks plus functional smoke tests on Ubuntu, Alpine Linux with BusyBox `ash`, macOS, FreeBSD, and OpenBSD.
 
 ## Development
 
@@ -162,12 +169,12 @@ Before submitting changes, run the same checks used by CI:
 # Format
 shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh
 
-# Lint and syntax
-shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh
-shellcheck hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
-sh -n hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+# POSIX-oriented lint and syntax checks
+shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+checkbashisms -f hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+dash -n hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
 
-# Offline functional tests; requires root or passwordless privilege elevation
+# Offline functional tests; requires root or passwordless sudo/doas
 ./ci/smoke.sh
 
 # Optional network and production-install checks
