@@ -42,7 +42,7 @@ jobs:
             shellcheck shfmt dash
 
       - name: Format
-        run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh
+        run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh ci/smoke-core
 
       - name: ShellCheck (POSIX sh)
         run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh
