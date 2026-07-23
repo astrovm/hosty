@@ -1,6 +1,8 @@
 # Shared helpers for hosty CI scripts (sourced, not executed).
 # shellcheck shell=sh
 
+ROOT_TOOL=""
+
 log() {
     printf '%s\n' "$*"
 }
@@ -11,42 +13,46 @@ die() {
 }
 
 assert_contains() {
-    haystack=$1
-    needle=$2
-    msg=${3:-"expected to find '$needle'"}
-    printf '%s' "$haystack" | grep -qF -- "$needle" || die "$msg"
+    assert_contains_haystack=$1
+    assert_contains_needle=$2
+    assert_contains_message=${3:-"expected to find '$assert_contains_needle'"}
+    printf '%s' "$assert_contains_haystack" | grep -qF -e "$assert_contains_needle" ||
+        die "$assert_contains_message"
 }
 
 assert_file_contains() {
-    file=$1
-    needle=$2
-    msg=${3:-"$file should contain '$needle'"}
-    [ -f "$file" ] || die "$msg (file missing: $file)"
-    grep -qF -- "$needle" "$file" || die "$msg"
+    assert_file_contains_file=$1
+    assert_file_contains_needle=$2
+    assert_file_contains_message=${3:-"$assert_file_contains_file should contain '$assert_file_contains_needle'"}
+    [ -f "$assert_file_contains_file" ] ||
+        die "$assert_file_contains_message (file missing: $assert_file_contains_file)"
+    grep -qF -e "$assert_file_contains_needle" "$assert_file_contains_file" ||
+        die "$assert_file_contains_message"
 }
 
 assert_file_not_contains() {
-    file=$1
-    needle=$2
-    msg=${3:-"$file should not contain '$needle'"}
-    [ -f "$file" ] || die "$msg (file missing: $file)"
-    if grep -qF -- "$needle" "$file"; then
-        die "$msg"
+    assert_file_not_contains_file=$1
+    assert_file_not_contains_needle=$2
+    assert_file_not_contains_message=${3:-"$assert_file_not_contains_file should not contain '$assert_file_not_contains_needle'"}
+    [ -f "$assert_file_not_contains_file" ] ||
+        die "$assert_file_not_contains_message (file missing: $assert_file_not_contains_file)"
+    if grep -qF -e "$assert_file_not_contains_needle" "$assert_file_not_contains_file"; then
+        die "$assert_file_not_contains_message"
     fi
 }
 
 assert_eq() {
-    actual=$1
-    expected=$2
-    msg=${3:-"expected '$expected', got '$actual'"}
-    [ "$actual" = "$expected" ] || die "$msg"
+    assert_eq_actual=$1
+    assert_eq_expected=$2
+    assert_eq_message=${3:-"expected '$assert_eq_expected', got '$assert_eq_actual'"}
+    [ "$assert_eq_actual" = "$assert_eq_expected" ] || die "$assert_eq_message"
 }
 
 assert_gt() {
-    actual=$1
-    min=$2
-    msg=${3:-"expected $actual > $min"}
-    [ "$actual" -gt "$min" ] || die "$msg"
+    assert_gt_actual=$1
+    assert_gt_minimum=$2
+    assert_gt_message=${3:-"expected $assert_gt_actual > $assert_gt_minimum"}
+    [ "$assert_gt_actual" -gt "$assert_gt_minimum" ] || die "$assert_gt_message"
 }
 
 # Parse "done, N websites blocked." from a log file.
@@ -57,75 +63,84 @@ blocked_count_from() {
     }' "$1"
 }
 
-# Run a command as root when needed.
+select_root_tool() {
+    if [ "$(id -u)" -eq 0 ]; then
+        ROOT_TOOL=""
+        return 0
+    fi
+
+    for select_root_candidate in sudo doas; do
+        if command -v "$select_root_candidate" > /dev/null 2>&1 &&
+            "$select_root_candidate" -n true 2> /dev/null; then
+            ROOT_TOOL=$select_root_candidate
+            return 0
+        fi
+    done
+    return 1
+}
+
 as_root() {
     if [ "$(id -u)" -eq 0 ]; then
         "$@"
-    else
-        sudo "$@"
+        return
     fi
+
+    [ -n "$ROOT_TOOL" ] || select_root_tool || return 1
+    "$ROOT_TOOL" "$@"
 }
 
 can_as_root() {
-    if [ "$(id -u)" -eq 0 ]; then
-        return 0
-    fi
-    command -v sudo > /dev/null 2>&1 && sudo -n true 2> /dev/null
+    select_root_tool
 }
 
-# Portable file mode bits (e.g. 644). GNU stat -c %a, BSD/macOS stat -f %OLp.
+# Portable file mode bits (for example 644).
 file_mode() {
-    if _mode=$(stat -c '%a' "$1" 2> /dev/null); then
-        printf '%s\n' "$_mode"
+    if file_mode_value=$(stat -c '%a' "$1" 2> /dev/null); then
+        printf '%s\n' "$file_mode_value"
         return 0
     fi
-    if _mode=$(stat -f '%OLp' "$1" 2> /dev/null); then
-        printf '%s\n' "$_mode"
+    if file_mode_value=$(stat -f '%OLp' "$1" 2> /dev/null); then
+        printf '%s\n' "$file_mode_value"
         return 0
     fi
     return 1
 }
 
-# Accept 644 or 0644.
 assert_mode() {
-    _file=$1
-    _expected=$2
-    _msg=${3:-"$_file should have mode $_expected"}
-    _mode=$(file_mode "$_file") || die "$_msg (cannot stat mode)"
-    case $_mode in
-        "$_expected" | "0$_expected") ;;
-        *) die "$_msg (got $_mode)" ;;
+    assert_mode_file=$1
+    assert_mode_expected=$2
+    assert_mode_message=${3:-"$assert_mode_file should have mode $assert_mode_expected"}
+    assert_mode_actual=$(file_mode "$assert_mode_file") ||
+        die "$assert_mode_message (cannot stat mode)"
+    case $assert_mode_actual in
+        "$assert_mode_expected" | "0$assert_mode_expected") ;;
+        *) die "$assert_mode_message (got $assert_mode_actual)" ;;
     esac
 }
 
-# Fail if any regular file under dir exists other than keep (absolute path).
+# Fail if a regular file exists under dir other than keep (both absolute paths).
 assert_no_extra_files() {
-    _dir=$1
-    _keep=$2
-    _msg=${3:-"unexpected files under $_dir"}
-    _list=$(mktemp) || die "mktemp failed"
-    find "$_dir" -type f > "$_list" 2> /dev/null || true
-    _leaked=""
-    while IFS= read -r _f || [ -n "$_f" ]; do
-        [ -n "$_f" ] || continue
-        [ "$_f" = "$_keep" ] && continue
-        _leaked="$_f"
+    assert_no_extra_dir=$1
+    assert_no_extra_keep=$2
+    assert_no_extra_message=${3:-"unexpected files under $assert_no_extra_dir"}
+    assert_no_extra_list=$(mktemp) || die "mktemp failed"
+    find "$assert_no_extra_dir" -type f > "$assert_no_extra_list" 2> /dev/null || true
+    assert_no_extra_leaked=""
+    while IFS= read -r assert_no_extra_file || [ -n "$assert_no_extra_file" ]; do
+        [ -n "$assert_no_extra_file" ] || continue
+        [ "$assert_no_extra_file" = "$assert_no_extra_keep" ] && continue
+        assert_no_extra_leaked=$assert_no_extra_file
         break
-    done < "$_list"
-    rm -f "$_list"
-    [ -z "$_leaked" ] || die "$_msg: $_leaked"
+    done < "$assert_no_extra_list"
+    rm -f "$assert_no_extra_list"
+    [ -z "$assert_no_extra_leaked" ] ||
+        die "$assert_no_extra_message: $assert_no_extra_leaked"
 }
 
-# No leftover installer staging files in /usr/local/bin.
 assert_no_hosty_staging() {
-    _msg=${1:-"leftover /usr/local/bin/.hosty.* staging files"}
-    _list=$(mktemp) || die "mktemp failed"
-    # find may need root when dir entries are root-only; redirect stays local.
-    as_root find /usr/local/bin -maxdepth 1 -name '.hosty.*' > "$_list" 2> /dev/null || true
-    if [ -s "$_list" ]; then
-        _leaked=$(cat "$_list")
-        rm -f "$_list"
-        die "$_msg: $_leaked"
-    fi
-    rm -f "$_list"
+    assert_no_staging_message=${1:-"leftover /usr/local/bin/.hosty.* staging files"}
+    for assert_no_staging_file in /usr/local/bin/.hosty.*; do
+        [ -f "$assert_no_staging_file" ] || continue
+        die "$assert_no_staging_message: $assert_no_staging_file"
+    done
 }

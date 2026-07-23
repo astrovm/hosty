@@ -29,25 +29,31 @@ env:
 
 jobs:
   lint:
-    name: Lint (shfmt + shellcheck)
+    name: Lint (POSIX sh)
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install tools
-        run: sudo apt-get update && sudo apt-get install -y shellcheck shfmt
-
-      - name: shfmt (check only)
-        run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh
-
-      - name: shellcheck
-        run: shellcheck hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
-
-      - name: POSIX syntax (dash -n)
         run: |
-          sudo apt-get install -y dash
-          dash -n hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/lib.sh
+          sudo apt -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
+            shellcheck shfmt dash
+
+      - name: Format
+        run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh ci/smoke-core
+
+      - name: ShellCheck (POSIX sh)
+        run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh
+
+      - name: dash syntax and runtime
+        run: |
+          for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh; do
+            dash -n "$script"
+          done
+          dash hosty.sh --help >/dev/null
+          dash hosty.sh --version >/dev/null
 
   smoke:
     name: Smoke (${{ matrix.name }})
@@ -68,8 +74,9 @@ jobs:
       - name: Install dependencies (Ubuntu)
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y expect dash cron
+          sudo apt -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
+            expect dash cron
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
@@ -89,7 +96,7 @@ jobs:
           if-no-files-found: ignore
 
   smoke-alpine:
-    name: Smoke (alpine)
+    name: Smoke (Alpine / BusyBox ash)
     needs: lint
     runs-on: ubuntu-26.04
     timeout-minutes: 20
@@ -113,6 +120,57 @@ jobs:
           path: ci-logs/
           if-no-files-found: ignore
 
+  smoke-openbsd:
+    name: Smoke (OpenBSD 7.9)
+    needs: lint
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run offline smoke suite in OpenBSD
+        uses: vmactions/openbsd-vm@6fac4962055fe9952d29930942445739e509fecd # v1.4.2
+        with:
+          release: "7.9"
+          usesh: true
+          prepare: |
+            pkg_add curl expect
+            useradd -m hostyci
+            printf '%s\n' \
+              'permit nopass root as hostyci' \
+              'permit nopass hostyci as root' > /etc/doas.conf
+          run: |
+            chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
+            ./ci/smoke.sh
+
+            cp hosty.sh install.sh /tmp/
+            chmod 755 /tmp/hosty.sh /tmp/install.sh
+            doas -u hostyci env HOSTY_URL=/tmp/hosty.sh sh /tmp/install.sh </dev/null
+            test "$(/usr/local/bin/hosty -v)" = "$(./hosty.sh -v)"
+            rm -f /usr/local/bin/hosty /tmp/hosty.sh /tmp/install.sh
+
+  smoke-freebsd:
+    name: Smoke (FreeBSD 15.0)
+    needs: lint
+    if: >
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run offline smoke suite in FreeBSD
+        uses: vmactions/freebsd-vm@670398e4236735b8b65805c3da44b7a511fb8b27 # v1.3.0
+        with:
+          release: "15.0"
+          usesh: true
+          prepare: pkg install -y curl expect
+          run: |
+            chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
+            ./ci/smoke.sh
+
   network:
     name: Network full run
     needs: lint
@@ -128,8 +186,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y expect dash cron
+          sudo apt -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
+            expect dash cron
 
       - name: Run smoke with network + production install
         env:
@@ -150,8 +209,6 @@ jobs:
   source-health:
     name: Source URL health
     needs: lint
-    # Always on PRs/pushes (soft budget for third-party), plus schedule/manual.
-    # List-only edits get signal before merge without waiting for the weekly job.
     if: >
       github.event_name == 'pull_request' ||
       github.event_name == 'push' ||

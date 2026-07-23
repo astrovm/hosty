@@ -7,154 +7,184 @@
 ![GitHub stars](https://img.shields.io/github/stars/astrovm/hosty.svg?label=Star&style=social)
 ![GitHub forks](https://img.shields.io/github/forks/astrovm/hosty.svg?label=Fork&style=social)](https://github.com/astrovm/hosty)
 
-System-wide ad blocker for Linux/Unix/BSD/Mac.
+Hosty is a system-wide hosts-file blocker for Unix-like operating systems. Its scripts use portable POSIX `sh` syntax and common Unix utilities; CI exercises Ubuntu, Alpine/BusyBox, macOS, FreeBSD, and OpenBSD.
 
-Hosty aims to block annoying things designed to steal time like ads, dangerous software such as spyware and things that harms user privacy. By default it works by downloading a predefined list of domains to block and adding them to the hosts file of your system (keeping the existing rules intact).
+Hosty downloads domain lists, combines them with custom rules, applies a whitelist, and writes the result to `/etc/hosts` without discarding existing entries.
 
-In the predefined list we don't accept political censorship or paternalistic goals like blocking porn or gambling, we don't accept anything that harms user freedom.
+The default lists focus on ads, tracking, spyware, malware, and other privacy threats. They intentionally avoid political censorship and paternalistic categories such as pornography or gambling.
 
 ![Comparison of total memory usage](https://i.imgur.com/qRVKMOQ.png)
 
-## Installation
+## Requirements
 
-### Requirements
+Required:
 
-- curl
-- awk
-- crontab (optional for automatic hosts file update)
+- a POSIX-compatible `/bin/sh`
+- `curl`
+- `awk`
+- common Unix utilities: `cat`, `chmod`, `cp`, `date`, `dirname`, `grep`, `head`, `id`, `mkdir`, `mktemp`, `mv`, `rm`, and `sort`
 
-### Install the requirements
+Optional:
 
-- **Ubuntu/Mint/Pop/Debian:**
-  `$ sudo apt install curl gawk cron`
+- `crontab`, for automatic updates
+- `sudo` or `doas`, when installing or running Hosty from a non-root account
 
-- **Arch/Manjaro/Endeavour:**
-  `$ sudo pacman -S --needed curl gawk cronie`
+Most required utilities are included in the base system. Install missing packages with the platform package manager:
 
-- **Fedora/RHEL/Rocky:**
-  `$ sudo dnf in curl gawk cronie`
+| Platform | Command |
+|---|---|
+| Debian, Ubuntu, Mint, Pop!_OS | `sudo apt install curl mawk cron` |
+| Arch Linux, Manjaro, EndeavourOS | `sudo pacman -S --needed curl gawk cronie` |
+| Fedora, RHEL, Rocky Linux | `sudo dnf install curl gawk cronie` |
+| Alpine Linux | `apk add curl` (`cronie` is optional) |
+| macOS | No additional package is normally required |
+| FreeBSD | `pkg install curl` |
+| OpenBSD | `pkg_add curl` |
 
-### Install hosty
+Run package-manager commands as root. Prefix them with `sudo` or `doas` when configured.
 
-Just run:
+## Install
 
-`$ curl -L https://4st.li/hosty/install.sh | sh`
-
-You will be asked if you want to automatically run hosty to update your hosts file with the latest domains list.
-
-## Run hosty
-
-Enable system-wide ad blocking with:
-
-`$ sudo hosty`
-
-You probably want to run it periodically to update your hosts file with latest domains list.
-
-## Automatic run configuration
-
-Hosty can be configured to periodically update your hosts file with:
-
-`$ sudo hosty -a (--autorun)`
-
-It will ask how often you want to execute it and change your crontab.
-
-## Blacklist
-
-Hosty will keep your hosts file modifications if you don't write them below the indicated line, but you can also use a blacklist.
-
-Add the domains to block editing the file `/etc/hosty/blacklist` (with root permissions), one domain name per line:
-
+```sh
+curl -fsSL https://4st.li/hosty/install.sh | sh
 ```
+
+The installer:
+
+- runs directly when the current account is root
+- otherwise uses a working `sudo`, falling back to a working `doas`
+- downloads and validates Hosty before replacing an existing installation
+- installs the executable at `/usr/local/bin/hosty`
+- optionally configures automatic updates when `crontab` and a controlling terminal are available
+
+Without a controlling terminal, installation remains non-interactive and skips the automatic-update prompt. Privileged installation must already be allowed without a password. Configure automatic updates later with `hosty --autorun` as root.
+
+## Usage
+
+Hosty must run as root when it changes the system:
+
+```sh
+sudo hosty
+# or
+doas hosty
+```
+
+### Automatic updates
+
+```sh
+sudo hosty --autorun
+```
+
+Choose `daily`, `weekly`, `monthly`, or `never`. Replace `sudo` with `doas` where appropriate.
+
+### Debug without changing the system
+
+```sh
+hosty --debug
+```
+
+Debug mode builds the resulting hosts file in a temporary location and prints its path. It does not require root privileges.
+
+### Restore the original hosts file
+
+```sh
+sudo hosty --restore
+```
+
+### Uninstall
+
+```sh
+sudo hosty --uninstall
+```
+
+Restore the hosts file first when you also want to disable the active block list.
+
+## Custom rules
+
+Hosty stores optional configuration under `/etc/hosty`.
+
+### Blacklist
+
+Add one domain per line to `/etc/hosty/blacklist`:
+
+```text
 facebook.com
-wwww.facebook.com
+www.facebook.com
 ```
 
-## Whitelist
+### Whitelist
 
-You can include exceptions editing the file `/etc/hosty/whitelist` (with root permissions), one domain name per line:
+Add one domain per line to `/etc/hosty/whitelist`:
 
-```
+```text
 4st.li
 www.4st.li
 ```
 
-## Custom sources
+### Custom sources
 
-If you want to add additional custom sources from the internet, create a text file in:
+Add one URL per line to:
 
-`/etc/hosty/blacklist.sources` for files with domains to block
+- `/etc/hosty/blacklist.sources` for domains to block
+- `/etc/hosty/whitelist.sources` for domains to allow
 
-or/and
+Example:
 
-`/etc/hosty/whitelist.sources` for files with domains to unblock
+```text
+https://example.com/hosts.txt
+```
 
-and write in them one url per line:
+Source files may contain plain domain names or hosts-style entries. Hosty extracts valid-looking domains from uncommented lines. It does not interpret browser filter-list syntax such as ABP, uBlock Origin, or AdGuard rules; use hosts-format versions of those lists instead.
 
-`https://www.malwaredomainlist.com/hostslist/hosts.txt`
+Run only with custom sources and local rules:
 
-Hosty will take all domains separated by some symbol, space or new line, so it supports hosts-style files and files with just domains.
+```sh
+sudo hosty --ignore-default-sources
+```
 
-ABP, uBlock Origin, Brave and AdGuard files are accepted too, but take in account that ANY not-commented domain will be used, so it's safer to use them in whitelists than in blacklists (a website that you don't want to block can end up blocked if exists in the file).
+Configure automatic updates in the same mode:
 
-You can also run hosty using ONLY your custom sources with:
+```sh
+sudo hosty --autorun --ignore-default-sources
+```
 
-`$ sudo hosty -i (--ignore-default-sources)`
+## Portability
 
-and you can config autorun to run that way too:
+The scripts avoid Bash-specific syntax and GNU-only text-processing behavior. They use POSIX shell syntax together with `curl`, `mktemp`, and common Unix utilities available on the supported systems.
 
-`$ sudo hosty -ai (--autorun --ignore-default-sources)`
+Hosty uses these conventional paths and interfaces:
 
-Keep in mind that this is an advanced function that we do not recommend using, hosty is designed and tested to be used with the default configuration and in that way we believe that it will give you the best experience.
+- `/etc/hosts`
+- `/etc/hosty`
+- `/usr/local/bin/hosty`
+- the root user's `crontab`
 
-## Restore your original hosts file
-
-If you want to disable hosty ad blocking:
-
-`$ sudo hosty -r (--restore)`
-
-## Read the modified hosts without modifying your system
-
-You can debug what hosty will do to your system with:
-
-`$ hosty -d (--debug)`
-
-## Uninstalling hosty
-
-If you don't use it anymore:
-
-`$ sudo hosty -u (--uninstall)`
-
-If you want to restore your original hosts file, run that option first.
+Every pull request runs static POSIX-shell checks plus functional smoke tests on Ubuntu, Alpine Linux with BusyBox `ash`, macOS, and OpenBSD. FreeBSD runs on pushes to `main`, weekly schedules, and manual workflows.
 
 ## Development
 
-Contributions are welcome. Before submitting changes, match what CI enforces:
+Before submitting changes, run the same checks used by CI:
 
 ```sh
-# Format (write)
-shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh
+# Format
+shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh ci/smoke-core
 
-# Lint
-shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh
-shellcheck hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+# POSIX-oriented lint and syntax checks
+shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh
+for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh; do
+    dash -n "$script"
+done
 
-# Offline smoke (needs root or passwordless sudo + expect)
+# Offline functional tests; requires root or passwordless sudo/doas
 ./ci/smoke.sh
 
-# Optional: full network path + production install check
+# Optional network and production-install checks
 RUN_NETWORK=1 RUN_PRODUCTION_INSTALL=1 ./ci/smoke.sh
 
-# Optional: list URL health
+# Optional source URL health check
 ./ci/check-sources.sh
 ```
 
-### CI overview
+The smoke suite snapshots and restores `/etc/hosts`, `/etc/hosty`, `/usr/local/bin/hosty`, the root user's crontab, and legacy Hosty scripts under `/etc/cron.daily`, `/etc/cron.weekly`, and `/etc/cron.monthly`, including when a test fails.
 
-| Job | When | What |
-|-----|------|------|
-| **Lint** | Every PR/push | `shfmt -d`, `shellcheck`, `dash -n` |
-| **Smoke** | Every PR/push | Ubuntu, macOS, Alpine offline suite (`ci/smoke.sh`) with assertions |
-| **Network** | `main` push, weekly schedule, manual | Default remote sources + production install from `4st.li` |
-| **Source health** | Every PR/push, weekly schedule, manual | Project URLs must pass; third-party lists allow a soft failure budget |
-
-Installer tests set `HOSTY_URL` to the workspace `hosty.sh` so PRs exercise local changes, not only the live release. `HOSTY_URL` accepts `https://`, `file://`, or a local path (not plain `http://`).
+`HOSTY_URL` lets installer tests use an HTTPS URL, a `file://` URL, or a local path. Plain HTTP and other URL schemes are rejected.

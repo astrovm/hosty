@@ -1,0 +1,145 @@
+permissions:
+  contents: read
+
+name: Smoke state preservation
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "ci/**"
+      - "hosty.sh"
+      - "install.sh"
+      - ".github/workflows/smoke-state.yml"
+  workflow_dispatch:
+
+jobs:
+  preserve-state:
+    name: Preserve existing Hosty state
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install dependencies
+        run: |
+          sudo apt -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
+            expect dash cron
+
+      - name: Test installer from a noexec temporary directory
+        run: |
+          noexec_dir=$(mktemp -d)
+          cleanup() {
+            sudo rm -f /usr/local/bin/hosty
+            sudo umount "$noexec_dir" 2>/dev/null || true
+            rmdir "$noexec_dir"
+          }
+          trap cleanup EXIT
+
+          sudo mount -t tmpfs -o noexec,size=1m tmpfs "$noexec_dir"
+          sudo env TMPDIR="$noexec_dir" HOSTY_URL="$PWD/hosty.sh" sh ./install.sh </dev/null
+          test "$(sudo /usr/local/bin/hosty -v)" = "$(./hosty.sh -v)"
+
+      - name: Test installer protocol restrictions
+        run: |
+          fake_bin=$(mktemp -d)
+          cleanup() {
+            sudo rm -f /usr/local/bin/hosty
+            rm -rf "$fake_bin"
+          }
+          trap cleanup EXIT
+
+          cat > "$fake_bin/curl" <<'EOF_CURL'
+          #!/bin/sh
+          output=""
+          saw_proto=0
+          saw_proto_redir=0
+
+          while [ "$#" -gt 0 ]; do
+              case $1 in
+                  --proto)
+                      shift
+                      [ "$1" = '=https,file' ] || exit 91
+                      saw_proto=1
+                      ;;
+                  --proto-redir)
+                      shift
+                      [ "$1" = '=https' ] || exit 92
+                      saw_proto_redir=1
+                      ;;
+                  -o)
+                      shift
+                      output=$1
+                      ;;
+              esac
+              shift
+          done
+
+          [ "$saw_proto" -eq 1 ] && [ "$saw_proto_redir" -eq 1 ] && [ -n "$output" ] || exit 93
+          cp "$HOSTY_FIXTURE" "$output"
+          EOF_CURL
+          chmod +x "$fake_bin/curl"
+
+          sudo env \
+            PATH="$fake_bin:$PATH" \
+            HOSTY_FIXTURE="$PWD/hosty.sh" \
+            HOSTY_URL=https://example.invalid/hosty.sh \
+            sh ./install.sh </dev/null
+          test "$(sudo /usr/local/bin/hosty -v)" = "$(./hosty.sh -v)"
+
+      - name: Seed existing state
+        run: |
+          sudo cp /etc/hosts /tmp/hosty-hosts.before
+          sudo mkdir -p /etc/hosty /etc/cron.daily
+          printf '%s\n' preserve-me | sudo tee /etc/hosty/preserved >/dev/null
+          printf '%s\n' '#!/bin/sh' 'printf "%s\n" preserve-me' | sudo tee /usr/local/bin/hosty >/dev/null
+          sudo chmod 755 /usr/local/bin/hosty
+          printf '%s\n' '#!/bin/sh' 'printf "%s\n" preserve-cron' | sudo tee /etc/cron.daily/hosty >/dev/null
+          sudo chmod 700 /etc/cron.daily/hosty
+          printf '%s\n' '17 3 * * * echo preserve-me # hosty-ci-preserve' | sudo crontab -
+
+      - name: Run smoke suite
+        run: |
+          chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
+          mkdir -p ci-logs
+          if ! ./ci/smoke.sh > ci-logs/smoke-state.out 2>&1; then
+            cat ci-logs/smoke-state.out
+            exit 1
+          fi
+
+      - name: Upload CI logs on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: smoke-state-logs
+          path: ci-logs/
+          if-no-files-found: ignore
+
+      - name: Verify restored state
+        run: |
+          sudo cmp /tmp/hosty-hosts.before /etc/hosts
+          test "$(stat -c '%a' /etc/hosts)" = 644
+          test "$(sudo cat /etc/hosty/preserved)" = preserve-me
+          test "$(sudo /usr/local/bin/hosty)" = preserve-me
+          test "$(sudo /etc/cron.daily/hosty)" = preserve-cron
+          test "$(stat -c '%a' /etc/cron.daily/hosty)" = 700
+          sudo crontab -l | grep -qF -e '# hosty-ci-preserve'
+
+      - name: Test hosts metadata restoration
+        run: |
+          mode_core=$(mktemp)
+          cleanup() {
+            sudo chmod 644 /etc/hosts
+            rm -f "$mode_core"
+          }
+          trap cleanup EXIT
+
+          cat > "$mode_core" <<'EOF_CORE'
+          #!/bin/sh
+          sudo chmod 644 /etc/hosts
+          EOF_CORE
+
+          sudo chmod 600 /etc/hosts
+          HOSTY_SMOKE_CORE="$mode_core" ./ci/smoke.sh
+          test "$(stat -c '%a' /etc/hosts)" = 600
