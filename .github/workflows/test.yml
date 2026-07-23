@@ -29,25 +29,29 @@ env:
 
 jobs:
   lint:
-    name: Lint (shfmt + shellcheck)
+    name: Lint (POSIX sh)
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install tools
-        run: sudo apt update && sudo apt install -y shellcheck shfmt
+        run: sudo apt update && sudo apt install -y shellcheck shfmt dash devscripts
 
-      - name: shfmt (check only)
+      - name: Format
         run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh
 
-      - name: shellcheck
-        run: shellcheck hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+      - name: ShellCheck (POSIX sh)
+        run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
 
-      - name: POSIX syntax (dash -n)
+      - name: Check for non-POSIX shell syntax
+        run: checkbashisms -f hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+
+      - name: dash syntax and runtime
         run: |
-          sudo apt install -y dash
-          dash -n hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/lib.sh
+          dash -n hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+          dash hosty.sh --help >/dev/null
+          dash hosty.sh --version >/dev/null
 
   smoke:
     name: Smoke (${{ matrix.name }})
@@ -89,7 +93,7 @@ jobs:
           if-no-files-found: ignore
 
   smoke-alpine:
-    name: Smoke (alpine)
+    name: Smoke (Alpine / BusyBox ash)
     needs: lint
     runs-on: ubuntu-26.04
     timeout-minutes: 20
@@ -112,6 +116,42 @@ jobs:
           name: ci-logs-alpine
           path: ci-logs/
           if-no-files-found: ignore
+
+  smoke-freebsd:
+    name: Smoke (FreeBSD 15.0)
+    needs: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run offline smoke suite in FreeBSD
+        uses: vmactions/freebsd-vm@670398e4236735b8b65805c3da44b7a511fb8b27 # v1.3.0
+        with:
+          release: "15.0"
+          usesh: true
+          prepare: pkg install -y curl expect
+          run: |
+            chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
+            ./ci/smoke.sh
+
+  smoke-openbsd:
+    name: Smoke (OpenBSD 7.9)
+    needs: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run offline smoke suite in OpenBSD
+        uses: vmactions/openbsd-vm@6fac4962055fe9952d29930942445739e509fecd # v1.4.2
+        with:
+          release: "7.9"
+          usesh: true
+          prepare: pkg_add curl expect
+          run: |
+            chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
+            ./ci/smoke.sh
 
   network:
     name: Network full run
@@ -150,8 +190,6 @@ jobs:
   source-health:
     name: Source URL health
     needs: lint
-    # Always on PRs/pushes (soft budget for third-party), plus schedule/manual.
-    # List-only edits get signal before merge without waiting for the weekly job.
     if: >
       github.event_name == 'pull_request' ||
       github.event_name == 'push' ||
