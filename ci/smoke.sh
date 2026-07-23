@@ -31,7 +31,7 @@ chmod +x "$HOSTY" "$INSTALL" \
     "$ROOT/ci/expect/install-yes.exp"
 
 has_terminal() {
-    ( : < /dev/tty ) 2> /dev/null
+    (: < /dev/tty) 2> /dev/null
 }
 
 cleanup() {
