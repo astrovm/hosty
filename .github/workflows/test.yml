@@ -39,7 +39,20 @@ jobs:
         run: sudo apt -qq update && sudo apt -qq install -y shellcheck shfmt dash devscripts
 
       - name: Format
-        run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh
+        run: |
+          shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh
+          git diff --exit-code
+
+      - name: Upload formatted scripts on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: shfmt-output
+          path: |
+            hosty.sh
+            install.sh
+            ci/*.sh
+          if-no-files-found: error
 
       - name: ShellCheck (POSIX sh)
         run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
