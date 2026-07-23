@@ -62,7 +62,9 @@ jobs:
 
       - name: dash syntax and runtime
         run: |
-          dash -n hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+          for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh; do
+            dash -n "$script"
+          done
           dash hosty.sh --help >/dev/null
           dash hosty.sh --version >/dev/null
 
