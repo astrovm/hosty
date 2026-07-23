@@ -6,7 +6,7 @@ set -eu
 . "$(dirname "$0")/lib.sh"
 
 ROOT=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
-CORE="$ROOT/ci/smoke-core"
+CORE=${HOSTY_SMOKE_CORE:-$ROOT/ci/smoke-core}
 DEST_BIN=/usr/local/bin/hosty
 STATE_DIR=""
 SYSTEM_STATE_SAVED=0
