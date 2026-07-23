@@ -83,12 +83,12 @@ is_version() {
 validate_hosty() {
     validate_hosty_file=$1
 
-    if ! validate_hosty_version=$("$validate_hosty_file" -v 2> /dev/null) ||
+    if ! validate_hosty_version=$(sh "$validate_hosty_file" -v 2> /dev/null) ||
         ! is_version "$validate_hosty_version"; then
         return 1
     fi
 
-    if ! validate_hosty_help=$("$validate_hosty_file" -h 2> /dev/null); then
+    if ! validate_hosty_help=$(sh "$validate_hosty_file" -h 2> /dev/null); then
         return 1
     fi
     case $validate_hosty_help in
@@ -139,7 +139,8 @@ trap 'exit 143' TERM
 printf '\ndownloading hosty...\n'
 case $HOSTY_URL in
     https://* | file://*)
-        curl -fsSL --retry 3 -o "$DOWNLOAD_TMP" "$HOSTY_URL"
+        curl --proto '=https,file' --proto-redir '=https' \
+            -fsSL --retry 3 -o "$DOWNLOAD_TMP" "$HOSTY_URL"
         ;;
     *://*)
         fail "HOSTY_URL must be https://, file://, or a local path."
@@ -149,7 +150,6 @@ case $HOSTY_URL in
         ;;
 esac
 
-chmod 755 "$DOWNLOAD_TMP"
 validate_hosty "$DOWNLOAD_TMP" || fail "staged file does not look like a working hosty executable."
 
 printf '\ninstalling hosty...\n'
