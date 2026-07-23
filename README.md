@@ -34,19 +34,30 @@ In the predefined list we don't accept political censorship or paternalistic goa
 - **Fedora/RHEL/Rocky:**
   `$ sudo dnf in curl gawk cronie`
 
+- **FreeBSD:**
+  `$ sudo pkg install curl`
+
+- **OpenBSD:**
+  `$ doas pkg_add curl`
+
 ### Install hosty
 
 Just run:
 
 `$ curl -L https://4st.li/hosty/install.sh | sh`
 
+The installer supports running as root or elevating through either `sudo` or `doas`.
 You will be asked if you want to automatically run hosty to update your hosts file with the latest domains list.
 
 ## Run hosty
 
-Enable system-wide ad blocking with:
+Enable system-wide ad blocking by running hosty as root, for example:
 
 `$ sudo hosty`
+
+or:
+
+`$ doas hosty`
 
 You probably want to run it periodically to update your hosts file with latest domains list.
 
@@ -55,6 +66,8 @@ You probably want to run it periodically to update your hosts file with latest d
 Hosty can be configured to periodically update your hosts file with:
 
 `$ sudo hosty -a (--autorun)`
+
+Use `doas` instead of `sudo` on systems configured that way.
 
 It will ask how often you want to execute it and change your crontab.
 
