@@ -66,18 +66,39 @@ fi
 assert_file_contains "$LOG_DIR/unknown-short.out" "unrecognized option: -z"
 
 log "-- sh syntax --"
-sh -n "$HOSTY" "$INSTALL" "$ROOT/ci/smoke.sh" "$ROOT/ci/check-sources.sh" "$ROOT/ci/lib.sh"
+for syntax_script in \
+    "$HOSTY" \
+    "$INSTALL" \
+    "$ROOT/ci/lib.sh" \
+    "$ROOT/ci/smoke.sh" \
+    "$ROOT/ci/check-sources.sh"; do
+    sh -n "$syntax_script"
+done
 
 if command -v dash > /dev/null 2>&1; then
     log "-- dash syntax and runtime --"
-    dash -n "$HOSTY" "$INSTALL" "$ROOT/ci/smoke.sh" "$ROOT/ci/check-sources.sh" "$ROOT/ci/lib.sh"
+    for syntax_script in \
+        "$HOSTY" \
+        "$INSTALL" \
+        "$ROOT/ci/lib.sh" \
+        "$ROOT/ci/smoke.sh" \
+        "$ROOT/ci/check-sources.sh"; do
+        dash -n "$syntax_script"
+    done
     dash "$HOSTY" -h > /dev/null
     assert_eq "$(dash "$HOSTY" -v)" "$expected_version" "dash hosty -v should match"
 fi
 
 if command -v busybox > /dev/null 2>&1; then
     log "-- BusyBox ash syntax and runtime --"
-    busybox ash -n "$HOSTY" "$INSTALL" "$ROOT/ci/smoke.sh" "$ROOT/ci/check-sources.sh" "$ROOT/ci/lib.sh"
+    for syntax_script in \
+        "$HOSTY" \
+        "$INSTALL" \
+        "$ROOT/ci/lib.sh" \
+        "$ROOT/ci/smoke.sh" \
+        "$ROOT/ci/check-sources.sh"; do
+        busybox ash -n "$syntax_script"
+    done
     busybox ash "$HOSTY" -h > /dev/null
     assert_eq "$(busybox ash "$HOSTY" -v)" "$expected_version" "ash hosty -v should match"
 fi
@@ -331,6 +352,37 @@ run_install_tests() {
         if command -v crontab > /dev/null 2>&1; then
             assert_file_contains "$LOG_DIR/install-noninteractive.out" "no terminal available"
         fi
+        as_root rm -f "$DEST_BIN"
+    fi
+
+    if [ "$(id -u)" -ne 0 ] && [ -n "$ROOT_TOOL" ]; then
+        log "install falls back from unusable sudo to doas"
+        fallback_bin=$(mktemp -d) || die "mktemp -d failed"
+        root_tool_path=$(command -v "$ROOT_TOOL")
+
+        cat > "$fallback_bin/sudo" << 'EOF_SUDO'
+#!/bin/sh
+exit 1
+EOF_SUDO
+        cat > "$fallback_bin/doas" << EOF_DOAS
+#!/bin/sh
+exec "$root_tool_path" "\$@"
+EOF_DOAS
+        chmod +x "$fallback_bin/sudo" "$fallback_bin/doas"
+
+        expect "$ROOT/ci/expect/install-n.exp" env \
+            "PATH=$fallback_bin:$PATH" \
+            "HOSTY_URL=$HOSTY" \
+            "$INSTALL" > "$LOG_DIR/install-doas-fallback.out" 2>&1 || {
+            cat "$LOG_DIR/install-doas-fallback.out"
+            rm -rf "$fallback_bin"
+            die "doas fallback install failed"
+        }
+        rm -rf "$fallback_bin"
+
+        assert_file_contains "$LOG_DIR/install-doas-fallback.out" "using doas"
+        assert_installed_workspace "doas fallback install"
+        assert_no_hosty_staging "staging left after doas fallback install"
         as_root rm -f "$DEST_BIN"
     fi
 
