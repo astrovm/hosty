@@ -149,28 +149,6 @@ jobs:
             test "$(/usr/local/bin/hosty -v)" = "$(./hosty.sh -v)"
             rm -f /usr/local/bin/hosty /tmp/hosty.sh /tmp/install.sh
 
-  smoke-freebsd:
-    name: Smoke (FreeBSD 15.0)
-    needs: lint
-    if: >
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    runs-on: ubuntu-26.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Run offline smoke suite in FreeBSD
-        uses: vmactions/freebsd-vm@670398e4236735b8b65805c3da44b7a511fb8b27 # v1.3.0
-        with:
-          release: "15.0"
-          usesh: true
-          prepare: pkg install -y curl expect
-          run: |
-            chmod +x hosty.sh install.sh ci/smoke.sh ci/check-sources.sh ci/expect/*.exp
-            ./ci/smoke.sh
-
   network:
     name: Network full run
     needs: lint

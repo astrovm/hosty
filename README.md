@@ -7,7 +7,7 @@
 ![GitHub stars](https://img.shields.io/github/stars/astrovm/hosty.svg?label=Star&style=social)
 ![GitHub forks](https://img.shields.io/github/forks/astrovm/hosty.svg?label=Fork&style=social)](https://github.com/astrovm/hosty)
 
-Hosty is a system-wide hosts-file blocker for Unix-like operating systems. Its scripts use portable POSIX `sh` syntax and common Unix utilities; CI exercises Ubuntu, Alpine/BusyBox, macOS, FreeBSD, and OpenBSD.
+Hosty is a system-wide hosts-file blocker for Unix-like operating systems. Its scripts use portable POSIX `sh` syntax and common Unix utilities; CI exercises Ubuntu, Alpine/BusyBox, macOS, and OpenBSD.
 
 Hosty downloads domain lists, combines them with custom rules, applies a whitelist, and writes the result to `/etc/hosts` without discarding existing entries.
 
@@ -31,15 +31,15 @@ Optional:
 
 Most required utilities are included in the base system. Install missing packages with the platform package manager:
 
-| Platform | Command |
-|---|---|
-| Debian, Ubuntu, Mint, Pop!_OS | `sudo apt install curl mawk cron` |
+| Platform                         | Command                                    |
+| -------------------------------- | ------------------------------------------ |
+| Debian, Ubuntu, Mint, Pop!_OS    | `sudo apt install curl mawk cron`          |
 | Arch Linux, Manjaro, EndeavourOS | `sudo pacman -S --needed curl gawk cronie` |
-| Fedora, RHEL, Rocky Linux | `sudo dnf install curl gawk cronie` |
-| Alpine Linux | `apk add curl` (`cronie` is optional) |
-| macOS | No additional package is normally required |
-| FreeBSD | `pkg install curl` |
-| OpenBSD | `pkg_add curl` |
+| Fedora, RHEL, Rocky Linux        | `sudo dnf install curl gawk cronie`        |
+| Alpine Linux                     | `apk add curl` (`cronie` is optional)      |
+| macOS                            | No additional package is normally required |
+| FreeBSD                          | `pkg install curl`                         |
+| OpenBSD                          | `pkg_add curl`                             |
 
 Run package-manager commands as root. Prefix them with `sudo` or `doas` when configured.
 
@@ -159,7 +159,7 @@ Hosty uses these conventional paths and interfaces:
 - `/usr/local/bin/hosty`
 - the root user's `crontab`
 
-Every pull request runs static POSIX-shell checks plus functional smoke tests on Ubuntu, Alpine Linux with BusyBox `ash`, macOS, and OpenBSD. FreeBSD runs on pushes to `main`, weekly schedules, and manual workflows.
+Every pull request runs static POSIX-shell checks plus functional smoke tests on Ubuntu, Alpine Linux with BusyBox `ash`, macOS, and OpenBSD.
 
 ## Development
 
