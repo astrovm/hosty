@@ -117,7 +117,7 @@ read_reply() {
     if IFS= read -r REPLY; then
         return 0
     fi
-    if ( : < /dev/tty ) 2> /dev/null && IFS= read -r REPLY < /dev/tty; then
+    if (: < /dev/tty) 2> /dev/null && IFS= read -r REPLY < /dev/tty; then
         return 0
     fi
     fail "failed to read input."
