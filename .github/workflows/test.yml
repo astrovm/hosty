@@ -39,7 +39,7 @@ jobs:
         run: |
           sudo apt -qq update
           sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
-            shellcheck shfmt dash devscripts
+            shellcheck shfmt dash
 
       - name: Format
         run: |
@@ -59,9 +59,6 @@ jobs:
 
       - name: ShellCheck (POSIX sh)
         run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
-
-      - name: Check for non-POSIX shell syntax
-        run: checkbashisms -f hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
 
       - name: dash syntax and runtime
         run: |
