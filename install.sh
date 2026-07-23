@@ -8,6 +8,7 @@ DEST="$DEST_DIR/hosty"
 PRIVILEGE_TOOL=""
 DOWNLOAD_TMP=""
 STAGED_TMP=""
+HOSTY_VERSION=""
 
 fail() {
     printf '%s\n' "$*" >&2
@@ -32,6 +33,50 @@ is_no() {
     esac
 }
 
+has_terminal() {
+    ( : < /dev/tty ) 2> /dev/null
+}
+
+is_version() {
+    is_version_value=$1
+    is_version_major=${is_version_value%%.*}
+    is_version_rest=${is_version_value#*.}
+    [ "$is_version_rest" != "$is_version_value" ] || return 1
+
+    is_version_minor=${is_version_rest%%.*}
+    is_version_patch=${is_version_rest#*.}
+    [ "$is_version_patch" != "$is_version_rest" ] || return 1
+
+    case $is_version_patch in
+        *.*) return 1 ;;
+    esac
+
+    for is_version_part in "$is_version_major" "$is_version_minor" "$is_version_patch"; do
+        case $is_version_part in
+            '' | *[!0-9]*) return 1 ;;
+        esac
+    done
+}
+
+validate_hosty() {
+    validate_hosty_file=$1
+
+    if ! validate_hosty_version=$("$validate_hosty_file" -v 2> /dev/null) ||
+        ! is_version "$validate_hosty_version"; then
+        return 1
+    fi
+
+    if ! validate_hosty_help=$("$validate_hosty_file" -h 2> /dev/null); then
+        return 1
+    fi
+    case $validate_hosty_help in
+        *"usage: hosty"*) ;;
+        *) return 1 ;;
+    esac
+
+    HOSTY_VERSION=$validate_hosty_version
+}
+
 run_privileged() {
     if [ -n "$PRIVILEGE_TOOL" ]; then
         "$PRIVILEGE_TOOL" "$@"
@@ -49,8 +94,9 @@ cleanup() {
     fi
 }
 
-check_dep curl
-check_dep mktemp
+for dependency in curl mktemp cp chmod id mkdir mv rm; do
+    check_dep "$dependency"
+done
 
 printf '======== welcome to hosty installer ========\n'
 printf '========        4st.li/hosty        ========\n\n'
@@ -87,9 +133,7 @@ case $HOSTY_URL in
 esac
 
 chmod 755 "$DOWNLOAD_TMP"
-if ! version=$("$DOWNLOAD_TMP" -v 2> /dev/null); then
-    fail "staged file does not look like a working hosty binary."
-fi
+validate_hosty "$DOWNLOAD_TMP" || fail "staged file does not look like a working hosty executable."
 
 printf '\ninstalling hosty...\n'
 run_privileged mkdir -p "$DEST_DIR"
@@ -99,10 +143,10 @@ run_privileged chmod 755 "$STAGED_TMP"
 run_privileged mv -f "$STAGED_TMP" "$DEST"
 STAGED_TMP=""
 
-printf 'installed hosty v%s\n\n' "$version"
+printf 'installed hosty v%s\n\n' "$HOSTY_VERSION"
 
 if command -v crontab > /dev/null 2>&1; then
-    if [ -r /dev/tty ]; then
+    if has_terminal; then
         printf 'configure automatic hosts-file updates now? y/n\n'
         IFS= read -r answer < /dev/tty || fail "failed to read input."
         printf '\n'
