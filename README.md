@@ -170,8 +170,8 @@ Before submitting changes, run the same checks used by CI:
 shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh
 
 # POSIX-oriented lint and syntax checks
-shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
-for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh; do
+shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh
+for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh; do
     dash -n "$script"
 done
 
@@ -184,5 +184,7 @@ RUN_NETWORK=1 RUN_PRODUCTION_INSTALL=1 ./ci/smoke.sh
 # Optional source URL health check
 ./ci/check-sources.sh
 ```
+
+The smoke suite snapshots and restores `/etc/hosts`, `/etc/hosty`, `/usr/local/bin/hosty`, and the root user's crontab, including when a test fails.
 
 `HOSTY_URL` lets installer tests use an HTTPS URL, a `file://` URL, or a local path. Plain HTTP and other URL schemes are rejected.

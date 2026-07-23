@@ -42,27 +42,14 @@ jobs:
             shellcheck shfmt dash
 
       - name: Format
-        run: |
-          shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh
-          git diff --exit-code --ignore-space-at-eol
-
-      - name: Upload formatted scripts on failure
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: shfmt-output
-          path: |
-            hosty.sh
-            install.sh
-            ci/*.sh
-          if-no-files-found: error
+        run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh
 
       - name: ShellCheck (POSIX sh)
-        run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh
+        run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh
 
       - name: dash syntax and runtime
         run: |
-          for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/check-sources.sh; do
+          for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh; do
             dash -n "$script"
           done
           dash hosty.sh --help >/dev/null
