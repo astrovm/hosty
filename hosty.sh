@@ -683,14 +683,16 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
     NR == FNR {
         domain = $1; wl_src = $2
         if (!(domain in order)) {
-            order[domain] = ++total
-            domains[total] = domain
+            order[domain] = ++total_unique
+            domains[total_unique] = domain
         }
-        if (wl_sources[domain] == "") {
-            wl_sources[domain] = wl_src
-        } else if (index(wl_sources[domain], wl_src) == 0) {
-            wl_sources[domain] = wl_sources[domain] ", " wl_src
+        if (!(wl_src in src_order)) {
+            src_order[wl_src] = ++src_total
+            sources[src_total] = wl_src
         }
+        s_idx = src_order[wl_src]
+        src_domain_count[s_idx]++
+        src_domains[s_idx, src_domain_count[s_idx]] = domain
         next
     }
     {
@@ -702,44 +704,76 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
         }
     }
     END {
-        active_count = 0
-        inactive_count = 0
-
-        for (i = 1; i <= total; i++) {
-            if (bl_count[i] + 0 > 0) active_count++
-            else inactive_count++
+        total_active = 0
+        total_inactive = 0
+        for (i = 1; i <= total_unique; i++) {
+            if (bl_count[i] + 0 > 0) total_active++
+            else total_inactive++
         }
 
-        header = "======== whitelist audit results ========"
+        header = "======== whitelist audit summary ========"
         printf "%s\n\n", header
-        printf "whitelisted domains actively unblocking blacklists (%d):\n", active_count
+        printf "total unique whitelisted domains: %d (%d active, %d inactive)\n", total_unique, total_active, total_inactive
 
-        for (i = 1; i <= total; i++) {
-            domain = domains[i]
-            bc = bl_count[i] + 0
-            if (bc > 0) {
-                printf "\n  %s (from %s)\n", domain, wl_sources[domain]
-                printf "    unblocks from %d %s:\n", bc, (bc == 1 ? "blacklist" : "blacklists")
-                for (j = 1; j <= bc; j++) {
-                    printf "      - %s\n", bl_list[i, j]
+        printf "\n--- Active Overrides (unblocking blacklists) ---\n"
+        has_active = 0
+        for (s = 1; s <= src_total; s++) {
+            wl_src = sources[s]
+            cnt = src_domain_count[s]
+            act_cnt = 0
+            for (d = 1; d <= cnt; d++) {
+                dom = src_domains[s, d]
+                idx = order[dom]
+                if (bl_count[idx] + 0 > 0) act_cnt++
+            }
+            if (act_cnt > 0) {
+                has_active = 1
+                printf "\n  %s (%d active):\n", wl_src, act_cnt
+                for (d = 1; d <= cnt; d++) {
+                    dom = src_domains[s, d]
+                    idx = order[dom]
+                    bc = bl_count[idx] + 0
+                    if (bc > 0) {
+                        printf "    - %s (unblocks from %d %s)\n", dom, bc, (bc == 1 ? "blacklist" : "blacklists")
+                    }
                 }
             }
         }
-
-        if (active_count == 0) {
+        if (!has_active) {
             printf "  none.\n"
         }
 
-        printf "\nwhitelisted domains not found in any blacklist (inactive / redundant) (%d):\n", inactive_count
-        for (i = 1; i <= total; i++) {
-            domain = domains[i]
-            bc = bl_count[i] + 0
-            if (bc == 0) {
-                printf "  - %s (from %s)\n", domain, wl_sources[domain]
+        printf "\n--- Inactive / Redundant Whitelists ---\n"
+        has_inactive = 0
+        for (s = 1; s <= src_total; s++) {
+            wl_src = sources[s]
+            cnt = src_domain_count[s]
+            inact_cnt = 0
+            for (d = 1; d <= cnt; d++) {
+                dom = src_domains[s, d]
+                idx = order[dom]
+                if (bl_count[idx] + 0 == 0) inact_cnt++
+            }
+            if (inact_cnt > 0) {
+                has_inactive = 1
+                printf "\n  %s (%d inactive):\n", wl_src, inact_cnt
+                if (inact_cnt <= 15) {
+                    inline_list = ""
+                    for (d = 1; d <= cnt; d++) {
+                        dom = src_domains[s, d]
+                        idx = order[dom]
+                        if (bl_count[idx] + 0 == 0) {
+                            if (inline_list == "") inline_list = dom
+                            else inline_list = inline_list ", " dom
+                        }
+                    }
+                    printf "    %s\n", inline_list
+                } else {
+                    printf "    (%d domains not blocked by any blacklist)\n", inact_cnt
+                }
             }
         }
-
-        if (inactive_count == 0) {
+        if (!has_inactive) {
             printf "  none.\n"
         }
 
