@@ -20,14 +20,16 @@ UNINSTALL=0
 LOOKUP=0
 LOOKUP_HOSTS=""
 CHECK_WHITELISTS=0
+CLEAN_WHITELISTS=0
 WORK_DIR=""
 REPLY=""
 
 usage() {
     cat << 'EOF_USAGE'
-usage: hosty [-airdlwuhv]
+usage: hosty [-airdlwcuhv]
        hosty -l <host> [<host> ...]
        hosty -w
+       hosty -c
 
 options:
   -a, --autorun                 set up automatic updates with crontab
@@ -36,6 +38,7 @@ options:
   -d, --debug                   build the hosts file without changing the system
   -l, --lookup <host> ...       look up which source lists contain the given hosts
   -w, --check-whitelists        audit whitelists to see what domains they unblock and from what
+  -c, --clean-whitelists        remove inactive whitelist entries and sources that don't unblock anything
   -u, --uninstall               uninstall hosty from the system
   -h, --help                    show this help
   -v, --version                 show the version
@@ -55,6 +58,7 @@ set_short_option() {
         d) DEBUG=1 ;;
         l) LOOKUP=1 ;;
         w) CHECK_WHITELISTS=1 ;;
+        c) CLEAN_WHITELISTS=1 ;;
         u) UNINSTALL=1 ;;
         h)
             usage
@@ -77,6 +81,7 @@ parse_args() {
             -d | --debug) DEBUG=1 ;;
             -l | --lookup) LOOKUP=1 ;;
             -w | --check-whitelists | --audit-whitelists) CHECK_WHITELISTS=1 ;;
+            -c | --clean-whitelists | --prune-whitelists) CLEAN_WHITELISTS=1 ;;
             -u | --uninstall) UNINSTALL=1 ;;
             -h | --help)
                 usage
@@ -323,7 +328,7 @@ printf '========       %s       ========\n\n' "$PROJECT_URL"
 if [ "$LOOKUP" -eq 1 ]; then
     LOOKUP_HOSTS=$(printf '%s' "$LOOKUP_HOSTS" | awk '{$1=$1}1')
     [ -n "$LOOKUP_HOSTS" ] || fail "--lookup requires at least one hostname."
-elif [ "$CHECK_WHITELISTS" -eq 1 ]; then
+elif [ "$CHECK_WHITELISTS" -eq 1 ] || [ "$CLEAN_WHITELISTS" -eq 1 ]; then
     :
 elif [ "$DEBUG" -eq 1 ]; then
     AUTORUN=0
@@ -782,6 +787,175 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
     ' "$wl_domain_sources" "$audit_results"
 
     printf '\ndone.\n'
+    exit 0
+fi
+
+# ---- Clean Whitelists mode ----
+if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
+    blacklist_sources="$WORK_DIR/blacklist.sources"
+    : > "$blacklist_sources"
+
+    script_dir=$(cd "$(dirname "$0")" && pwd)
+    lists_dir="$script_dir/lists"
+
+    if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
+        if [ -f "$lists_dir/blacklist.sources" ]; then
+            printf 'using local sources from %s\n' "$lists_dir"
+            cat "$lists_dir/blacklist.sources" > "$blacklist_sources"
+        else
+            printf 'downloading default sources...\n'
+            download_required "$BLACKLIST_DEFAULT_SOURCE" "$blacklist_sources"
+        fi
+    fi
+
+    if [ -f /etc/hosty/blacklist.sources ]; then
+        printf '\nadding custom blacklist sources...\n'
+        cat /etc/hosty/blacklist.sources >> "$blacklist_sources"
+    fi
+
+    printf '\ndownloading and building unified blacklist database...\n'
+
+    raw_bl_domains="$WORK_DIR/raw_bl_domains.txt"
+    all_bl_domains="$WORK_DIR/all_blacklist_domains.txt"
+    : > "$raw_bl_domains"
+
+    while IFS= read -r bl_url || [ -n "$bl_url" ]; do
+        case $bl_url in
+            '' | \#*) continue ;;
+        esac
+        bl_dl="$WORK_DIR/bl_dl"
+        if download_optional "$bl_url" "$bl_dl"; then
+            extract_domains_from "$bl_dl" >> "$raw_bl_domains"
+        fi
+    done < "$blacklist_sources"
+
+    if [ -f "$lists_dir/blacklist" ] && [ -s "$lists_dir/blacklist" ]; then
+        extract_domains_from "$lists_dir/blacklist" >> "$raw_bl_domains"
+    fi
+
+    if [ -f /etc/hosty/blacklist ]; then
+        extract_domains_from /etc/hosty/blacklist >> "$raw_bl_domains"
+    fi
+
+    sort -u "$raw_bl_domains" > "$all_bl_domains"
+    bl_total=$(awk 'END { print NR + 0 }' "$all_bl_domains")
+    printf 'compiled %s unique blacklisted domains.\n' "$bl_total"
+
+    cleaned_something=0
+
+    # Clean local whitelist domain file
+    clean_whitelist_domain_file() {
+        wl_file=$1
+        [ -f "$wl_file" ] || return 0
+        [ -s "$wl_file" ] || return 0
+
+        wl_temp_clean="$WORK_DIR/wl_clean_tmp"
+        wl_temp_removed="$WORK_DIR/wl_removed_tmp"
+        : > "$wl_temp_clean"
+        : > "$wl_temp_removed"
+
+        while IFS= read -r line || [ -n "$line" ]; do
+            case $line in
+                '' | \#*)
+                    printf '%s\n' "$line" >> "$wl_temp_clean"
+                    continue
+                    ;;
+            esac
+            clean_dom=$(printf '%s\n' "$line" | awk '{ sub(/#.*/, ""); print $1 }')
+            if [ -n "$clean_dom" ] && grep -qxF "$clean_dom" "$all_bl_domains"; then
+                printf '%s\n' "$line" >> "$wl_temp_clean"
+            else
+                if [ -n "$clean_dom" ]; then
+                    printf '%s\n' "$clean_dom" >> "$wl_temp_removed"
+                fi
+            fi
+        done < "$wl_file"
+
+        rem_cnt=$(awk 'END { print NR + 0 }' "$wl_temp_removed")
+        if [ "$rem_cnt" -gt 0 ]; then
+            cat "$wl_temp_clean" > "$wl_file"
+            rem_list=$(awk '{ if (NR == 1) out = $0; else out = out ", " $0 } END { print out }' "$wl_temp_removed")
+            printf '\nCleaned %s:\n' "$wl_file"
+            printf '  - Removed %d inactive domains: %s\n' "$rem_cnt" "$rem_list"
+            cleaned_something=1
+        else
+            printf '\nChecked %s: all domains are active (0 removed).\n' "$wl_file"
+        fi
+    }
+
+    # Clean local whitelist source file
+    clean_whitelist_source_file() {
+        src_file=$1
+        [ -f "$src_file" ] || return 0
+        [ -s "$src_file" ] || return 0
+
+        src_temp_clean="$WORK_DIR/src_clean_tmp"
+        src_temp_removed="$WORK_DIR/src_removed_tmp"
+        : > "$src_temp_clean"
+        : > "$src_temp_removed"
+
+        printf '\nChecking whitelist sources in %s...\n' "$src_file"
+
+        while IFS= read -r line || [ -n "$line" ]; do
+            case $line in
+                '' | \#*)
+                    printf '%s\n' "$line" >> "$src_temp_clean"
+                    continue
+                    ;;
+            esac
+            src_url=$(printf '%s\n' "$line" | awk '{ sub(/#.*/, ""); print $1 }')
+            [ -n "$src_url" ] || continue
+
+            src_dl="$WORK_DIR/src_dl"
+            src_doms="$WORK_DIR/src_doms"
+            if download_optional "$src_url" "$src_dl"; then
+                extract_domains_from "$src_dl" > "$src_doms"
+                if grep -F -x -f "$all_bl_domains" "$src_doms" > /dev/null 2>&1; then
+                    printf '%s\n' "$line" >> "$src_temp_clean"
+                else
+                    printf '%s\n' "$src_url" >> "$src_temp_removed"
+                fi
+            else
+                printf '%s\n' "$line" >> "$src_temp_clean"
+            fi
+        done < "$src_file"
+
+        rem_src_cnt=$(awk 'END { print NR + 0 }' "$src_temp_removed")
+        if [ "$rem_src_cnt" -gt 0 ]; then
+            cat "$src_temp_clean" > "$src_file"
+            printf 'Cleaned %s:\n' "$src_file"
+            while IFS= read -r rem_url || [ -n "$rem_url" ]; do
+                [ -n "$rem_url" ] || continue
+                printf '  - Removed inactive source: %s\n' "$rem_url"
+            done < "$src_temp_removed"
+            cleaned_something=1
+        else
+            printf 'Checked %s: all sources are active (0 removed).\n' "$src_file"
+        fi
+    }
+
+    if [ -f "$lists_dir/whitelist" ]; then
+        clean_whitelist_domain_file "$lists_dir/whitelist"
+    fi
+
+    if [ -f /etc/hosty/whitelist ]; then
+        clean_whitelist_domain_file "/etc/hosty/whitelist"
+    fi
+
+    if [ -f "$lists_dir/whitelist.sources" ]; then
+        clean_whitelist_source_file "$lists_dir/whitelist.sources"
+    fi
+
+    if [ -f /etc/hosty/whitelist.sources ]; then
+        clean_whitelist_source_file "/etc/hosty/whitelist.sources"
+    fi
+
+    printf '\n'
+    if [ "$cleaned_something" -eq 1 ]; then
+        printf 'whitelist cleanup completed successfully.\n'
+    else
+        printf 'no inactive whitelists or whitelist sources found to remove.\n'
+    fi
     exit 0
 fi
 
