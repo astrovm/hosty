@@ -17,18 +17,22 @@ IGNORE_DEFAULT_SOURCES=0
 RESTORE=0
 DEBUG=0
 UNINSTALL=0
+LOOKUP=0
+LOOKUP_HOSTS=""
 WORK_DIR=""
 REPLY=""
 
 usage() {
     cat << 'EOF_USAGE'
-usage: hosty [-airduhv]
+usage: hosty [-airdluhv]
+       hosty -l <host> [<host> ...]
 
 options:
   -a, --autorun                 set up automatic updates with crontab
   -i, --ignore-default-sources  ignore the default source lists
   -r, --restore                 restore the hosts file
   -d, --debug                   build the hosts file without changing the system
+  -l, --lookup <host> ...       look up which source lists contain the given hosts
   -u, --uninstall               uninstall hosty from the system
   -h, --help                    show this help
   -v, --version                 show the version
@@ -46,6 +50,7 @@ set_short_option() {
         i) IGNORE_DEFAULT_SOURCES=1 ;;
         r) RESTORE=1 ;;
         d) DEBUG=1 ;;
+        l) LOOKUP=1 ;;
         u) UNINSTALL=1 ;;
         h)
             usage
@@ -66,6 +71,7 @@ parse_args() {
             -i | --ignore-default-sources) IGNORE_DEFAULT_SOURCES=1 ;;
             -r | --restore) RESTORE=1 ;;
             -d | --debug) DEBUG=1 ;;
+            -l | --lookup) LOOKUP=1 ;;
             -u | --uninstall) UNINSTALL=1 ;;
             -h | --help)
                 usage
@@ -77,7 +83,14 @@ parse_args() {
                 ;;
             --)
                 shift
-                [ "$#" -eq 0 ] || fail "unexpected argument: $1"
+                if [ "$LOOKUP" -eq 1 ]; then
+                    while [ "$#" -gt 0 ]; do
+                        LOOKUP_HOSTS="$LOOKUP_HOSTS $1"
+                        shift
+                    done
+                else
+                    [ "$#" -eq 0 ] || fail "unexpected argument: $1"
+                fi
                 break
                 ;;
             --*) fail "unrecognized option: $1" ;;
@@ -89,7 +102,13 @@ parse_args() {
                     set_short_option "$parse_option"
                 done
                 ;;
-            *) fail "unexpected argument: $1" ;;
+            *)
+                if [ "$LOOKUP" -eq 1 ]; then
+                    LOOKUP_HOSTS="$LOOKUP_HOSTS $1"
+                else
+                    fail "unexpected argument: $1"
+                fi
+                ;;
         esac
         shift
     done
@@ -272,7 +291,10 @@ done
 printf '======== hosty v%s (%s) ========\n' "$VERSION" "$RELEASE_DATE"
 printf '========       %s       ========\n\n' "$PROJECT_URL"
 
-if [ "$DEBUG" -eq 1 ]; then
+if [ "$LOOKUP" -eq 1 ]; then
+    LOOKUP_HOSTS=$(printf '%s' "$LOOKUP_HOSTS" | awk '{$1=$1}1')
+    [ -n "$LOOKUP_HOSTS" ] || fail "--lookup requires at least one hostname."
+elif [ "$DEBUG" -eq 1 ]; then
     AUTORUN=0
     UNINSTALL=0
     OUTPUT_HOSTS=$(mktemp) || exit 1
@@ -318,6 +340,163 @@ if [ "$UNINSTALL" -eq 1 ]; then
     fi
 
     printf 'hosty uninstalled.\n'
+    exit 0
+fi
+
+# ---- Lookup mode ----
+if [ "$LOOKUP" -eq 1 ]; then
+    blacklist_sources="$WORK_DIR/blacklist.sources"
+    whitelist_sources="$WORK_DIR/whitelist.sources"
+    lookup_results="$WORK_DIR/lookup.results"
+    : > "$blacklist_sources"
+    : > "$whitelist_sources"
+    : > "$lookup_results"
+
+    if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
+        printf 'downloading default sources...\n'
+        download_required "$BLACKLIST_DEFAULT_SOURCE" "$blacklist_sources"
+        download_required "$WHITELIST_DEFAULT_SOURCE" "$whitelist_sources"
+    fi
+
+    if [ -f /etc/hosty/blacklist.sources ]; then
+        printf '\nadding custom blacklist sources...\n'
+        cat /etc/hosty/blacklist.sources >> "$blacklist_sources"
+    fi
+
+    if [ -f /etc/hosty/whitelist.sources ]; then
+        printf '\nadding custom whitelist sources...\n'
+        cat /etc/hosty/whitelist.sources >> "$whitelist_sources"
+    fi
+
+    # Record a match: <type> <TAB> <host> <TAB> <source>
+    lookup_record() {
+        printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$lookup_results"
+    }
+
+    lookup_in_list() {
+        lookup_list_type=$1
+        lookup_list_url=$2
+        lookup_list_file="$WORK_DIR/lookup_download"
+        if ! download_optional "$lookup_list_url" "$lookup_list_file"; then
+            return
+        fi
+
+        lookup_list_domains="$WORK_DIR/lookup_domains"
+        awk '
+            /^[[:space:]]*[a-zA-Z0-9:]/ {
+                line = $0
+                sub(/#.*/, "", line)
+                gsub(/[^a-zA-Z0-9.-]/, "\n", line)
+                count = split(line, parts, "\n")
+                for (i = 1; i <= count; i++) {
+                    domain = parts[i]
+                    if (domain ~ /\./ && domain ~ /[a-zA-Z]/ &&
+                        domain !~ /^[.-]/ && domain !~ /[.-]$/)
+                        print domain
+                }
+            }
+        ' "$lookup_list_file" > "$lookup_list_domains"
+
+        for lookup_host in $LOOKUP_HOSTS; do
+            if grep -qxF "$lookup_host" "$lookup_list_domains"; then
+                lookup_record "$lookup_list_type" "$lookup_host" "$lookup_list_url"
+            fi
+        done
+    }
+
+    printf '\ndownloading and searching blacklists...\n'
+    while IFS= read -r lookup_source_url || [ -n "$lookup_source_url" ]; do
+        case $lookup_source_url in
+            '' | \#*) continue ;;
+        esac
+        lookup_in_list "blacklist" "$lookup_source_url"
+    done < "$blacklist_sources"
+
+    if [ -f /etc/hosty/blacklist ]; then
+        printf 'searching user custom blacklist...\n'
+        for lookup_host in $LOOKUP_HOSTS; do
+            if grep -qxF "$lookup_host" /etc/hosty/blacklist; then
+                lookup_record "blacklist" "$lookup_host" "/etc/hosty/blacklist"
+            fi
+        done
+    fi
+
+    printf 'downloading and searching whitelists...\n'
+    while IFS= read -r lookup_source_url || [ -n "$lookup_source_url" ]; do
+        case $lookup_source_url in
+            '' | \#*) continue ;;
+        esac
+        lookup_in_list "whitelist" "$lookup_source_url"
+    done < "$whitelist_sources"
+
+    if [ -f /etc/hosty/whitelist ]; then
+        printf 'searching user custom whitelist...\n'
+        for lookup_host in $LOOKUP_HOSTS; do
+            if grep -qxF "$lookup_host" /etc/hosty/whitelist; then
+                lookup_record "whitelist" "$lookup_host" "/etc/hosty/whitelist"
+            fi
+        done
+    fi
+
+    # ---- Print results ----
+    printf '\n'
+    if [ ! -s "$lookup_results" ]; then
+        printf 'no matches found.\n'
+    else
+        awk -F'\t' '
+        BEGIN {
+            bl_label = "blacklists"
+            wl_label = "whitelists"
+        }
+        {
+            type = $1; host = $2; source = $3
+            if (!(host in order)) {
+                order[host] = ++n
+                hosts[n] = host
+            }
+            idx = order[host]
+            if (type == "blacklist") {
+                bl_count[idx]++
+                bl_list[idx, bl_count[idx]] = source
+            } else {
+                wl_count[idx]++
+                wl_list[idx, wl_count[idx]] = source
+            }
+        }
+        END {
+            header = "======== lookup results ========"
+            printf "%s\n", header
+            for (i = 1; i <= n; i++) {
+                host = hosts[i]
+                bc = bl_count[i] + 0
+                wc = wl_count[i] + 0
+                printf "\n  %s\n", host
+                if (bc > 0) {
+                    printf "    found in %d %s:\n", bc, bl_label
+                    for (j = 1; j <= bc; j++)
+                        printf "      - %s\n", bl_list[i, j]
+                }
+                if (wc > 0) {
+                    printf "    found in %d %s:\n", wc, wl_label
+                    for (j = 1; j <= wc; j++)
+                        printf "      - %s\n", wl_list[i, j]
+                }
+                if (bc == 0 && wc == 0)
+                    printf "    not found in any list.\n"
+            }
+            printf "\n%s\n", header
+        }
+        ' "$lookup_results"
+
+        # Print hosts not found in any list
+        for lookup_host in $LOOKUP_HOSTS; do
+            if ! grep -qF "$lookup_host" "$lookup_results"; then
+                printf '\n  %s\n    not found in any list.\n' "$lookup_host"
+            fi
+        done
+    fi
+
+    printf '\ndone.\n'
     exit 0
 fi
 
