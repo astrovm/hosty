@@ -316,6 +316,76 @@ extract_user_hosts() {
     fi
 }
 
+# Resolve configured blacklist and whitelist source files (local repo or defaults + /etc/hosty).
+load_source_lists() {
+    load_bl_target=$1
+    load_wl_target=$2
+    : > "$load_bl_target"
+    : > "$load_wl_target"
+
+    script_dir=$(cd "$(dirname "$0")" && pwd)
+    lists_dir="$script_dir/lists"
+
+    if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
+        if [ -f "$lists_dir/blacklist.sources" ]; then
+            printf 'using local sources from %s\n' "$lists_dir"
+            cat "$lists_dir/blacklist.sources" > "$load_bl_target"
+            cat "$lists_dir/whitelist.sources" > "$load_wl_target"
+        else
+            printf 'downloading default sources...\n'
+            download_required "$BLACKLIST_DEFAULT_SOURCE" "$load_bl_target"
+            download_required "$WHITELIST_DEFAULT_SOURCE" "$load_wl_target"
+        fi
+    fi
+
+    if [ -f /etc/hosty/blacklist.sources ]; then
+        printf '\nadding custom blacklist sources...\n'
+        cat /etc/hosty/blacklist.sources >> "$load_bl_target"
+    fi
+
+    if [ -f /etc/hosty/whitelist.sources ]; then
+        printf '\nadding custom whitelist sources...\n'
+        cat /etc/hosty/whitelist.sources >> "$load_wl_target"
+    fi
+}
+
+# Download all configured blacklists and compile a unified, de-duplicated domain list.
+compile_all_blacklists() {
+    compile_output=$1
+    compile_bl_sources="$WORK_DIR/compile_bl.sources"
+    compile_wl_sources="$WORK_DIR/compile_wl.sources"
+    load_source_lists "$compile_bl_sources" "$compile_wl_sources"
+
+    printf '\ndownloading and building unified blacklist database...\n'
+    compile_raw="$WORK_DIR/compile_raw.txt"
+    : > "$compile_raw"
+
+    while IFS= read -r compile_url || [ -n "$compile_url" ]; do
+        case $compile_url in
+            '' | \#*) continue ;;
+        esac
+        compile_dl="$WORK_DIR/compile_dl"
+        if download_optional "$compile_url" "$compile_dl"; then
+            extract_domains_from "$compile_dl" >> "$compile_raw"
+        fi
+    done < "$compile_bl_sources"
+
+    script_dir=$(cd "$(dirname "$0")" && pwd)
+    lists_dir="$script_dir/lists"
+
+    if [ -f "$lists_dir/blacklist" ] && [ -s "$lists_dir/blacklist" ]; then
+        extract_domains_from "$lists_dir/blacklist" >> "$compile_raw"
+    fi
+
+    if [ -f /etc/hosty/blacklist ]; then
+        extract_domains_from /etc/hosty/blacklist >> "$compile_raw"
+    fi
+
+    sort -u "$compile_raw" > "$compile_output"
+    compile_total=$(awk 'END { print NR + 0 }' "$compile_output")
+    printf 'compiled %s unique blacklisted domains.\n' "$compile_total"
+}
+
 parse_args "$@"
 
 for dependency in curl awk head cat mktemp sort grep dirname chmod mv rm id date; do
@@ -384,35 +454,12 @@ if [ "$LOOKUP" -eq 1 ]; then
     blacklist_sources="$WORK_DIR/blacklist.sources"
     whitelist_sources="$WORK_DIR/whitelist.sources"
     lookup_results="$WORK_DIR/lookup.results"
-    : > "$blacklist_sources"
-    : > "$whitelist_sources"
     : > "$lookup_results"
 
-    # Detect the repo's lists/ directory next to the script.
+    load_source_lists "$blacklist_sources" "$whitelist_sources"
+
     script_dir=$(cd "$(dirname "$0")" && pwd)
     lists_dir="$script_dir/lists"
-
-    if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
-        if [ -f "$lists_dir/blacklist.sources" ]; then
-            printf 'using local sources from %s\n' "$lists_dir"
-            cat "$lists_dir/blacklist.sources" > "$blacklist_sources"
-            cat "$lists_dir/whitelist.sources" > "$whitelist_sources"
-        else
-            printf 'downloading default sources...\n'
-            download_required "$BLACKLIST_DEFAULT_SOURCE" "$blacklist_sources"
-            download_required "$WHITELIST_DEFAULT_SOURCE" "$whitelist_sources"
-        fi
-    fi
-
-    if [ -f /etc/hosty/blacklist.sources ]; then
-        printf '\nadding custom blacklist sources...\n'
-        cat /etc/hosty/blacklist.sources >> "$blacklist_sources"
-    fi
-
-    if [ -f /etc/hosty/whitelist.sources ]; then
-        printf '\nadding custom whitelist sources...\n'
-        cat /etc/hosty/whitelist.sources >> "$whitelist_sources"
-    fi
 
     lookup_record() {
         printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$lookup_results"
@@ -575,36 +622,14 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
     wl_domain_sources="$WORK_DIR/wl_domain_sources.tsv"
     wl_domains_file="$WORK_DIR/wl_domains.txt"
     audit_results="$WORK_DIR/audit.results"
-    : > "$blacklist_sources"
-    : > "$whitelist_sources"
     : > "$wl_domain_sources"
     : > "$wl_domains_file"
     : > "$audit_results"
 
+    load_source_lists "$blacklist_sources" "$whitelist_sources"
+
     script_dir=$(cd "$(dirname "$0")" && pwd)
     lists_dir="$script_dir/lists"
-
-    if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
-        if [ -f "$lists_dir/blacklist.sources" ]; then
-            printf 'using local sources from %s\n' "$lists_dir"
-            cat "$lists_dir/blacklist.sources" > "$blacklist_sources"
-            cat "$lists_dir/whitelist.sources" > "$whitelist_sources"
-        else
-            printf 'downloading default sources...\n'
-            download_required "$BLACKLIST_DEFAULT_SOURCE" "$blacklist_sources"
-            download_required "$WHITELIST_DEFAULT_SOURCE" "$whitelist_sources"
-        fi
-    fi
-
-    if [ -f /etc/hosty/blacklist.sources ]; then
-        printf '\nadding custom blacklist sources...\n'
-        cat /etc/hosty/blacklist.sources >> "$blacklist_sources"
-    fi
-
-    if [ -f /etc/hosty/whitelist.sources ]; then
-        printf '\nadding custom whitelist sources...\n'
-        cat /etc/hosty/whitelist.sources >> "$whitelist_sources"
-    fi
 
     printf '\ndownloading and processing whitelists...\n'
 
@@ -792,55 +817,11 @@ fi
 
 # ---- Clean Whitelists mode ----
 if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
-    blacklist_sources="$WORK_DIR/blacklist.sources"
-    : > "$blacklist_sources"
+    all_bl_domains="$WORK_DIR/all_blacklist_domains.txt"
+    compile_all_blacklists "$all_bl_domains"
 
     script_dir=$(cd "$(dirname "$0")" && pwd)
     lists_dir="$script_dir/lists"
-
-    if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
-        if [ -f "$lists_dir/blacklist.sources" ]; then
-            printf 'using local sources from %s\n' "$lists_dir"
-            cat "$lists_dir/blacklist.sources" > "$blacklist_sources"
-        else
-            printf 'downloading default sources...\n'
-            download_required "$BLACKLIST_DEFAULT_SOURCE" "$blacklist_sources"
-        fi
-    fi
-
-    if [ -f /etc/hosty/blacklist.sources ]; then
-        printf '\nadding custom blacklist sources...\n'
-        cat /etc/hosty/blacklist.sources >> "$blacklist_sources"
-    fi
-
-    printf '\ndownloading and building unified blacklist database...\n'
-
-    raw_bl_domains="$WORK_DIR/raw_bl_domains.txt"
-    all_bl_domains="$WORK_DIR/all_blacklist_domains.txt"
-    : > "$raw_bl_domains"
-
-    while IFS= read -r bl_url || [ -n "$bl_url" ]; do
-        case $bl_url in
-            '' | \#*) continue ;;
-        esac
-        bl_dl="$WORK_DIR/bl_dl"
-        if download_optional "$bl_url" "$bl_dl"; then
-            extract_domains_from "$bl_dl" >> "$raw_bl_domains"
-        fi
-    done < "$blacklist_sources"
-
-    if [ -f "$lists_dir/blacklist" ] && [ -s "$lists_dir/blacklist" ]; then
-        extract_domains_from "$lists_dir/blacklist" >> "$raw_bl_domains"
-    fi
-
-    if [ -f /etc/hosty/blacklist ]; then
-        extract_domains_from /etc/hosty/blacklist >> "$raw_bl_domains"
-    fi
-
-    sort -u "$raw_bl_domains" > "$all_bl_domains"
-    bl_total=$(awk 'END { print NR + 0 }' "$all_bl_domains")
-    printf 'compiled %s unique blacklisted domains.\n' "$bl_total"
-
     cleaned_something=0
 
     # Clean local whitelist domain file
@@ -1034,26 +1015,10 @@ blacklist_sources="$WORK_DIR/blacklist.sources"
 whitelist_sources="$WORK_DIR/whitelist.sources"
 blacklist_domains="$WORK_DIR/blacklist.domains"
 whitelist_domains="$WORK_DIR/whitelist.domains"
-: > "$blacklist_sources"
-: > "$whitelist_sources"
 : > "$blacklist_domains"
 : > "$whitelist_domains"
 
-if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
-    printf 'downloading default sources...\n'
-    download_required "$BLACKLIST_DEFAULT_SOURCE" "$blacklist_sources"
-    download_required "$WHITELIST_DEFAULT_SOURCE" "$whitelist_sources"
-fi
-
-if [ -f /etc/hosty/blacklist.sources ]; then
-    printf '\nadding custom blacklist sources...\n'
-    cat /etc/hosty/blacklist.sources >> "$blacklist_sources"
-fi
-
-if [ -f /etc/hosty/whitelist.sources ]; then
-    printf '\nadding custom whitelist sources...\n'
-    cat /etc/hosty/whitelist.sources >> "$whitelist_sources"
-fi
+load_source_lists "$blacklist_sources" "$whitelist_sources"
 
 printf '\ndownloading blacklists...\n'
 download_sources_into "$blacklist_sources" "$blacklist_domains"
