@@ -376,10 +376,20 @@ if [ "$LOOKUP" -eq 1 ]; then
     : > "$whitelist_sources"
     : > "$lookup_results"
 
+    # Detect the repo's lists/ directory next to the script.
+    script_dir=$(cd "$(dirname "$0")" && pwd)
+    lists_dir="$script_dir/lists"
+
     if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
-        printf 'downloading default sources...\n'
-        download_required "$BLACKLIST_DEFAULT_SOURCE" "$blacklist_sources"
-        download_required "$WHITELIST_DEFAULT_SOURCE" "$whitelist_sources"
+        if [ -f "$lists_dir/blacklist.sources" ]; then
+            printf 'using local sources from %s\n' "$lists_dir"
+            cat "$lists_dir/blacklist.sources" > "$blacklist_sources"
+            cat "$lists_dir/whitelist.sources" > "$whitelist_sources"
+        else
+            printf 'downloading default sources...\n'
+            download_required "$BLACKLIST_DEFAULT_SOURCE" "$blacklist_sources"
+            download_required "$WHITELIST_DEFAULT_SOURCE" "$whitelist_sources"
+        fi
     fi
 
     if [ -f /etc/hosty/blacklist.sources ]; then
@@ -419,8 +429,10 @@ if [ "$LOOKUP" -eq 1 ]; then
     lookup_in_local() {
         lookup_local_type=$1
         lookup_local_file=$2
+        lookup_local_domains="$WORK_DIR/lookup_local_domains"
+        extract_domains_from "$lookup_local_file" > "$lookup_local_domains"
         for lookup_host in $LOOKUP_HOSTS; do
-            if grep -qxF "$lookup_host" "$lookup_local_file"; then
+            if grep -qxF "$lookup_host" "$lookup_local_domains"; then
                 lookup_record "$lookup_local_type" "$lookup_host" "$lookup_local_file"
             fi
         done
@@ -434,6 +446,11 @@ if [ "$LOOKUP" -eq 1 ]; then
         lookup_in_list "blacklist" "$lookup_source_url"
     done < "$blacklist_sources"
 
+    if [ -f "$lists_dir/blacklist" ] && [ -s "$lists_dir/blacklist" ]; then
+        printf 'searching %s...\n' "$lists_dir/blacklist"
+        lookup_in_local "blacklist" "$lists_dir/blacklist"
+    fi
+
     if [ -f /etc/hosty/blacklist ]; then
         printf 'searching user custom blacklist...\n'
         lookup_in_local "blacklist" "/etc/hosty/blacklist"
@@ -446,6 +463,11 @@ if [ "$LOOKUP" -eq 1 ]; then
         esac
         lookup_in_list "whitelist" "$lookup_source_url"
     done < "$whitelist_sources"
+
+    if [ -f "$lists_dir/whitelist" ] && [ -s "$lists_dir/whitelist" ]; then
+        printf 'searching %s...\n' "$lists_dir/whitelist"
+        lookup_in_local "whitelist" "$lists_dir/whitelist"
+    fi
 
     if [ -f /etc/hosty/whitelist ]; then
         printf 'searching user custom whitelist...\n'
