@@ -824,7 +824,7 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
     lists_dir="$script_dir/lists"
     cleaned_something=0
 
-    # Clean local whitelist domain file
+    # Clean local whitelist domain file using a single high-performance awk pass
     clean_whitelist_domain_file() {
         wl_file=$1
         [ -f "$wl_file" ] || return 0
@@ -835,22 +835,27 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
         : > "$wl_temp_clean"
         : > "$wl_temp_removed"
 
-        while IFS= read -r line || [ -n "$line" ]; do
-            case $line in
-                '' | \#*)
-                    printf '%s\n' "$line" >> "$wl_temp_clean"
-                    continue
-                    ;;
-            esac
-            clean_dom=$(printf '%s\n' "$line" | awk '{ sub(/#.*/, ""); print $1 }')
-            if [ -n "$clean_dom" ] && grep -qxF "$clean_dom" "$all_bl_domains"; then
-                printf '%s\n' "$line" >> "$wl_temp_clean"
-            else
-                if [ -n "$clean_dom" ]; then
-                    printf '%s\n' "$clean_dom" >> "$wl_temp_removed"
-                fi
-            fi
-        done < "$wl_file"
+        awk -v bl_file="$all_bl_domains" -v clean_out="$wl_temp_clean" -v removed_out="$wl_temp_removed" '
+            BEGIN {
+                while ((getline bl_line < bl_file) > 0) {
+                    if (bl_line != "") bl[bl_line] = 1
+                }
+                close(bl_file)
+            }
+            {
+                orig = $0
+                line = $0
+                sub(/#.*/, "", line)
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+                if (line == "") {
+                    print orig > clean_out
+                } else if (line in bl) {
+                    print orig > clean_out
+                } else {
+                    print line > removed_out
+                }
+            }
+        ' "$wl_file"
 
         rem_cnt=$(awk 'END { print NR + 0 }' "$wl_temp_removed")
         if [ "$rem_cnt" -gt 0 ]; then
@@ -884,7 +889,8 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
                     continue
                     ;;
             esac
-            src_url=$(printf '%s\n' "$line" | awk '{ sub(/#.*/, ""); print $1 }')
+            src_url=${line%%#*}
+            src_url=$(printf '%s' "$src_url" | tr -d ' \t\r')
             [ -n "$src_url" ] || continue
 
             src_dl="$WORK_DIR/src_dl"
