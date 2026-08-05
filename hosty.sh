@@ -226,13 +226,8 @@ download_sources_into() {
     done < "$download_sources_file"
 }
 
-# Extract hostnames from hosts-style files and plain domain lists.
-extract_domains() {
-    extract_domains_file=$1
-    extract_domains_raw="$WORK_DIR/domains.raw"
-    extract_domains_sorted="$WORK_DIR/domains.sorted"
-
-    printf '\nextracting domains...\n'
+# Parse hostnames from hosts-style files and plain domain lists into one-per-line output.
+extract_domains_from() {
     awk '
         /^[[:space:]]*[a-zA-Z0-9:]/ {
             line = $0
@@ -246,7 +241,17 @@ extract_domains() {
                     print domain
             }
         }
-    ' "$extract_domains_file" > "$extract_domains_raw"
+    ' "$1"
+}
+
+# Extract, sort, and de-duplicate domains in-place; print a count.
+extract_domains() {
+    extract_domains_file=$1
+    extract_domains_raw="$WORK_DIR/domains.raw"
+    extract_domains_sorted="$WORK_DIR/domains.sorted"
+
+    printf '\nextracting domains...\n'
+    extract_domains_from "$extract_domains_file" > "$extract_domains_raw"
     sort -u "$extract_domains_raw" > "$extract_domains_sorted"
     cat "$extract_domains_sorted" > "$extract_domains_file"
     extract_domains_count=$(awk 'END { print NR + 0 }' "$extract_domains_file")
@@ -280,6 +285,25 @@ append_blocked_domains() {
             print ip, $1
         }
     ' "$append_blocked_deny_file" >> "$append_blocked_output"
+}
+
+# Extract the user portion of the hosts file (above hosty's marker).
+extract_user_hosts() {
+    extract_user_hosts_target=$1
+    extract_user_hosts_line=$(awk '
+        /^# [aA]d blocking hosts generated/ { marker = NR }
+        END {
+            if (!marker) print -1
+            else print marker - 1
+        }
+    ' "$INPUT_HOSTS")
+    if [ "$extract_user_hosts_line" -lt 0 ]; then
+        cat "$INPUT_HOSTS" > "$extract_user_hosts_target"
+    elif [ "$extract_user_hosts_line" -gt 0 ]; then
+        head -n "$extract_user_hosts_line" "$INPUT_HOSTS" > "$extract_user_hosts_target"
+    else
+        : > "$extract_user_hosts_target"
+    fi
 }
 
 parse_args "$@"
@@ -368,11 +392,11 @@ if [ "$LOOKUP" -eq 1 ]; then
         cat /etc/hosty/whitelist.sources >> "$whitelist_sources"
     fi
 
-    # Record a match: <type> <TAB> <host> <TAB> <source>
     lookup_record() {
         printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$lookup_results"
     }
 
+    # Download a remote list, extract domains, and record matches.
     lookup_in_list() {
         lookup_list_type=$1
         lookup_list_url=$2
@@ -382,24 +406,22 @@ if [ "$LOOKUP" -eq 1 ]; then
         fi
 
         lookup_list_domains="$WORK_DIR/lookup_domains"
-        awk '
-            /^[[:space:]]*[a-zA-Z0-9:]/ {
-                line = $0
-                sub(/#.*/, "", line)
-                gsub(/[^a-zA-Z0-9.-]/, "\n", line)
-                count = split(line, parts, "\n")
-                for (i = 1; i <= count; i++) {
-                    domain = parts[i]
-                    if (domain ~ /\./ && domain ~ /[a-zA-Z]/ &&
-                        domain !~ /^[.-]/ && domain !~ /[.-]$/)
-                        print domain
-                }
-            }
-        ' "$lookup_list_file" > "$lookup_list_domains"
+        extract_domains_from "$lookup_list_file" > "$lookup_list_domains"
 
         for lookup_host in $LOOKUP_HOSTS; do
             if grep -qxF "$lookup_host" "$lookup_list_domains"; then
                 lookup_record "$lookup_list_type" "$lookup_host" "$lookup_list_url"
+            fi
+        done
+    }
+
+    # Search a local file for matching hosts.
+    lookup_in_local() {
+        lookup_local_type=$1
+        lookup_local_file=$2
+        for lookup_host in $LOOKUP_HOSTS; do
+            if grep -qxF "$lookup_host" "$lookup_local_file"; then
+                lookup_record "$lookup_local_type" "$lookup_host" "$lookup_local_file"
             fi
         done
     }
@@ -414,11 +436,7 @@ if [ "$LOOKUP" -eq 1 ]; then
 
     if [ -f /etc/hosty/blacklist ]; then
         printf 'searching user custom blacklist...\n'
-        for lookup_host in $LOOKUP_HOSTS; do
-            if grep -qxF "$lookup_host" /etc/hosty/blacklist; then
-                lookup_record "blacklist" "$lookup_host" "/etc/hosty/blacklist"
-            fi
-        done
+        lookup_in_local "blacklist" "/etc/hosty/blacklist"
     fi
 
     printf 'downloading and searching whitelists...\n'
@@ -431,45 +449,14 @@ if [ "$LOOKUP" -eq 1 ]; then
 
     if [ -f /etc/hosty/whitelist ]; then
         printf 'searching user custom whitelist...\n'
-        for lookup_host in $LOOKUP_HOSTS; do
-            if grep -qxF "$lookup_host" /etc/hosty/whitelist; then
-                lookup_record "whitelist" "$lookup_host" "/etc/hosty/whitelist"
-            fi
-        done
+        lookup_in_local "whitelist" "/etc/hosty/whitelist"
     fi
 
     printf 'searching %s...\n' "$INPUT_HOSTS"
     lookup_user_hosts="$WORK_DIR/lookup_user_hosts"
-    lookup_user_line=$(awk '
-        /^# [aA]d blocking hosts generated/ { marker = NR }
-        END {
-            if (!marker) print -1
-            else print marker - 1
-        }
-    ' "$INPUT_HOSTS")
-    if [ "$lookup_user_line" -lt 0 ]; then
-        cat "$INPUT_HOSTS" > "$lookup_user_hosts"
-    elif [ "$lookup_user_line" -gt 0 ]; then
-        head -n "$lookup_user_line" "$INPUT_HOSTS" > "$lookup_user_hosts"
-    else
-        : > "$lookup_user_hosts"
-    fi
-
+    extract_user_hosts "$lookup_user_hosts"
     lookup_user_domains="$WORK_DIR/lookup_user_domains"
-    awk '
-        /^[[:space:]]*[a-zA-Z0-9:]/ {
-            line = $0
-            sub(/#.*/, "", line)
-            gsub(/[^a-zA-Z0-9.-]/, "\n", line)
-            count = split(line, parts, "\n")
-            for (i = 1; i <= count; i++) {
-                domain = parts[i]
-                if (domain ~ /\./ && domain ~ /[a-zA-Z]/ &&
-                    domain !~ /^[.-]/ && domain !~ /[.-]$/)
-                    print domain
-            }
-        }
-    ' "$lookup_user_hosts" > "$lookup_user_domains"
+    extract_domains_from "$lookup_user_hosts" > "$lookup_user_domains"
 
     for lookup_host in $LOOKUP_HOSTS; do
         if grep -qxF "$lookup_host" "$lookup_user_domains"; then
@@ -479,66 +466,61 @@ if [ "$LOOKUP" -eq 1 ]; then
 
     # ---- Print results ----
     printf '\n'
-    if [ ! -s "$lookup_results" ]; then
-        printf 'no matches found.\n'
-    else
-        awk -F'\t' '
-        {
-            type = $1; host = $2; source = $3
+    awk -F'\t' -v all_hosts="$LOOKUP_HOSTS" '
+    BEGIN {
+        n = split(all_hosts, arr)
+        for (i = 1; i <= n; i++) {
+            host = arr[i]
             if (!(host in order)) {
-                order[host] = ++n
-                hosts[n] = host
-            }
-            idx = order[host]
-            if (type == "blacklist") {
-                bl_count[idx]++
-                bl_list[idx, bl_count[idx]] = source
-            } else if (type == "whitelist") {
-                wl_count[idx]++
-                wl_list[idx, wl_count[idx]] = source
-            } else {
-                hf_count[idx]++
-                hf_list[idx, hf_count[idx]] = source
+                order[host] = ++total
+                hosts[total] = host
             }
         }
-        END {
-            header = "======== lookup results ========"
-            printf "%s\n", header
-            for (i = 1; i <= n; i++) {
-                host = hosts[i]
-                bc = bl_count[i] + 0
-                wc = wl_count[i] + 0
-                hc = hf_count[i] + 0
-                printf "\n  %s\n", host
-                if (hc > 0) {
-                    printf "    found in hosts file:\n"
-                    for (j = 1; j <= hc; j++)
-                        printf "      - %s\n", hf_list[i, j]
-                }
-                if (bc > 0) {
-                    printf "    found in %d %s:\n", bc, (bc == 1 ? "blacklist" : "blacklists")
-                    for (j = 1; j <= bc; j++)
-                        printf "      - %s\n", bl_list[i, j]
-                }
-                if (wc > 0) {
-                    printf "    found in %d %s:\n", wc, (wc == 1 ? "whitelist" : "whitelists")
-                    for (j = 1; j <= wc; j++)
-                        printf "      - %s\n", wl_list[i, j]
-                }
-                if (bc == 0 && wc == 0 && hc == 0)
-                    printf "    not found in any list.\n"
-            }
-            printf "\n%s\n", header
+    }
+    {
+        type = $1; host = $2; source = $3
+        idx = order[host]
+        if (type == "blacklist") {
+            bl_count[idx]++
+            bl_list[idx, bl_count[idx]] = source
+        } else if (type == "whitelist") {
+            wl_count[idx]++
+            wl_list[idx, wl_count[idx]] = source
+        } else {
+            hf_count[idx]++
+            hf_list[idx, hf_count[idx]] = source
         }
-        ' "$lookup_results"
-
-        # Print hosts not found in any list
-        for lookup_host in $LOOKUP_HOSTS; do
-            if ! grep -qF "$lookup_host" "$lookup_results"; then
-                printf '\n  %s\n    not found in any list.\n' "$lookup_host"
-            fi
-        done
-    fi
+    }
+    END {
+        header = "======== lookup results ========"
+        printf "%s\n", header
+        for (i = 1; i <= total; i++) {
+            host = hosts[i]
+            bc = bl_count[i] + 0
+            wc = wl_count[i] + 0
+            hc = hf_count[i] + 0
+            printf "\n  %s\n", host
+            if (hc > 0) {
+                printf "    found in hosts file:\n"
+                for (j = 1; j <= hc; j++)
+                    printf "      - %s\n", hf_list[i, j]
+            }
+            if (bc > 0) {
+                printf "    found in %d %s:\n", bc, (bc == 1 ? "blacklist" : "blacklists")
+                for (j = 1; j <= bc; j++)
+                    printf "      - %s\n", bl_list[i, j]
+            }
+            if (wc > 0) {
+                printf "    found in %d %s:\n", wc, (wc == 1 ? "whitelist" : "whitelists")
+                for (j = 1; j <= wc; j++)
+                    printf "      - %s\n", wl_list[i, j]
+            }
+            if (bc == 0 && wc == 0 && hc == 0)
+                printf "    not found in any list.\n"
+        }
+        printf "\n%s\n", header
+    }
+    ' "$lookup_results"
 
     printf '\ndone.\n'
     exit 0
