@@ -490,7 +490,7 @@ if [ "$LOOKUP" -eq 1 ]; then
     printf '\n'
     awk -F'\t' -v all_hosts="$LOOKUP_HOSTS" '
     BEGIN {
-        n = split(all_hosts, arr)
+        n = split(all_hosts, arr, " ")
         for (i = 1; i <= n; i++) {
             host = arr[i]
             if (!(host in order)) {
