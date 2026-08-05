@@ -19,13 +19,15 @@ DEBUG=0
 UNINSTALL=0
 LOOKUP=0
 LOOKUP_HOSTS=""
+CHECK_WHITELISTS=0
 WORK_DIR=""
 REPLY=""
 
 usage() {
     cat << 'EOF_USAGE'
-usage: hosty [-airdluhv]
+usage: hosty [-airdlwuhv]
        hosty -l <host> [<host> ...]
+       hosty -w
 
 options:
   -a, --autorun                 set up automatic updates with crontab
@@ -33,6 +35,7 @@ options:
   -r, --restore                 restore the hosts file
   -d, --debug                   build the hosts file without changing the system
   -l, --lookup <host> ...       look up which source lists contain the given hosts
+  -w, --check-whitelists        audit whitelists to see what domains they unblock and from what
   -u, --uninstall               uninstall hosty from the system
   -h, --help                    show this help
   -v, --version                 show the version
@@ -51,6 +54,7 @@ set_short_option() {
         r) RESTORE=1 ;;
         d) DEBUG=1 ;;
         l) LOOKUP=1 ;;
+        w) CHECK_WHITELISTS=1 ;;
         u) UNINSTALL=1 ;;
         h)
             usage
@@ -72,6 +76,7 @@ parse_args() {
             -r | --restore) RESTORE=1 ;;
             -d | --debug) DEBUG=1 ;;
             -l | --lookup) LOOKUP=1 ;;
+            -w | --check-whitelists | --audit-whitelists) CHECK_WHITELISTS=1 ;;
             -u | --uninstall) UNINSTALL=1 ;;
             -h | --help)
                 usage
@@ -318,6 +323,8 @@ printf '========       %s       ========\n\n' "$PROJECT_URL"
 if [ "$LOOKUP" -eq 1 ]; then
     LOOKUP_HOSTS=$(printf '%s' "$LOOKUP_HOSTS" | awk '{$1=$1}1')
     [ -n "$LOOKUP_HOSTS" ] || fail "--lookup requires at least one hostname."
+elif [ "$CHECK_WHITELISTS" -eq 1 ]; then
+    :
 elif [ "$DEBUG" -eq 1 ]; then
     AUTORUN=0
     UNINSTALL=0
@@ -522,6 +529,14 @@ if [ "$LOOKUP" -eq 1 ]; then
             wc = wl_count[i] + 0
             hc = hf_count[i] + 0
             printf "\n  %s\n", host
+            if (wc > 0 && bc > 0) {
+                printf "    status: WHITELISTED (overrides %d %s)\n", bc, (bc == 1 ? "blacklist" : "blacklists")
+            } else if (wc > 0) {
+                printf "    status: WHITELISTED (not blocked by any blacklist)\n"
+            } else if (bc > 0) {
+                printf "    status: BLOCKED (by %d %s)\n", bc, (bc == 1 ? "blacklist" : "blacklists")
+            }
+
             if (hc > 0) {
                 printf "    found in hosts file:\n"
                 for (j = 1; j <= hc; j++)
@@ -543,6 +558,194 @@ if [ "$LOOKUP" -eq 1 ]; then
         printf "\n%s\n", header
     }
     ' "$lookup_results"
+
+    printf '\ndone.\n'
+    exit 0
+fi
+
+# ---- Check Whitelists mode ----
+if [ "$CHECK_WHITELISTS" -eq 1 ]; then
+    blacklist_sources="$WORK_DIR/blacklist.sources"
+    whitelist_sources="$WORK_DIR/whitelist.sources"
+    wl_domain_sources="$WORK_DIR/wl_domain_sources.tsv"
+    wl_domains_file="$WORK_DIR/wl_domains.txt"
+    audit_results="$WORK_DIR/audit.results"
+    : > "$blacklist_sources"
+    : > "$whitelist_sources"
+    : > "$wl_domain_sources"
+    : > "$wl_domains_file"
+    : > "$audit_results"
+
+    script_dir=$(cd "$(dirname "$0")" && pwd)
+    lists_dir="$script_dir/lists"
+
+    if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
+        if [ -f "$lists_dir/blacklist.sources" ]; then
+            printf 'using local sources from %s\n' "$lists_dir"
+            cat "$lists_dir/blacklist.sources" > "$blacklist_sources"
+            cat "$lists_dir/whitelist.sources" > "$whitelist_sources"
+        else
+            printf 'downloading default sources...\n'
+            download_required "$BLACKLIST_DEFAULT_SOURCE" "$blacklist_sources"
+            download_required "$WHITELIST_DEFAULT_SOURCE" "$whitelist_sources"
+        fi
+    fi
+
+    if [ -f /etc/hosty/blacklist.sources ]; then
+        printf '\nadding custom blacklist sources...\n'
+        cat /etc/hosty/blacklist.sources >> "$blacklist_sources"
+    fi
+
+    if [ -f /etc/hosty/whitelist.sources ]; then
+        printf '\nadding custom whitelist sources...\n'
+        cat /etc/hosty/whitelist.sources >> "$whitelist_sources"
+    fi
+
+    printf '\ndownloading and processing whitelists...\n'
+
+    add_wl_domains_from_file() {
+        src_label=$1
+        src_file=$2
+        temp_parsed="$WORK_DIR/temp_parsed"
+        extract_domains_from "$src_file" > "$temp_parsed"
+        while IFS= read -r domain || [ -n "$domain" ]; do
+            [ -n "$domain" ] || continue
+            printf '%s\t%s\n' "$domain" "$src_label" >> "$wl_domain_sources"
+        done < "$temp_parsed"
+    }
+
+    while IFS= read -r wl_url || [ -n "$wl_url" ]; do
+        case $wl_url in
+            '' | \#*) continue ;;
+        esac
+        wl_dl="$WORK_DIR/wl_dl"
+        if download_optional "$wl_url" "$wl_dl"; then
+            add_wl_domains_from_file "$wl_url" "$wl_dl"
+        fi
+    done < "$whitelist_sources"
+
+    if [ -f "$lists_dir/whitelist" ] && [ -s "$lists_dir/whitelist" ]; then
+        printf 'processing %s...\n' "$lists_dir/whitelist"
+        add_wl_domains_from_file "$lists_dir/whitelist" "$lists_dir/whitelist"
+    fi
+
+    if [ -f /etc/hosty/whitelist ]; then
+        printf 'processing user custom whitelist...\n'
+        add_wl_domains_from_file "/etc/hosty/whitelist" "/etc/hosty/whitelist"
+    fi
+
+    if [ ! -s "$wl_domain_sources" ]; then
+        printf '\nno whitelisted domains found to audit.\n'
+        exit 0
+    fi
+
+    awk -F'\t' '{ print $1 }' "$wl_domain_sources" | sort -u > "$wl_domains_file"
+    wl_count=$(awk 'END { print NR + 0 }' "$wl_domains_file")
+    printf 'found %s unique whitelisted domains.\n' "$wl_count"
+
+    printf '\ndownloading and checking blacklists...\n'
+
+    check_bl_file() {
+        bl_label=$1
+        bl_file=$2
+        bl_parsed="$WORK_DIR/bl_parsed"
+        extract_domains_from "$bl_file" > "$bl_parsed"
+        matches="$WORK_DIR/matches"
+        grep -F -x -f "$wl_domains_file" "$bl_parsed" > "$matches" 2> /dev/null || true
+        while IFS= read -r match_domain || [ -n "$match_domain" ]; do
+            [ -n "$match_domain" ] || continue
+            printf '%s\t%s\n' "$match_domain" "$bl_label" >> "$audit_results"
+        done < "$matches"
+    }
+
+    while IFS= read -r bl_url || [ -n "$bl_url" ]; do
+        case $bl_url in
+            '' | \#*) continue ;;
+        esac
+        bl_dl="$WORK_DIR/bl_dl"
+        if download_optional "$bl_url" "$bl_dl"; then
+            check_bl_file "$bl_url" "$bl_dl"
+        fi
+    done < "$blacklist_sources"
+
+    if [ -f "$lists_dir/blacklist" ] && [ -s "$lists_dir/blacklist" ]; then
+        printf 'checking %s...\n' "$lists_dir/blacklist"
+        check_bl_file "$lists_dir/blacklist" "$lists_dir/blacklist"
+    fi
+
+    if [ -f /etc/hosty/blacklist ]; then
+        printf 'checking user custom blacklist...\n'
+        check_bl_file "/etc/hosty/blacklist" "/etc/hosty/blacklist"
+    fi
+
+    printf '\n'
+    awk -F'\t' '
+    NR == FNR {
+        domain = $1; wl_src = $2
+        if (!(domain in order)) {
+            order[domain] = ++total
+            domains[total] = domain
+        }
+        if (wl_sources[domain] == "") {
+            wl_sources[domain] = wl_src
+        } else if (index(wl_sources[domain], wl_src) == 0) {
+            wl_sources[domain] = wl_sources[domain] ", " wl_src
+        }
+        next
+    }
+    {
+        domain = $1; bl_src = $2
+        if (domain in order) {
+            idx = order[domain]
+            bl_count[idx]++
+            bl_list[idx, bl_count[idx]] = bl_src
+        }
+    }
+    END {
+        active_count = 0
+        inactive_count = 0
+
+        for (i = 1; i <= total; i++) {
+            if (bl_count[i] + 0 > 0) active_count++
+            else inactive_count++
+        }
+
+        header = "======== whitelist audit results ========"
+        printf "%s\n\n", header
+        printf "whitelisted domains actively unblocking blacklists (%d):\n", active_count
+
+        for (i = 1; i <= total; i++) {
+            domain = domains[i]
+            bc = bl_count[i] + 0
+            if (bc > 0) {
+                printf "\n  %s (from %s)\n", domain, wl_sources[domain]
+                printf "    unblocks from %d %s:\n", bc, (bc == 1 ? "blacklist" : "blacklists")
+                for (j = 1; j <= bc; j++) {
+                    printf "      - %s\n", bl_list[i, j]
+                }
+            }
+        }
+
+        if (active_count == 0) {
+            printf "  none.\n"
+        }
+
+        printf "\nwhitelisted domains not found in any blacklist (inactive / redundant) (%d):\n", inactive_count
+        for (i = 1; i <= total; i++) {
+            domain = domains[i]
+            bc = bl_count[i] + 0
+            if (bc == 0) {
+                printf "  - %s (from %s)\n", domain, wl_sources[domain]
+            }
+        }
+
+        if (inactive_count == 0) {
+            printf "  none.\n"
+        }
+
+        printf "\n%s\n", header
+    }
+    ' "$wl_domain_sources" "$audit_results"
 
     printf '\ndone.\n'
     exit 0
