@@ -11,6 +11,10 @@ BLOCK_IP="0.0.0.0"
 INPUT_HOSTS="/etc/hosts"
 OUTPUT_HOSTS="/etc/hosts"
 INSTALL_PATH="/usr/local/bin/hosty"
+HOSTY_CONFIG_DIR="/etc/hosty"
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+LISTS_DIR="$SCRIPT_DIR/lists"
 
 AUTORUN=0
 IGNORE_DEFAULT_SOURCES=0
@@ -264,8 +268,66 @@ extract_domains() {
     extract_domains_from "$extract_domains_file" > "$extract_domains_raw"
     sort -u "$extract_domains_raw" > "$extract_domains_sorted"
     cat "$extract_domains_sorted" > "$extract_domains_file"
-    extract_domains_count=$(awk 'END { print NR + 0 }' "$extract_domains_file")
-    printf '%s domains extracted.\n' "$extract_domains_count"
+    printf '%s domains extracted.\n' "$(count_lines "$extract_domains_file")"
+}
+
+# Line count of a file (0 if empty/missing to awk).
+count_lines() {
+    awk 'END { print NR + 0 }' "$1"
+}
+
+# Replace destination with source contents when destination is writable.
+# Stages to a temp file, then prefers rename and falls back to in-place write.
+replace_file() {
+    replace_src=$1
+    replace_dst=$2
+
+    if [ ! -f "$replace_dst" ]; then
+        return 1
+    fi
+    if [ ! -w "$replace_dst" ]; then
+        printf 'skipping %s (not writable)\n' "$replace_dst" >&2
+        return 1
+    fi
+
+    replace_dir=$(dirname "$replace_dst")
+    replace_tmp=$(mktemp "$replace_dir/.hosty.XXXXXX" 2> /dev/null) ||
+        replace_tmp=$(mktemp) || return 1
+
+    if ! cat "$replace_src" > "$replace_tmp"; then
+        rm -f "$replace_tmp"
+        return 1
+    fi
+
+    if mv -f "$replace_tmp" "$replace_dst" 2> /dev/null; then
+        return 0
+    fi
+
+    if cat "$replace_tmp" > "$replace_dst" 2> /dev/null; then
+        rm -f "$replace_tmp"
+        return 0
+    fi
+
+    rm -f "$replace_tmp"
+    return 1
+}
+
+# Return 0 if any non-empty line of $1 exists in set-file $2 (one entry per line).
+# Return 1 if no intersection. Intended for use inside `if` under set -e.
+any_in_set() {
+    any_in_set_domains=$1
+    any_in_set_set=$2
+    [ -f "$any_in_set_domains" ] && [ -f "$any_in_set_set" ] || return 1
+    awk -v set_file="$any_in_set_set" '
+        BEGIN {
+            while ((getline line < set_file) > 0)
+                if (line != "")
+                    set[line] = 1
+            close(set_file)
+        }
+        $0 != "" && ($0 in set) { found = 1; exit }
+        END { exit found ? 0 : 1 }
+    ' "$any_in_set_domains"
 }
 
 trim_empty_lines() {
@@ -316,21 +378,24 @@ extract_user_hosts() {
     fi
 }
 
-# Resolve configured blacklist and whitelist source files (local repo or defaults + /etc/hosty).
+# Resolve configured blacklist and whitelist source lists.
+# Prefers in-repo lists/*.sources when present; otherwise downloads defaults.
+# Always appends optional $HOSTY_CONFIG_DIR overlays when present.
 load_source_lists() {
     load_bl_target=$1
     load_wl_target=$2
     : > "$load_bl_target"
     : > "$load_wl_target"
 
-    script_dir=$(cd "$(dirname "$0")" && pwd)
-    lists_dir="$script_dir/lists"
-
     if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
-        if [ -f "$lists_dir/blacklist.sources" ]; then
-            printf 'using local sources from %s\n' "$lists_dir"
-            cat "$lists_dir/blacklist.sources" > "$load_bl_target"
-            cat "$lists_dir/whitelist.sources" > "$load_wl_target"
+        if [ -f "$LISTS_DIR/blacklist.sources" ] || [ -f "$LISTS_DIR/whitelist.sources" ]; then
+            printf 'using local sources from %s\n' "$LISTS_DIR"
+            if [ -f "$LISTS_DIR/blacklist.sources" ]; then
+                cat "$LISTS_DIR/blacklist.sources" > "$load_bl_target"
+            fi
+            if [ -f "$LISTS_DIR/whitelist.sources" ]; then
+                cat "$LISTS_DIR/whitelist.sources" > "$load_wl_target"
+            fi
         else
             printf 'downloading default sources...\n'
             download_required "$BLACKLIST_DEFAULT_SOURCE" "$load_bl_target"
@@ -338,18 +403,19 @@ load_source_lists() {
         fi
     fi
 
-    if [ -f /etc/hosty/blacklist.sources ]; then
+    if [ -f "$HOSTY_CONFIG_DIR/blacklist.sources" ]; then
         printf '\nadding custom blacklist sources...\n'
-        cat /etc/hosty/blacklist.sources >> "$load_bl_target"
+        cat "$HOSTY_CONFIG_DIR/blacklist.sources" >> "$load_bl_target"
     fi
 
-    if [ -f /etc/hosty/whitelist.sources ]; then
+    if [ -f "$HOSTY_CONFIG_DIR/whitelist.sources" ]; then
         printf '\nadding custom whitelist sources...\n'
-        cat /etc/hosty/whitelist.sources >> "$load_wl_target"
+        cat "$HOSTY_CONFIG_DIR/whitelist.sources" >> "$load_wl_target"
     fi
 }
 
 # Download all configured blacklists and compile a unified, de-duplicated domain list.
+# Prints the unique domain count and leaves it in $compile_output.
 compile_all_blacklists() {
     compile_output=$1
     compile_bl_sources="$WORK_DIR/compile_bl.sources"
@@ -370,20 +436,16 @@ compile_all_blacklists() {
         fi
     done < "$compile_bl_sources"
 
-    script_dir=$(cd "$(dirname "$0")" && pwd)
-    lists_dir="$script_dir/lists"
-
-    if [ -f "$lists_dir/blacklist" ] && [ -s "$lists_dir/blacklist" ]; then
-        extract_domains_from "$lists_dir/blacklist" >> "$compile_raw"
+    if [ -f "$LISTS_DIR/blacklist" ] && [ -s "$LISTS_DIR/blacklist" ]; then
+        extract_domains_from "$LISTS_DIR/blacklist" >> "$compile_raw"
     fi
 
-    if [ -f /etc/hosty/blacklist ]; then
-        extract_domains_from /etc/hosty/blacklist >> "$compile_raw"
+    if [ -f "$HOSTY_CONFIG_DIR/blacklist" ]; then
+        extract_domains_from "$HOSTY_CONFIG_DIR/blacklist" >> "$compile_raw"
     fi
 
     sort -u "$compile_raw" > "$compile_output"
-    compile_total=$(awk 'END { print NR + 0 }' "$compile_output")
-    printf 'compiled %s unique blacklisted domains.\n' "$compile_total"
+    printf 'compiled %s unique blacklisted domains.\n' "$(count_lines "$compile_output")"
 }
 
 parse_args "$@"
@@ -395,11 +457,20 @@ done
 printf '======== hosty v%s (%s) ========\n' "$VERSION" "$RELEASE_DATE"
 printf '========       %s       ========\n\n' "$PROJECT_URL"
 
+# -l / -w / -c are exclusive maintenance modes (each exits on its own).
+mode_count=0
+[ "$LOOKUP" -eq 1 ] && mode_count=$((mode_count + 1))
+[ "$CHECK_WHITELISTS" -eq 1 ] && mode_count=$((mode_count + 1))
+[ "$CLEAN_WHITELISTS" -eq 1 ] && mode_count=$((mode_count + 1))
+[ "$mode_count" -le 1 ] || fail "options -l, -w, and -c are mutually exclusive."
+
 if [ "$LOOKUP" -eq 1 ]; then
     LOOKUP_HOSTS=$(printf '%s' "$LOOKUP_HOSTS" | awk '{$1=$1}1')
     [ -n "$LOOKUP_HOSTS" ] || fail "--lookup requires at least one hostname."
-elif [ "$CHECK_WHITELISTS" -eq 1 ] || [ "$CLEAN_WHITELISTS" -eq 1 ]; then
-    :
+elif [ "$CHECK_WHITELISTS" -eq 1 ]; then
+    : # read-only audit; root not required
+elif [ "$CLEAN_WHITELISTS" -eq 1 ]; then
+    : # mutates only writable whitelist files; skips the rest with a warning
 elif [ "$DEBUG" -eq 1 ]; then
     AUTORUN=0
     UNINSTALL=0
@@ -415,14 +486,14 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 if [ "$UNINSTALL" -eq 1 ]; then
-    if [ -d /etc/hosty ]; then
-        printf 'do you want to remove /etc/hosty configs directory? y/n\n'
+    if [ -d "$HOSTY_CONFIG_DIR" ]; then
+        printf 'do you want to remove %s configs directory? y/n\n' "$HOSTY_CONFIG_DIR"
         read_reply
         printf '\n'
 
         if is_yes "$REPLY"; then
             printf 'removing hosty configs directory...\n\n'
-            rm -rf /etc/hosty
+            rm -rf "$HOSTY_CONFIG_DIR"
         elif ! is_no "$REPLY"; then
             fail "bad answer."
         fi
@@ -457,9 +528,6 @@ if [ "$LOOKUP" -eq 1 ]; then
     : > "$lookup_results"
 
     load_source_lists "$blacklist_sources" "$whitelist_sources"
-
-    script_dir=$(cd "$(dirname "$0")" && pwd)
-    lists_dir="$script_dir/lists"
 
     lookup_record() {
         printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$lookup_results"
@@ -505,14 +573,14 @@ if [ "$LOOKUP" -eq 1 ]; then
         lookup_in_list "blacklist" "$lookup_source_url"
     done < "$blacklist_sources"
 
-    if [ -f "$lists_dir/blacklist" ] && [ -s "$lists_dir/blacklist" ]; then
-        printf 'searching %s...\n' "$lists_dir/blacklist"
-        lookup_in_local "blacklist" "$lists_dir/blacklist"
+    if [ -f "$LISTS_DIR/blacklist" ] && [ -s "$LISTS_DIR/blacklist" ]; then
+        printf 'searching %s...\n' "$LISTS_DIR/blacklist"
+        lookup_in_local "blacklist" "$LISTS_DIR/blacklist"
     fi
 
-    if [ -f /etc/hosty/blacklist ]; then
+    if [ -f "$HOSTY_CONFIG_DIR/blacklist" ]; then
         printf 'searching user custom blacklist...\n'
-        lookup_in_local "blacklist" "/etc/hosty/blacklist"
+        lookup_in_local "blacklist" "$HOSTY_CONFIG_DIR/blacklist"
     fi
 
     printf 'downloading and searching whitelists...\n'
@@ -523,14 +591,14 @@ if [ "$LOOKUP" -eq 1 ]; then
         lookup_in_list "whitelist" "$lookup_source_url"
     done < "$whitelist_sources"
 
-    if [ -f "$lists_dir/whitelist" ] && [ -s "$lists_dir/whitelist" ]; then
-        printf 'searching %s...\n' "$lists_dir/whitelist"
-        lookup_in_local "whitelist" "$lists_dir/whitelist"
+    if [ -f "$LISTS_DIR/whitelist" ] && [ -s "$LISTS_DIR/whitelist" ]; then
+        printf 'searching %s...\n' "$LISTS_DIR/whitelist"
+        lookup_in_local "whitelist" "$LISTS_DIR/whitelist"
     fi
 
-    if [ -f /etc/hosty/whitelist ]; then
+    if [ -f "$HOSTY_CONFIG_DIR/whitelist" ]; then
         printf 'searching user custom whitelist...\n'
-        lookup_in_local "whitelist" "/etc/hosty/whitelist"
+        lookup_in_local "whitelist" "$HOSTY_CONFIG_DIR/whitelist"
     fi
 
     printf 'searching %s...\n' "$INPUT_HOSTS"
@@ -628,9 +696,6 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
 
     load_source_lists "$blacklist_sources" "$whitelist_sources"
 
-    script_dir=$(cd "$(dirname "$0")" && pwd)
-    lists_dir="$script_dir/lists"
-
     printf '\ndownloading and processing whitelists...\n'
 
     add_wl_domains_from_file() {
@@ -654,14 +719,14 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
         fi
     done < "$whitelist_sources"
 
-    if [ -f "$lists_dir/whitelist" ] && [ -s "$lists_dir/whitelist" ]; then
-        printf 'processing %s...\n' "$lists_dir/whitelist"
-        add_wl_domains_from_file "$lists_dir/whitelist" "$lists_dir/whitelist"
+    if [ -f "$LISTS_DIR/whitelist" ] && [ -s "$LISTS_DIR/whitelist" ]; then
+        printf 'processing %s...\n' "$LISTS_DIR/whitelist"
+        add_wl_domains_from_file "$LISTS_DIR/whitelist" "$LISTS_DIR/whitelist"
     fi
 
-    if [ -f /etc/hosty/whitelist ]; then
+    if [ -f "$HOSTY_CONFIG_DIR/whitelist" ]; then
         printf 'processing user custom whitelist...\n'
-        add_wl_domains_from_file "/etc/hosty/whitelist" "/etc/hosty/whitelist"
+        add_wl_domains_from_file "$HOSTY_CONFIG_DIR/whitelist" "$HOSTY_CONFIG_DIR/whitelist"
     fi
 
     if [ ! -s "$wl_domain_sources" ]; then
@@ -670,22 +735,26 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
     fi
 
     awk -F'\t' '{ print $1 }' "$wl_domain_sources" | sort -u > "$wl_domains_file"
-    wl_count=$(awk 'END { print NR + 0 }' "$wl_domains_file")
-    printf 'found %s unique whitelisted domains.\n' "$wl_count"
+    printf 'found %s unique whitelisted domains.\n' "$(count_lines "$wl_domains_file")"
 
     printf '\ndownloading and checking blacklists...\n'
 
+    # Record whitelist domains that also appear in this blacklist file.
     check_bl_file() {
         bl_label=$1
         bl_file=$2
         bl_parsed="$WORK_DIR/bl_parsed"
         extract_domains_from "$bl_file" > "$bl_parsed"
-        matches="$WORK_DIR/matches"
-        grep -F -x -f "$wl_domains_file" "$bl_parsed" > "$matches" 2> /dev/null || true
-        while IFS= read -r match_domain || [ -n "$match_domain" ]; do
-            [ -n "$match_domain" ] || continue
-            printf '%s\t%s\n' "$match_domain" "$bl_label" >> "$audit_results"
-        done < "$matches"
+        # awk set-membership avoids grep -f limits on huge pattern files
+        awk -v wl_file="$wl_domains_file" -v label="$bl_label" '
+            BEGIN {
+                while ((getline d < wl_file) > 0)
+                    if (d != "")
+                        wl[d] = 1
+                close(wl_file)
+            }
+            $0 != "" && ($0 in wl) { print $0 "\t" label }
+        ' "$bl_parsed" >> "$audit_results"
     }
 
     while IFS= read -r bl_url || [ -n "$bl_url" ]; do
@@ -698,14 +767,14 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
         fi
     done < "$blacklist_sources"
 
-    if [ -f "$lists_dir/blacklist" ] && [ -s "$lists_dir/blacklist" ]; then
-        printf 'checking %s...\n' "$lists_dir/blacklist"
-        check_bl_file "$lists_dir/blacklist" "$lists_dir/blacklist"
+    if [ -f "$LISTS_DIR/blacklist" ] && [ -s "$LISTS_DIR/blacklist" ]; then
+        printf 'checking %s...\n' "$LISTS_DIR/blacklist"
+        check_bl_file "$LISTS_DIR/blacklist" "$LISTS_DIR/blacklist"
     fi
 
-    if [ -f /etc/hosty/blacklist ]; then
+    if [ -f "$HOSTY_CONFIG_DIR/blacklist" ]; then
         printf 'checking user custom blacklist...\n'
-        check_bl_file "/etc/hosty/blacklist" "/etc/hosty/blacklist"
+        check_bl_file "$HOSTY_CONFIG_DIR/blacklist" "$HOSTY_CONFIG_DIR/blacklist"
     fi
 
     printf '\n'
@@ -816,64 +885,116 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
 fi
 
 # ---- Clean Whitelists mode ----
+# Remove whitelist entries/sources that do not unblock any blacklisted domain.
+# Safety: refuse to run against an empty compiled blacklist; keep entries that
+# cannot be evaluated; skip unwritable files; write via replace_file.
 if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
     all_bl_domains="$WORK_DIR/all_blacklist_domains.txt"
     compile_all_blacklists "$all_bl_domains"
 
-    script_dir=$(cd "$(dirname "$0")" && pwd)
-    lists_dir="$script_dir/lists"
+    compile_total=$(count_lines "$all_bl_domains")
+    if [ "$compile_total" -eq 0 ]; then
+        fail "compiled blacklist is empty; refusing to clean whitelists (check network or sources)."
+    fi
+
     cleaned_something=0
 
-    # Clean local whitelist domain file using a single high-performance awk pass
+    # Keep lines whose extracted domain(s) appear in the blacklist set.
+    # Blank/comment lines and unparseable lines are preserved.
     clean_whitelist_domain_file() {
         wl_file=$1
         [ -f "$wl_file" ] || return 0
         [ -s "$wl_file" ] || return 0
+
+        if [ ! -w "$wl_file" ]; then
+            printf '\nskipping %s (not writable)\n' "$wl_file"
+            return 0
+        fi
 
         wl_temp_clean="$WORK_DIR/wl_clean_tmp"
         wl_temp_removed="$WORK_DIR/wl_removed_tmp"
         : > "$wl_temp_clean"
         : > "$wl_temp_removed"
 
+        # Same domain rules as extract_domains_from, applied per line.
         awk -v bl_file="$all_bl_domains" -v clean_out="$wl_temp_clean" -v removed_out="$wl_temp_removed" '
             BEGIN {
-                while ((getline bl_line < bl_file) > 0) {
-                    if (bl_line != "") bl[bl_line] = 1
-                }
+                while ((getline bl_line < bl_file) > 0)
+                    if (bl_line != "")
+                        bl[bl_line] = 1
                 close(bl_file)
             }
             {
                 orig = $0
                 line = $0
                 sub(/#.*/, "", line)
-                gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
-                if (line == "") {
+                if (line ~ /^[[:space:]]*$/) {
                     print orig > clean_out
-                } else if (line in bl) {
-                    print orig > clean_out
-                } else {
-                    print line > removed_out
+                    next
                 }
+
+                work = line
+                gsub(/[^a-zA-Z0-9.-]/, "\n", work)
+                n = split(work, parts, "\n")
+                active = 0
+                first = ""
+                for (i = 1; i <= n; i++) {
+                    d = parts[i]
+                    if (d ~ /\./ && d ~ /[a-zA-Z]/ &&
+                        d !~ /^[.-]/ && d !~ /[.-]$/) {
+                        if (first == "")
+                            first = d
+                        if (d in bl) {
+                            active = 1
+                            break
+                        }
+                    }
+                }
+
+                if (active || first == "")
+                    print orig > clean_out
+                else
+                    print first > removed_out
             }
         ' "$wl_file"
 
-        rem_cnt=$(awk 'END { print NR + 0 }' "$wl_temp_removed")
-        if [ "$rem_cnt" -gt 0 ]; then
-            cat "$wl_temp_clean" > "$wl_file"
-            rem_list=$(awk '{ if (NR == 1) out = $0; else out = out ", " $0 } END { print out }' "$wl_temp_removed")
-            printf '\nCleaned %s:\n' "$wl_file"
-            printf '  - Removed %d inactive domains: %s\n' "$rem_cnt" "$rem_list"
-            cleaned_something=1
-        else
+        rem_cnt=$(count_lines "$wl_temp_removed")
+        if [ "$rem_cnt" -eq 0 ]; then
             printf '\nChecked %s: all domains are active (0 removed).\n' "$wl_file"
+            return 0
         fi
+
+        keep_cnt=$(count_lines "$wl_temp_clean")
+        # Guard against wiping a file when almost everything would be removed
+        # relative to a suspiciously small compiled blacklist.
+        if [ "$keep_cnt" -eq 0 ] && [ "$rem_cnt" -gt 10 ]; then
+            printf '\nrefusing to empty %s (%d removals against %d blacklisted domains).\n' \
+                "$wl_file" "$rem_cnt" "$compile_total" >&2
+            return 0
+        fi
+
+        if ! replace_file "$wl_temp_clean" "$wl_file"; then
+            printf '\nfailed to write %s; left unchanged.\n' "$wl_file" >&2
+            return 0
+        fi
+
+        rem_list=$(awk '{ if (NR == 1) out = $0; else out = out ", " $0 } END { print out }' "$wl_temp_removed")
+        printf '\nCleaned %s:\n' "$wl_file"
+        printf '  - Removed %d inactive domains: %s\n' "$rem_cnt" "$rem_list"
+        cleaned_something=1
     }
 
-    # Clean local whitelist source file
+    # Drop source URLs whose downloaded domains do not intersect the blacklist.
+    # Keep a source on download failure or evaluation failure.
     clean_whitelist_source_file() {
         src_file=$1
         [ -f "$src_file" ] || return 0
         [ -s "$src_file" ] || return 0
+
+        if [ ! -w "$src_file" ]; then
+            printf '\nskipping %s (not writable)\n' "$src_file"
+            return 0
+        fi
 
         src_temp_clean="$WORK_DIR/src_clean_tmp"
         src_temp_removed="$WORK_DIR/src_removed_tmp"
@@ -895,47 +1016,62 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
 
             src_dl="$WORK_DIR/src_dl"
             src_doms="$WORK_DIR/src_doms"
-            if download_optional "$src_url" "$src_dl"; then
-                extract_domains_from "$src_dl" > "$src_doms"
-                if grep -F -x -f "$all_bl_domains" "$src_doms" > /dev/null 2>&1; then
-                    printf '%s\n' "$line" >> "$src_temp_clean"
-                else
-                    printf '%s\n' "$src_url" >> "$src_temp_removed"
-                fi
-            else
+            if ! download_optional "$src_url" "$src_dl"; then
+                # Could not evaluate — keep.
                 printf '%s\n' "$line" >> "$src_temp_clean"
+                continue
+            fi
+
+            extract_domains_from "$src_dl" > "$src_doms"
+            if [ ! -s "$src_doms" ]; then
+                # Empty list after parse: inactive.
+                printf '%s\n' "$src_url" >> "$src_temp_removed"
+                continue
+            fi
+
+            if any_in_set "$src_doms" "$all_bl_domains"; then
+                printf '%s\n' "$line" >> "$src_temp_clean"
+            else
+                printf '%s\n' "$src_url" >> "$src_temp_removed"
             fi
         done < "$src_file"
 
-        rem_src_cnt=$(awk 'END { print NR + 0 }' "$src_temp_removed")
-        if [ "$rem_src_cnt" -gt 0 ]; then
-            cat "$src_temp_clean" > "$src_file"
-            printf 'Cleaned %s:\n' "$src_file"
-            while IFS= read -r rem_url || [ -n "$rem_url" ]; do
-                [ -n "$rem_url" ] || continue
-                printf '  - Removed inactive source: %s\n' "$rem_url"
-            done < "$src_temp_removed"
-            cleaned_something=1
-        else
+        rem_src_cnt=$(count_lines "$src_temp_removed")
+        if [ "$rem_src_cnt" -eq 0 ]; then
             printf 'Checked %s: all sources are active (0 removed).\n' "$src_file"
+            return 0
         fi
+
+        # Count remaining non-comment source URLs in the cleaned draft.
+        keep_src_cnt=$(awk '
+            /^[[:space:]]*$/ { next }
+            /^[[:space:]]*#/ { next }
+            { n++ }
+            END { print n + 0 }
+        ' "$src_temp_clean")
+        if [ "$keep_src_cnt" -eq 0 ] && [ "$rem_src_cnt" -gt 3 ]; then
+            printf 'refusing to empty %s (%d source removals against %d blacklisted domains).\n' \
+                "$src_file" "$rem_src_cnt" "$compile_total" >&2
+            return 0
+        fi
+
+        if ! replace_file "$src_temp_clean" "$src_file"; then
+            printf 'failed to write %s; left unchanged.\n' "$src_file" >&2
+            return 0
+        fi
+
+        printf 'Cleaned %s:\n' "$src_file"
+        while IFS= read -r rem_url || [ -n "$rem_url" ]; do
+            [ -n "$rem_url" ] || continue
+            printf '  - Removed inactive source: %s\n' "$rem_url"
+        done < "$src_temp_removed"
+        cleaned_something=1
     }
 
-    if [ -f "$lists_dir/whitelist" ]; then
-        clean_whitelist_domain_file "$lists_dir/whitelist"
-    fi
-
-    if [ -f /etc/hosty/whitelist ]; then
-        clean_whitelist_domain_file "/etc/hosty/whitelist"
-    fi
-
-    if [ -f "$lists_dir/whitelist.sources" ]; then
-        clean_whitelist_source_file "$lists_dir/whitelist.sources"
-    fi
-
-    if [ -f /etc/hosty/whitelist.sources ]; then
-        clean_whitelist_source_file "/etc/hosty/whitelist.sources"
-    fi
+    clean_whitelist_domain_file "$LISTS_DIR/whitelist"
+    clean_whitelist_domain_file "$HOSTY_CONFIG_DIR/whitelist"
+    clean_whitelist_source_file "$LISTS_DIR/whitelist.sources"
+    clean_whitelist_source_file "$HOSTY_CONFIG_DIR/whitelist.sources"
 
     printf '\n'
     if [ "$cleaned_something" -eq 1 ]; then
@@ -1029,18 +1165,28 @@ load_source_lists "$blacklist_sources" "$whitelist_sources"
 printf '\ndownloading blacklists...\n'
 download_sources_into "$blacklist_sources" "$blacklist_domains"
 
-if [ -f /etc/hosty/blacklist ]; then
+if [ -f "$LISTS_DIR/blacklist" ] && [ -s "$LISTS_DIR/blacklist" ]; then
+    printf '\napplying local blacklist...\n'
+    cat "$LISTS_DIR/blacklist" >> "$blacklist_domains"
+fi
+
+if [ -f "$HOSTY_CONFIG_DIR/blacklist" ]; then
     printf '\napplying user custom blacklist...\n'
-    cat /etc/hosty/blacklist >> "$blacklist_domains"
+    cat "$HOSTY_CONFIG_DIR/blacklist" >> "$blacklist_domains"
 fi
 extract_domains "$blacklist_domains"
 
 printf '\ndownloading whitelists...\n'
 download_sources_into "$whitelist_sources" "$whitelist_domains"
 
-if [ -f /etc/hosty/whitelist ]; then
+if [ -f "$LISTS_DIR/whitelist" ] && [ -s "$LISTS_DIR/whitelist" ]; then
+    printf '\napplying local whitelist...\n'
+    cat "$LISTS_DIR/whitelist" >> "$whitelist_domains"
+fi
+
+if [ -f "$HOSTY_CONFIG_DIR/whitelist" ]; then
     printf '\napplying user custom whitelist...\n'
-    cat /etc/hosty/whitelist >> "$whitelist_domains"
+    cat "$HOSTY_CONFIG_DIR/whitelist" >> "$whitelist_domains"
 fi
 
 # Source URLs and existing hosts entries must never become blocked domains.
