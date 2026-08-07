@@ -65,6 +65,11 @@ if "$HOSTY" -z > "$LOG_DIR/unknown-short.out" 2>&1; then
 fi
 assert_file_contains "$LOG_DIR/unknown-short.out" "unrecognized option: -z"
 
+if "$HOSTY" -lw > "$LOG_DIR/exclusive-modes.out" 2>&1; then
+    die "combined -l and -w should fail"
+fi
+assert_file_contains "$LOG_DIR/exclusive-modes.out" "mutually exclusive"
+
 log "-- sh syntax --"
 for syntax_script in \
     "$HOSTY" \
@@ -282,7 +287,11 @@ run_debug_network() {
     tail -n 50 "$network_output" || true
     [ "$network_rc" -eq 0 ] || die "hosty -d failed with exit $network_rc"
 
-    assert_file_contains "$network_output" "downloading default sources"
+    # Workspace runs prefer lists/*.sources; installed copies download defaults.
+    if ! grep -qF "using local sources from" "$network_output" &&
+        ! grep -qF "downloading default sources" "$network_output"; then
+        die "expected local or default sources message in network debug run"
+    fi
     network_built=$(awk '/^building / { print $2 }' "$network_output" | tail -n 1)
     [ -n "$network_built" ] && [ -f "$network_built" ] || die "network debug hosts file missing"
     assert_file_contains "$network_built" "$MARKER"
@@ -299,7 +308,10 @@ run_system_network() {
         tail -n 80 "$network_output"
         die "full hosty run failed"
     }
-    assert_file_contains "$network_output" "downloading default sources"
+    if ! grep -qF "using local sources from" "$network_output" &&
+        ! grep -qF "downloading default sources" "$network_output"; then
+        die "expected local or default sources message in full network run"
+    fi
     assert_file_contains /etc/hosts "$MARKER"
     assert_mode /etc/hosts 644 "/etc/hosts should be 644 after network run"
 
