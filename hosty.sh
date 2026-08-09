@@ -27,6 +27,7 @@ CHECK_WHITELISTS=0
 CLEAN_WHITELISTS=0
 WORK_DIR=""
 REPLY=""
+USER_HOSTS_MARKER_FOUND=0
 
 usage() {
     cat << 'EOF_USAGE'
@@ -343,6 +344,7 @@ append_blocked_domains() {
 # Extract the user portion of the hosts file (above hosty's marker).
 extract_user_hosts() {
     extract_user_hosts_target=$1
+    USER_HOSTS_MARKER_FOUND=0
     extract_user_hosts_line=$(awk '
         /^# [aA]d blocking hosts generated/ { marker = NR }
         END {
@@ -352,10 +354,13 @@ extract_user_hosts() {
     ' "$INPUT_HOSTS")
     if [ "$extract_user_hosts_line" -lt 0 ]; then
         cat "$INPUT_HOSTS" > "$extract_user_hosts_target"
-    elif [ "$extract_user_hosts_line" -gt 0 ]; then
-        head -n "$extract_user_hosts_line" "$INPUT_HOSTS" > "$extract_user_hosts_target"
     else
-        : > "$extract_user_hosts_target"
+        USER_HOSTS_MARKER_FOUND=1
+        if [ "$extract_user_hosts_line" -gt 0 ]; then
+            head -n "$extract_user_hosts_line" "$INPUT_HOSTS" > "$extract_user_hosts_target"
+        else
+            : > "$extract_user_hosts_target"
+        fi
     fi
 }
 
@@ -457,17 +462,16 @@ done
 printf '======== hosty v%s (%s) ========\n' "$VERSION" "$RELEASE_DATE"
 printf '========       %s       ========\n\n' "$PROJECT_URL"
 
-# -l / -w / -c are exclusive maintenance modes (each exits on its own).
-mode_count=0
-[ "$LOOKUP" -eq 1 ] && mode_count=$((mode_count + 1))
-[ "$CHECK_WHITELISTS" -eq 1 ] && mode_count=$((mode_count + 1))
-[ "$CLEAN_WHITELISTS" -eq 1 ] && mode_count=$((mode_count + 1))
-[ "$mode_count" -le 1 ] || fail "options -l, -w, and -c are mutually exclusive."
-
-if [ "$mode_count" -eq 1 ] &&
-    { [ "$AUTORUN" -eq 1 ] || [ "$RESTORE" -eq 1 ] || [ "$DEBUG" -eq 1 ] || [ "$UNINSTALL" -eq 1 ]; }; then
-    fail "options -l, -w, and -c cannot be combined with -a, -r, -d, or -u."
-fi
+# Action modes are mutually exclusive; -i remains a valid modifier for each.
+action_count=0
+[ "$AUTORUN" -eq 1 ] && action_count=$((action_count + 1))
+[ "$RESTORE" -eq 1 ] && action_count=$((action_count + 1))
+[ "$DEBUG" -eq 1 ] && action_count=$((action_count + 1))
+[ "$UNINSTALL" -eq 1 ] && action_count=$((action_count + 1))
+[ "$LOOKUP" -eq 1 ] && action_count=$((action_count + 1))
+[ "$CHECK_WHITELISTS" -eq 1 ] && action_count=$((action_count + 1))
+[ "$CLEAN_WHITELISTS" -eq 1 ] && action_count=$((action_count + 1))
+[ "$action_count" -le 1 ] || fail "action options are mutually exclusive."
 
 if [ "$LOOKUP" -eq 1 ]; then
     LOOKUP_HOSTS=$(printf '%s' "$LOOKUP_HOSTS" | awk '{$1=$1}1')
@@ -477,8 +481,6 @@ elif [ "$CHECK_WHITELISTS" -eq 1 ]; then
 elif [ "$CLEAN_WHITELISTS" -eq 1 ]; then
     : # mutates only writable whitelist files; skips the rest with a warning
 elif [ "$DEBUG" -eq 1 ]; then
-    AUTORUN=0
-    UNINSTALL=0
     OUTPUT_HOSTS=$(mktemp) || exit 1
     printf '%s\n\n' '******** DEBUG MODE ON ********'
 elif [ "$(id -u)" -ne 0 ]; then
@@ -615,14 +617,28 @@ if [ "$LOOKUP" -eq 1 ]; then
     printf 'searching %s...\n' "$INPUT_HOSTS"
     lookup_user_hosts="$WORK_DIR/lookup_user_hosts"
     extract_user_hosts "$lookup_user_hosts"
-    lookup_user_domains="$WORK_DIR/lookup_user_domains"
-    extract_domains_from "$lookup_user_hosts" > "$lookup_user_domains"
-
-    for lookup_host in $LOOKUP_HOSTS; do
-        if grep -qxF "$lookup_host" "$lookup_user_domains"; then
-            lookup_record "hosts" "$lookup_host" "$INPUT_HOSTS"
-        fi
-    done
+    awk -v requested_hosts="$LOOKUP_HOSTS" -v source="$INPUT_HOSTS" '
+        BEGIN {
+            count = split(requested_hosts, hosts, " ")
+            for (i = 1; i <= count; i++)
+                requested[hosts[i]] = 1
+        }
+        {
+            line = $0
+            sub(/#.*/, "", line)
+            sub(/^[[:space:]]+/, "", line)
+            sub(/[[:space:]]+$/, "", line)
+            if (line == "")
+                next
+            field_count = split(line, fields, /[[:space:]]+/)
+            address = fields[1]
+            for (i = 2; i <= field_count; i++) {
+                host = fields[i]
+                if (host in requested)
+                    print "hosts\t" host "\t" source " -> " address
+            }
+        }
+    ' "$lookup_user_hosts" >> "$lookup_results"
 
     # ---- Print results ----
     printf '\n'
@@ -660,7 +676,9 @@ if [ "$LOOKUP" -eq 1 ]; then
             wc = wl_count[i] + 0
             hc = hf_count[i] + 0
             printf "\n  %s\n", host
-            if (wc > 0 && bc > 0) {
+            if (hc > 0) {
+                printf "    status: HOSTS OVERRIDE (generated entries are not applied)\n"
+            } else if (wc > 0 && bc > 0) {
                 printf "    status: WHITELISTED (overrides %d %s)\n", bc, (bc == 1 ? "blacklist" : "blacklists")
             } else if (wc > 0) {
                 printf "    status: WHITELISTED (not blocked by any blacklist)\n"
@@ -927,6 +945,7 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
     fi
 
     cleaned_something=0
+    cleanup_incomplete=0
 
     # Keep lines whose extracted domain(s) appear in the blacklist set.
     # Blank/comment lines and unparseable lines are preserved.
@@ -937,6 +956,7 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
 
         if [ ! -w "$wl_file" ]; then
             printf '\nskipping %s (not writable)\n' "$wl_file"
+            cleanup_incomplete=1
             return 0
         fi
 
@@ -1001,11 +1021,13 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
         if [ "$keep_domain_cnt" -eq 0 ] && [ "$rem_cnt" -gt 10 ]; then
             printf '\nrefusing to empty %s (%d removals against %d blacklisted domains).\n' \
                 "$wl_file" "$rem_cnt" "$compile_total" >&2
+            cleanup_incomplete=1
             return 0
         fi
 
         if ! replace_file "$wl_temp_clean" "$wl_file"; then
             printf '\nfailed to write %s; left unchanged.\n' "$wl_file" >&2
+            cleanup_incomplete=1
             return 0
         fi
 
@@ -1024,6 +1046,7 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
 
         if [ ! -w "$src_file" ]; then
             printf '\nskipping %s (not writable)\n' "$src_file"
+            cleanup_incomplete=1
             return 0
         fi
 
@@ -1050,6 +1073,7 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
             if ! download_optional "$src_url" "$src_dl"; then
                 # Could not evaluate — keep.
                 printf '%s\n' "$line" >> "$src_temp_clean"
+                cleanup_incomplete=1
                 continue
             fi
 
@@ -1058,6 +1082,7 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
                 # An empty or unparseable response cannot be evaluated safely.
                 printf 'no domains found in %s; keeping source.\n' "$src_url" >&2
                 printf '%s\n' "$line" >> "$src_temp_clean"
+                cleanup_incomplete=1
                 continue
             fi
 
@@ -1084,11 +1109,13 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
         if [ "$keep_src_cnt" -eq 0 ] && [ "$rem_src_cnt" -gt 3 ]; then
             printf 'refusing to empty %s (%d source removals against %d blacklisted domains).\n' \
                 "$src_file" "$rem_src_cnt" "$compile_total" >&2
+            cleanup_incomplete=1
             return 0
         fi
 
         if ! replace_file "$src_temp_clean" "$src_file"; then
             printf 'failed to write %s; left unchanged.\n' "$src_file" >&2
+            cleanup_incomplete=1
             return 0
         fi
 
@@ -1106,7 +1133,14 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
     clean_whitelist_source_file "$HOSTY_CONFIG_DIR/whitelist.sources"
 
     printf '\n'
-    if [ "$cleaned_something" -eq 1 ]; then
+    if [ "$cleanup_incomplete" -eq 1 ]; then
+        if [ "$cleaned_something" -eq 1 ]; then
+            printf 'whitelist cleanup completed with skipped items.\n' >&2
+        else
+            printf 'whitelist cleanup incomplete; no files changed.\n' >&2
+        fi
+        exit 1
+    elif [ "$cleaned_something" -eq 1 ]; then
         printf 'whitelist cleanup completed successfully.\n'
     else
         printf 'no inactive whitelists or whitelist sources found to remove.\n'
@@ -1115,34 +1149,19 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
 fi
 
 user_hosts_file="$WORK_DIR/hosts.original"
-user_hosts_line_number=$(awk '
-    /^# [aA]d blocking hosts generated/ { marker = NR }
-    END {
-        if (!marker) print -1
-        else print marker - 1
-    }
-' "$INPUT_HOSTS")
+extract_user_hosts "$user_hosts_file"
 
-if [ "$user_hosts_line_number" -lt 0 ]; then
+if [ "$USER_HOSTS_MARKER_FOUND" -eq 0 ]; then
     if [ "$RESTORE" -eq 1 ]; then
         printf 'there is nothing to restore.\n'
         exit 0
     fi
-    cat "$INPUT_HOSTS" > "$user_hosts_file"
-else
-    if [ "$user_hosts_line_number" -gt 0 ]; then
-        head -n "$user_hosts_line_number" "$INPUT_HOSTS" > "$user_hosts_file"
-    else
-        : > "$user_hosts_file"
-    fi
-
-    if [ "$RESTORE" -eq 1 ]; then
-        restored_hosts="$WORK_DIR/hosts.restored"
-        trim_empty_lines "$user_hosts_file" > "$restored_hosts"
-        install_hosts_file "$restored_hosts"
-        printf '%s restore completed.\n' "$OUTPUT_HOSTS"
-        exit 0
-    fi
+elif [ "$RESTORE" -eq 1 ]; then
+    restored_hosts="$WORK_DIR/hosts.restored"
+    trim_empty_lines "$user_hosts_file" > "$restored_hosts"
+    install_hosts_file "$restored_hosts"
+    printf '%s restore completed.\n' "$OUTPUT_HOSTS"
+    exit 0
 fi
 
 if [ "$AUTORUN" -eq 1 ]; then
@@ -1207,6 +1226,10 @@ if [ -f "$HOSTY_CONFIG_DIR/blacklist" ]; then
     cat "$HOSTY_CONFIG_DIR/blacklist" >> "$blacklist_domains"
 fi
 extract_domains "$blacklist_domains"
+
+if [ ! -s "$blacklist_domains" ]; then
+    fail "blacklist is empty; refusing to replace the current hosts file."
+fi
 
 printf '\ndownloading whitelists...\n'
 download_sources_into "$whitelist_sources" "$whitelist_domains"
