@@ -244,7 +244,7 @@ run_clean_offline() {
     chmod 640 "$clean_test_dir/lists/whitelist"
 
     setup_direct_fixtures
-    "$clean_test_dir/hosty" -ci > "$LOG_DIR/clean-success.out" 2>&1 || {
+    as_root "$clean_test_dir/hosty" -ci > "$LOG_DIR/clean-success.out" 2>&1 || {
         cat "$LOG_DIR/clean-success.out"
         die "offline whitelist cleanup failed"
     }
