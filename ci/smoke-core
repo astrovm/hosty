@@ -73,7 +73,17 @@ assert_file_contains "$LOG_DIR/exclusive-modes.out" "mutually exclusive"
 if "$HOSTY" -dc > "$LOG_DIR/debug-clean.out" 2>&1; then
     die "combined -d and -c should fail"
 fi
-assert_file_contains "$LOG_DIR/debug-clean.out" "cannot be combined"
+assert_file_contains "$LOG_DIR/debug-clean.out" "mutually exclusive"
+
+if "$HOSTY" -du > "$LOG_DIR/debug-uninstall.out" 2>&1; then
+    die "combined -d and -u should fail"
+fi
+assert_file_contains "$LOG_DIR/debug-uninstall.out" "mutually exclusive"
+
+if "$HOSTY" -au > "$LOG_DIR/autorun-uninstall.out" 2>&1; then
+    die "combined -a and -u should fail"
+fi
+assert_file_contains "$LOG_DIR/autorun-uninstall.out" "mutually exclusive"
 
 log "-- sh syntax --"
 for syntax_script in \
@@ -248,11 +258,11 @@ run_clean_offline() {
             printf 'inactive-%s.example.test\n' "$clean_test_number"
         done
     } > "$clean_test_dir/lists/whitelist"
-    "$clean_test_dir/hosty" -ci > "$LOG_DIR/clean-guard.out" 2>&1 || {
-        cat "$LOG_DIR/clean-guard.out"
-        die "whitelist empty-file guard failed"
-    }
+    if "$clean_test_dir/hosty" -ci > "$LOG_DIR/clean-guard.out" 2>&1; then
+        die "whitelist empty-file guard should report incomplete cleanup"
+    fi
     assert_file_contains "$LOG_DIR/clean-guard.out" "refusing to empty"
+    assert_file_contains "$LOG_DIR/clean-guard.out" "cleanup incomplete"
     assert_file_contains "$clean_test_dir/lists/whitelist" "inactive-11.example.test" \
         "comments should not bypass the empty-file guard"
 
@@ -282,13 +292,21 @@ run_clean_offline() {
     empty_whitelist="$clean_test_dir/empty-whitelist"
     : > "$empty_whitelist"
     printf 'file://%s\n' "$empty_whitelist" > "$clean_test_dir/lists/whitelist.sources"
-    "$clean_test_dir/hosty" -ci > "$LOG_DIR/clean-empty-source.out" 2>&1 || {
-        cat "$LOG_DIR/clean-empty-source.out"
-        die "cleanup with an empty whitelist source failed"
-    }
+    if "$clean_test_dir/hosty" -ci > "$LOG_DIR/clean-empty-source.out" 2>&1; then
+        die "empty whitelist source should report incomplete cleanup"
+    fi
     assert_file_contains "$clean_test_dir/lists/whitelist.sources" "file://$empty_whitelist" \
         "empty whitelist sources should be preserved"
     assert_file_contains "$LOG_DIR/clean-empty-source.out" "keeping source"
+    assert_file_contains "$LOG_DIR/clean-empty-source.out" "cleanup incomplete"
+
+    as_root rm -rf /etc/hosty
+    : > "$clean_test_dir/lists/blacklist"
+    : > "$clean_test_dir/lists/blacklist.sources"
+    if "$clean_test_dir/hosty" -di > "$LOG_DIR/empty-blacklist.out" 2>&1; then
+        die "debug build with an empty blacklist should fail"
+    fi
+    assert_file_contains "$LOG_DIR/empty-blacklist.out" "blacklist is empty"
 
     printf 'file://%s\nfile://%s\n' \
         "$FIXTURE_BLACKLIST" "$clean_test_dir/missing-blacklist" \
@@ -306,6 +324,16 @@ run_clean_offline() {
 
 run_system_offline() {
     as_root cp /etc/hosts "$LOG_DIR/etc-hosts.pre-smoke"
+
+    log "-- lookup honors existing hosts entries --"
+    as_root sh -c "printf '%s\n' '192.0.2.1 manual.example.test' >> /etc/hosts"
+    lookup_output="$LOG_DIR/lookup-hosts-override.out"
+    "$HOSTY" -li manual.example.test > "$lookup_output" 2>&1 || {
+        cat "$lookup_output"
+        die "offline hosts override lookup failed"
+    }
+    assert_file_contains "$lookup_output" "status: HOSTS OVERRIDE"
+    assert_file_contains "$lookup_output" "/etc/hosts -> 192.0.2.1"
 
     log "-- system hosty -i (writes /etc/hosts) --"
     system_output="$LOG_DIR/system-i.out"
