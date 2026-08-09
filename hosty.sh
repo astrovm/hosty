@@ -276,8 +276,8 @@ count_lines() {
     awk 'END { print NR + 0 }' "$1"
 }
 
-# Replace destination with source contents when destination is writable.
-# Stages to a temp file, then prefers rename and falls back to in-place write.
+# Replace an existing writable file while preserving its metadata and symlink.
+# The caller has already built the complete replacement in a work file.
 replace_file() {
     replace_src=$1
     replace_dst=$2
@@ -290,26 +290,7 @@ replace_file() {
         return 1
     fi
 
-    replace_dir=$(dirname "$replace_dst")
-    replace_tmp=$(mktemp "$replace_dir/.hosty.XXXXXX" 2> /dev/null) ||
-        replace_tmp=$(mktemp) || return 1
-
-    if ! cat "$replace_src" > "$replace_tmp"; then
-        rm -f "$replace_tmp"
-        return 1
-    fi
-
-    if mv -f "$replace_tmp" "$replace_dst" 2> /dev/null; then
-        return 0
-    fi
-
-    if cat "$replace_tmp" > "$replace_dst" 2> /dev/null; then
-        rm -f "$replace_tmp"
-        return 0
-    fi
-
-    rm -f "$replace_tmp"
-    return 1
+    cat "$replace_src" > "$replace_dst" 2> /dev/null
 }
 
 # Return 0 if any non-empty line of $1 exists in set-file $2 (one entry per line).
@@ -424,6 +405,7 @@ compile_all_blacklists() {
 
     printf '\ndownloading and building unified blacklist database...\n'
     compile_raw="$WORK_DIR/compile_raw.txt"
+    compile_failed=0
     : > "$compile_raw"
 
     while IFS= read -r compile_url || [ -n "$compile_url" ]; do
@@ -431,8 +413,17 @@ compile_all_blacklists() {
             '' | \#*) continue ;;
         esac
         compile_dl="$WORK_DIR/compile_dl"
+        compile_domains="$WORK_DIR/compile_domains"
         if download_optional "$compile_url" "$compile_dl"; then
-            extract_domains_from "$compile_dl" >> "$compile_raw"
+            extract_domains_from "$compile_dl" > "$compile_domains"
+            if [ -s "$compile_domains" ]; then
+                cat "$compile_domains" >> "$compile_raw"
+            else
+                printf 'no domains found in %s\n' "$compile_url" >&2
+                compile_failed=1
+            fi
+        else
+            compile_failed=1
         fi
     done < "$compile_bl_sources"
 
@@ -446,11 +437,16 @@ compile_all_blacklists() {
 
     sort -u "$compile_raw" > "$compile_output"
     printf 'compiled %s unique blacklisted domains.\n' "$(count_lines "$compile_output")"
+
+    if [ "$compile_failed" -eq 1 ]; then
+        printf 'one or more blacklists could not be downloaded.\n' >&2
+        return 1
+    fi
 }
 
 parse_args "$@"
 
-for dependency in curl awk head cat mktemp sort grep dirname chmod mv rm id date; do
+for dependency in curl awk head cat mktemp sort grep dirname chmod mv rm id date tr; do
     check_dep "$dependency"
 done
 
@@ -463,6 +459,11 @@ mode_count=0
 [ "$CHECK_WHITELISTS" -eq 1 ] && mode_count=$((mode_count + 1))
 [ "$CLEAN_WHITELISTS" -eq 1 ] && mode_count=$((mode_count + 1))
 [ "$mode_count" -le 1 ] || fail "options -l, -w, and -c are mutually exclusive."
+
+if [ "$mode_count" -eq 1 ] &&
+    { [ "$AUTORUN" -eq 1 ] || [ "$RESTORE" -eq 1 ] || [ "$DEBUG" -eq 1 ] || [ "$UNINSTALL" -eq 1 ]; }; then
+    fail "options -l, -w, and -c cannot be combined with -a, -r, -d, or -u."
+fi
 
 if [ "$LOOKUP" -eq 1 ]; then
     LOOKUP_HOSTS=$(printf '%s' "$LOOKUP_HOSTS" | awk '{$1=$1}1')
@@ -890,7 +891,9 @@ fi
 # cannot be evaluated; skip unwritable files; write via replace_file.
 if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
     all_bl_domains="$WORK_DIR/all_blacklist_domains.txt"
-    compile_all_blacklists "$all_bl_domains"
+    if ! compile_all_blacklists "$all_bl_domains"; then
+        fail "blacklist data is incomplete; refusing to clean whitelists."
+    fi
 
     compile_total=$(count_lines "$all_bl_domains")
     if [ "$compile_total" -eq 0 ]; then

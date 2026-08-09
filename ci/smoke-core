@@ -70,6 +70,11 @@ if "$HOSTY" -lw > "$LOG_DIR/exclusive-modes.out" 2>&1; then
 fi
 assert_file_contains "$LOG_DIR/exclusive-modes.out" "mutually exclusive"
 
+if "$HOSTY" -dc > "$LOG_DIR/debug-clean.out" 2>&1; then
+    die "combined -d and -c should fail"
+fi
+assert_file_contains "$LOG_DIR/debug-clean.out" "cannot be combined"
+
 log "-- sh syntax --"
 for syntax_script in \
     "$HOSTY" \
@@ -215,6 +220,38 @@ run_debug_offline() {
 
     setup_source_fixtures
     run_debug_fixture "debug-sources" "$LOG_DIR/debug-sources.out"
+
+    setup_direct_fixtures
+}
+
+run_clean_offline() {
+    clean_test_dir="$LOG_DIR/clean-test"
+    rm -rf "$clean_test_dir"
+    mkdir -p "$clean_test_dir/lists"
+    cp "$HOSTY" "$clean_test_dir/hosty"
+    cp "$FIXTURE_BLACKLIST" "$clean_test_dir/lists/blacklist"
+    printf '%s\n' tracker.example.test inactive.example.test > "$clean_test_dir/lists/whitelist"
+    chmod 640 "$clean_test_dir/lists/whitelist"
+
+    setup_direct_fixtures
+    "$clean_test_dir/hosty" -ci > "$LOG_DIR/clean-success.out" 2>&1 || {
+        cat "$LOG_DIR/clean-success.out"
+        die "offline whitelist cleanup failed"
+    }
+    assert_file_contains "$clean_test_dir/lists/whitelist" "tracker.example.test"
+    assert_file_not_contains "$clean_test_dir/lists/whitelist" "inactive.example.test"
+    assert_mode "$clean_test_dir/lists/whitelist" 640 "cleanup should preserve file mode"
+
+    printf 'file://%s\nfile://%s\n' \
+        "$FIXTURE_BLACKLIST" "$clean_test_dir/missing-blacklist" \
+        > "$clean_test_dir/lists/blacklist.sources"
+    printf '%s\n' inactive.example.test > "$clean_test_dir/lists/whitelist"
+    if "$clean_test_dir/hosty" -c > "$LOG_DIR/clean-incomplete.out" 2>&1; then
+        die "cleanup with an unavailable blacklist should fail"
+    fi
+    assert_file_contains "$LOG_DIR/clean-incomplete.out" "blacklist data is incomplete"
+    assert_file_contains "$clean_test_dir/lists/whitelist" "inactive.example.test" \
+        "failed cleanup should leave whitelist unchanged"
 
     setup_direct_fixtures
 }
@@ -512,6 +549,7 @@ can_as_root || die "this smoke suite needs root, passwordless sudo, or passwordl
 trap cleanup 0
 
 run_debug_offline
+run_clean_offline
 run_system_offline
 run_install_tests
 run_install_negative_tests
