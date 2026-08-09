@@ -242,6 +242,42 @@ run_clean_offline() {
     assert_file_not_contains "$clean_test_dir/lists/whitelist" "inactive.example.test"
     assert_mode "$clean_test_dir/lists/whitelist" 640 "cleanup should preserve file mode"
 
+    {
+        printf '%s\n' "# Preserve this comment"
+        for clean_test_number in 1 2 3 4 5 6 7 8 9 10 11; do
+            printf 'inactive-%s.example.test\n' "$clean_test_number"
+        done
+    } > "$clean_test_dir/lists/whitelist"
+    "$clean_test_dir/hosty" -ci > "$LOG_DIR/clean-guard.out" 2>&1 || {
+        cat "$LOG_DIR/clean-guard.out"
+        die "whitelist empty-file guard failed"
+    }
+    assert_file_contains "$LOG_DIR/clean-guard.out" "refusing to empty"
+    assert_file_contains "$clean_test_dir/lists/whitelist" "inactive-11.example.test" \
+        "comments should not bypass the empty-file guard"
+
+    printf '%s\n' duplicate.example duplicate.example > "$clean_test_dir/lists/blacklist"
+    printf '%s\n' duplicate.example duplicate.example > "$clean_test_dir/lists/whitelist"
+    "$clean_test_dir/hosty" -wi > "$LOG_DIR/audit-dedup.out" 2>&1 || {
+        cat "$LOG_DIR/audit-dedup.out"
+        die "offline whitelist audit failed"
+    }
+    assert_file_contains "$LOG_DIR/audit-dedup.out" "(1 active)"
+    assert_file_contains "$LOG_DIR/audit-dedup.out" "unblocks from 1 blacklist"
+    duplicate_lines=$(grep -cF -e "    - duplicate.example" "$LOG_DIR/audit-dedup.out" || true)
+    assert_eq "$duplicate_lines" 1 "audit should print each source domain once"
+
+    printf 'file://%s\n' "$clean_test_dir/missing-blacklist" \
+        > "$clean_test_dir/lists/blacklist.sources"
+    if "$clean_test_dir/hosty" -l duplicate.example > "$LOG_DIR/lookup-incomplete.out" 2>&1; then
+        die "lookup with an unavailable source should fail"
+    fi
+    assert_file_contains "$LOG_DIR/lookup-incomplete.out" "lookup incomplete"
+    if "$clean_test_dir/hosty" -w > "$LOG_DIR/audit-incomplete.out" 2>&1; then
+        die "audit with an unavailable source should fail"
+    fi
+    assert_file_contains "$LOG_DIR/audit-incomplete.out" "audit incomplete"
+
     printf 'file://%s\nfile://%s\n' \
         "$FIXTURE_BLACKLIST" "$clean_test_dir/missing-blacklist" \
         > "$clean_test_dir/lists/blacklist.sources"

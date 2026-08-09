@@ -526,6 +526,7 @@ if [ "$LOOKUP" -eq 1 ]; then
     blacklist_sources="$WORK_DIR/blacklist.sources"
     whitelist_sources="$WORK_DIR/whitelist.sources"
     lookup_results="$WORK_DIR/lookup.results"
+    lookup_incomplete=0
     : > "$lookup_results"
 
     load_source_lists "$blacklist_sources" "$whitelist_sources"
@@ -540,6 +541,7 @@ if [ "$LOOKUP" -eq 1 ]; then
         lookup_list_url=$2
         lookup_list_file="$WORK_DIR/lookup_download"
         if ! download_optional "$lookup_list_url" "$lookup_list_file"; then
+            lookup_incomplete=1
             return
         fi
 
@@ -600,6 +602,10 @@ if [ "$LOOKUP" -eq 1 ]; then
     if [ -f "$HOSTY_CONFIG_DIR/whitelist" ]; then
         printf 'searching user custom whitelist...\n'
         lookup_in_local "whitelist" "$HOSTY_CONFIG_DIR/whitelist"
+    fi
+
+    if [ "$lookup_incomplete" -eq 1 ]; then
+        fail "lookup incomplete; one or more source lists could not be downloaded."
     fi
 
     printf 'searching %s...\n' "$INPUT_HOSTS"
@@ -691,6 +697,7 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
     wl_domain_sources="$WORK_DIR/wl_domain_sources.tsv"
     wl_domains_file="$WORK_DIR/wl_domains.txt"
     audit_results="$WORK_DIR/audit.results"
+    audit_incomplete=0
     : > "$wl_domain_sources"
     : > "$wl_domains_file"
     : > "$audit_results"
@@ -702,8 +709,10 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
     add_wl_domains_from_file() {
         src_label=$1
         src_file=$2
+        temp_parsed_raw="$WORK_DIR/temp_parsed_raw"
         temp_parsed="$WORK_DIR/temp_parsed"
-        extract_domains_from "$src_file" > "$temp_parsed"
+        extract_domains_from "$src_file" > "$temp_parsed_raw"
+        sort -u "$temp_parsed_raw" > "$temp_parsed"
         while IFS= read -r domain || [ -n "$domain" ]; do
             [ -n "$domain" ] || continue
             printf '%s\t%s\n' "$domain" "$src_label" >> "$wl_domain_sources"
@@ -717,6 +726,8 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
         wl_dl="$WORK_DIR/wl_dl"
         if download_optional "$wl_url" "$wl_dl"; then
             add_wl_domains_from_file "$wl_url" "$wl_dl"
+        else
+            audit_incomplete=1
         fi
     done < "$whitelist_sources"
 
@@ -731,6 +742,9 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
     fi
 
     if [ ! -s "$wl_domain_sources" ]; then
+        if [ "$audit_incomplete" -eq 1 ]; then
+            fail "whitelist audit incomplete; one or more source lists could not be downloaded."
+        fi
         printf '\nno whitelisted domains found to audit.\n'
         exit 0
     fi
@@ -744,8 +758,10 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
     check_bl_file() {
         bl_label=$1
         bl_file=$2
+        bl_parsed_raw="$WORK_DIR/bl_parsed_raw"
         bl_parsed="$WORK_DIR/bl_parsed"
-        extract_domains_from "$bl_file" > "$bl_parsed"
+        extract_domains_from "$bl_file" > "$bl_parsed_raw"
+        sort -u "$bl_parsed_raw" > "$bl_parsed"
         # awk set-membership avoids grep -f limits on huge pattern files
         awk -v wl_file="$wl_domains_file" -v label="$bl_label" '
             BEGIN {
@@ -765,6 +781,8 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
         bl_dl="$WORK_DIR/bl_dl"
         if download_optional "$bl_url" "$bl_dl"; then
             check_bl_file "$bl_url" "$bl_dl"
+        else
+            audit_incomplete=1
         fi
     done < "$blacklist_sources"
 
@@ -776,6 +794,10 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
     if [ -f "$HOSTY_CONFIG_DIR/blacklist" ]; then
         printf 'checking user custom blacklist...\n'
         check_bl_file "$HOSTY_CONFIG_DIR/blacklist" "$HOSTY_CONFIG_DIR/blacklist"
+    fi
+
+    if [ "$audit_incomplete" -eq 1 ]; then
+        fail "whitelist audit incomplete; one or more source lists could not be downloaded."
     fi
 
     printf '\n'
@@ -967,10 +989,12 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
             return 0
         fi
 
-        keep_cnt=$(count_lines "$wl_temp_clean")
+        wl_kept_domains="$WORK_DIR/wl_kept_domains"
+        extract_domains_from "$wl_temp_clean" > "$wl_kept_domains"
+        keep_domain_cnt=$(count_lines "$wl_kept_domains")
         # Guard against wiping a file when almost everything would be removed
         # relative to a suspiciously small compiled blacklist.
-        if [ "$keep_cnt" -eq 0 ] && [ "$rem_cnt" -gt 10 ]; then
+        if [ "$keep_domain_cnt" -eq 0 ] && [ "$rem_cnt" -gt 10 ]; then
             printf '\nrefusing to empty %s (%d removals against %d blacklisted domains).\n' \
                 "$wl_file" "$rem_cnt" "$compile_total" >&2
             return 0
