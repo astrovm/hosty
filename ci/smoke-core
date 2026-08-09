@@ -269,6 +269,7 @@ run_clean_offline() {
 
     printf 'file://%s\n' "$clean_test_dir/missing-blacklist" \
         > "$clean_test_dir/lists/blacklist.sources"
+    : > "$clean_test_dir/lists/whitelist.sources"
     if "$clean_test_dir/hosty" -l duplicate.example > "$LOG_DIR/lookup-incomplete.out" 2>&1; then
         die "lookup with an unavailable source should fail"
     fi
@@ -277,6 +278,17 @@ run_clean_offline() {
         die "audit with an unavailable source should fail"
     fi
     assert_file_contains "$LOG_DIR/audit-incomplete.out" "audit incomplete"
+
+    empty_whitelist="$clean_test_dir/empty-whitelist"
+    : > "$empty_whitelist"
+    printf 'file://%s\n' "$empty_whitelist" > "$clean_test_dir/lists/whitelist.sources"
+    "$clean_test_dir/hosty" -ci > "$LOG_DIR/clean-empty-source.out" 2>&1 || {
+        cat "$LOG_DIR/clean-empty-source.out"
+        die "cleanup with an empty whitelist source failed"
+    }
+    assert_file_contains "$clean_test_dir/lists/whitelist.sources" "file://$empty_whitelist" \
+        "empty whitelist sources should be preserved"
+    assert_file_contains "$LOG_DIR/clean-empty-source.out" "keeping source"
 
     printf 'file://%s\nfile://%s\n' \
         "$FIXTURE_BLACKLIST" "$clean_test_dir/missing-blacklist" \

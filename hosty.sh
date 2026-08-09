@@ -371,15 +371,19 @@ load_source_lists() {
     if [ "$IGNORE_DEFAULT_SOURCES" -eq 0 ]; then
         if [ -f "$LISTS_DIR/blacklist.sources" ] || [ -f "$LISTS_DIR/whitelist.sources" ]; then
             printf 'using local sources from %s\n' "$LISTS_DIR"
-            if [ -f "$LISTS_DIR/blacklist.sources" ]; then
-                cat "$LISTS_DIR/blacklist.sources" > "$load_bl_target"
-            fi
-            if [ -f "$LISTS_DIR/whitelist.sources" ]; then
-                cat "$LISTS_DIR/whitelist.sources" > "$load_wl_target"
-            fi
         else
             printf 'downloading default sources...\n'
+        fi
+
+        if [ -f "$LISTS_DIR/blacklist.sources" ]; then
+            cat "$LISTS_DIR/blacklist.sources" > "$load_bl_target"
+        else
             download_required "$BLACKLIST_DEFAULT_SOURCE" "$load_bl_target"
+        fi
+
+        if [ -f "$LISTS_DIR/whitelist.sources" ]; then
+            cat "$LISTS_DIR/whitelist.sources" > "$load_wl_target"
+        else
             download_required "$WHITELIST_DEFAULT_SOURCE" "$load_wl_target"
         fi
     fi
@@ -1051,8 +1055,9 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
 
             extract_domains_from "$src_dl" > "$src_doms"
             if [ ! -s "$src_doms" ]; then
-                # Empty list after parse: inactive.
-                printf '%s\n' "$src_url" >> "$src_temp_removed"
+                # An empty or unparseable response cannot be evaluated safely.
+                printf 'no domains found in %s; keeping source.\n' "$src_url" >&2
+                printf '%s\n' "$line" >> "$src_temp_clean"
                 continue
             fi
 
