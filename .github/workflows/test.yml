@@ -45,15 +45,18 @@ jobs:
         run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh ci/smoke-core
 
       - name: ShellCheck (POSIX sh)
-        run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh
+        run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh ci/test-coverage.sh
 
       - name: dash syntax and runtime
         run: |
-          for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh; do
+          for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh ci/test-coverage.sh; do
             dash -n "$script"
           done
           dash hosty.sh --help >/dev/null
           dash hosty.sh --version >/dev/null
+
+      - name: Test coverage report validation
+        run: ./ci/test-coverage.sh
 
   smoke:
     name: Smoke (${{ matrix.name }})
@@ -89,10 +92,48 @@ jobs:
 
       - name: Upload CI logs on failure
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ci-logs-${{ matrix.name }}
           path: ci-logs/
+          if-no-files-found: ignore
+
+  coverage:
+    name: Coverage (kcov)
+    needs: lint
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install dependencies
+        run: |
+          sudo apt -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
+            kcov expect dash cron python3
+
+      - name: Measure offline smoke coverage
+        run: |
+          chmod +x hosty.sh install.sh ci/smoke.sh ci/coverage.sh ci/expect/*.exp
+          sudo env HOSTY_CI_LOG_DIR="$HOSTY_CI_LOG_DIR" ./ci/coverage.sh
+
+      - name: Make coverage artifacts readable
+        if: always()
+        run: |
+          for directory in coverage ci-logs; do
+            if [ -d "$directory" ]; then
+              sudo chown -R "$(id -u):$(id -g)" "$directory"
+            fi
+          done
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage
+          path: |
+            coverage/
+            ci-logs/
           if-no-files-found: ignore
 
   smoke-alpine:
@@ -114,7 +155,7 @@ jobs:
 
       - name: Upload CI logs on failure
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ci-logs-alpine
           path: ci-logs/
@@ -129,7 +170,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run offline smoke suite in OpenBSD
-        uses: vmactions/openbsd-vm@6fac4962055fe9952d29930942445739e509fecd # v1.4.2
+        uses: vmactions/openbsd-vm@5f7b2c933b8846a138361d6843c52af4bef5d945 # v1.4.8
         with:
           release: "7.9"
           usesh: true
@@ -178,7 +219,7 @@ jobs:
 
       - name: Upload CI logs on failure
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ci-logs-network
           path: ci-logs/
@@ -204,7 +245,7 @@ jobs:
 
       - name: Upload report on failure
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: source-health-report
           path: ci-logs/
