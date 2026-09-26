@@ -19,7 +19,7 @@ mkdir -p "$1/synthetic"
 } > "$1/synthetic/cobertura.xml"
 EOF_KCOV
 chmod +x "$WORK/bin/kcov"
-for targets in hosty.sh install.sh ''; do
+for targets in hosty.sh install.sh '' 'install.sh smoke.sh' 'hosty.sh smoke.sh'; do
     if PATH="$WORK/bin:$PATH" COVERAGE_TEST_TARGETS="$targets" \
         HOSTY_COVERAGE_DIR="$WORK/coverage" HOSTY_CI_LOG_DIR="$WORK/logs" \
         sh "$ROOT/ci/coverage.sh" > "$WORK/result" 2>&1; then

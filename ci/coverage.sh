@@ -77,6 +77,8 @@ lines = {"hosty.sh": {}, "install.sh": {}}
 for report in reports:
     for cls in ET.parse(report).getroot().iter("class"):
         name = os.path.basename(cls.get("filename"))
+        if name not in {"install.sh", "hosty.sh", "hosty"}:
+            continue
         target = "install.sh" if name == "install.sh" else "hosty.sh"
         for line in cls.iter("line"):
             number = int(line.get("number"))
