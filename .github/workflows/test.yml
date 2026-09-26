@@ -45,15 +45,18 @@ jobs:
         run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh ci/smoke-core
 
       - name: ShellCheck (POSIX sh)
-        run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh
+        run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh ci/test-coverage.sh
 
       - name: dash syntax and runtime
         run: |
-          for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh; do
+          for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh ci/test-coverage.sh; do
             dash -n "$script"
           done
           dash hosty.sh --help >/dev/null
           dash hosty.sh --version >/dev/null
+
+      - name: Test coverage report validation
+        run: ./ci/test-coverage.sh
 
   smoke:
     name: Smoke (${{ matrix.name }})
@@ -113,6 +116,15 @@ jobs:
         run: |
           chmod +x hosty.sh install.sh ci/smoke.sh ci/coverage.sh ci/expect/*.exp
           sudo env HOSTY_CI_LOG_DIR="$HOSTY_CI_LOG_DIR" ./ci/coverage.sh
+
+      - name: Make coverage artifacts readable
+        if: always()
+        run: |
+          for directory in coverage ci-logs; do
+            if [ -d "$directory" ]; then
+              sudo chown -R "$(id -u):$(id -g)" "$directory"
+            fi
+          done
 
       - name: Upload coverage report
         if: always()

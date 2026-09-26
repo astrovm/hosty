@@ -3,7 +3,7 @@
 # smoke suite under kcov. Needs root (or passwordless sudo/doas), kcov, and
 # python3. Fails when coverage is below HOSTY_COVERAGE_MIN percent.
 #
-# kcov traces shell scripts through bash xtrace, so the measured copies run
+# kcov traces shell scripts through bash DEBUG traps, so the measured copies run
 # under bash instead of /bin/sh. The suite runs from a temporary copy of the
 # repository whose hosty.sh and install.sh use a #!/bin/bash shebang; every
 # copy of hosty the suite installs or runs is merged back into hosty.sh.
@@ -31,16 +31,31 @@ COPY="$WORK/repo"
 mkdir -p "$COPY"
 (cd "$ROOT" && tar -cf - --exclude=./.git --exclude=./ci-logs --exclude=./coverage .) |
     (cd "$COPY" && tar -xf -)
+# DEBUG emits one trace record per command; PS4 output can interleave multi-line
+# awk arguments from child processes. kcov's DEBUG helper unsets BASH_ENV, so
+# install the same trap explicitly in each measured copy, without shifting lines.
+HOSTY_COVERAGE_HELPER="$WORK/trace.sh"
+export HOSTY_COVERAGE_HELPER
+cat > "$HOSTY_COVERAGE_HELPER" << 'EOF_TRACE'
+set -o functrace
+trap 'printf "kcov@%s@%s@\n" "$BASH_SOURCE" "$LINENO" >&"$KCOV_BASH_XTRACEFD"' DEBUG
+EOF_TRACE
 for coverage_script in hosty.sh install.sh; do
-    sed '1s|^#!/bin/sh$|#!/bin/bash|' "$ROOT/$coverage_script" > "$COPY/$coverage_script"
+    [ -z "$(sed -n '2p' "$ROOT/$coverage_script")" ] ||
+        die "$coverage_script must have a blank second line for coverage instrumentation"
+    # Expand the tracing variables in the measured shell, not while copying.
+    # shellcheck disable=SC2016
+    sed '1s|^#!/bin/sh$|#!/bin/bash|; 2c\
+[ -z "${BASH_VERSION:-}" ] || . "$HOSTY_COVERAGE_HELPER"
+' "$ROOT/$coverage_script" > "$COPY/$coverage_script"
     chmod 755 "$COPY/$coverage_script"
 done
 
 rm -rf "$COVERAGE_DIR"
 mkdir -p "$LOG_DIR"
 log "== hosty coverage (kcov) =="
-HOSTY_CI_LOG_DIR="$LOG_DIR" kcov \
-    --include-pattern=/hosty.sh,/install.sh,/bin/hosty,/clean-test/hosty \
+HOSTY_CI_LOG_DIR="$LOG_DIR" kcov --bash-method=DEBUG --exclude-line=HOSTY_COVERAGE_HELPER \
+    --include-pattern=/hosty.sh,/install.sh,/bin/hosty,/clean-test/hosty,/modes-test/hosty,/default-test/hosty \
     "$COVERAGE_DIR" "$COPY/ci/smoke.sh" || die "smoke suite failed under kcov"
 
 python3 - "$COVERAGE_DIR" "$ROOT" "$COVERAGE_MIN" << 'EOF_PY'
@@ -70,6 +85,8 @@ for report in reports:
 
 total = covered = 0
 for name, hits in sorted(lines.items()):
+    if not hits:
+        sys.exit(f"ERROR: kcov reported no executable lines for {name}")
     file_total = len(hits)
     file_covered = sum(1 for value in hits.values() if value > 0)
     total += file_total
