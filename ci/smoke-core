@@ -388,6 +388,288 @@ run_system_offline() {
     setup_direct_fixtures
 }
 
+# --- modes and edge cases -------------------------------------------------------
+
+# Write a curl stand-in that serves file:// URLs and the default source lists.
+write_fake_curl() {
+    fake_curl_path=$1
+    fake_curl_blacklist=$2
+    fake_curl_whitelist=$3
+    cat > "$fake_curl_path" << EOF_CURL
+#!/bin/sh
+output=""
+url=""
+while [ "\$#" -gt 0 ]; do
+    case \$1 in
+        -o)
+            shift
+            output=\$1
+            ;;
+        -*) ;;
+        *) url=\$1 ;;
+    esac
+    shift
+done
+[ -z "\${HOSTY_FAKE_CURL_FAIL:-}" ] || exit 22
+case \$url in
+    https://4st.li/hosty/lists/blacklist.sources)
+        printf 'file://%s\n' '$fake_curl_blacklist' > "\$output"
+        ;;
+    https://4st.li/hosty/lists/whitelist.sources)
+        printf 'file://%s\n' '$fake_curl_whitelist' > "\$output"
+        ;;
+    file://*)
+        [ -f "\${url#file://}" ] || exit 37
+        cat "\${url#file://}" > "\$output"
+        ;;
+    *) exit 6 ;;
+esac
+EOF_CURL
+    chmod +x "$fake_curl_path"
+}
+
+expect_failure() {
+    expect_failure_output=$1
+    expect_failure_needle=$2
+    shift 2
+    if "$@" > "$expect_failure_output" 2>&1; then
+        cat "$expect_failure_output"
+        die "expected failure: $*"
+    fi
+    assert_file_contains "$expect_failure_output" "$expect_failure_needle"
+}
+
+run_option_edge_cases() {
+    log "-- option parsing edge cases --"
+    assert_contains "$("$HOSTY" -ih 2>&1)" "usage: hosty" "-ih should show usage"
+    assert_eq "$("$HOSTY" -iv 2>&1)" "$expected_version" "-iv should print the version"
+    expect_failure "$LOG_DIR/extra-after-dashdash.out" "unexpected argument: extra" \
+        "$HOSTY" -i -- extra
+    expect_failure "$LOG_DIR/extra-argument.out" "unexpected argument: extra" \
+        "$HOSTY" -i extra
+    expect_failure "$LOG_DIR/lookup-empty.out" "--lookup requires at least one hostname" \
+        "$HOSTY" -l
+    expect_failure "$LOG_DIR/lookup-dashdash-empty.out" "--lookup requires at least one hostname" \
+        "$HOSTY" -l --
+
+    log "-- non-root refusal --"
+    edge_shim=$(mktemp -d) || die "mktemp -d failed"
+    real_id=$(command -v id)
+    cat > "$edge_shim/id" << EOF_ID
+#!/bin/sh
+if [ "\$#" -eq 1 ] && [ "\$1" = -u ]; then
+    printf '%s\n' 1000
+    exit 0
+fi
+exec "$real_id" "\$@"
+EOF_ID
+    chmod +x "$edge_shim/id"
+    expect_failure "$LOG_DIR/non-root.out" "hosty must run as root" \
+        env "PATH=$edge_shim:$PATH" "$HOSTY" -i
+    rm -rf "$edge_shim"
+
+    log "-- restore without generated entries --"
+    as_root "$HOSTY" -ri > "$LOG_DIR/restore-nothing.out" 2>&1 || {
+        cat "$LOG_DIR/restore-nothing.out"
+        die "hosty -r without generated entries failed"
+    }
+    assert_file_contains "$LOG_DIR/restore-nothing.out" "there is nothing to restore"
+}
+
+run_list_modes_offline() {
+    modes_dir="$LOG_DIR/modes-test"
+    rm -rf "$modes_dir"
+    mkdir -p "$modes_dir/lists" "$modes_dir/sources"
+    modes_hosty="$modes_dir/hosty"
+    cp "$HOSTY" "$modes_hosty"
+    chmod 755 "$modes_hosty"
+    as_root rm -rf /etc/hosty
+
+    printf '%s\n' ads.example.test shared.example.test > "$modes_dir/sources/bl-a"
+    printf '%s\n' '0.0.0.0 shared.example.test' '0.0.0.0 other.example.test # note' \
+        > "$modes_dir/sources/bl-b"
+    printf '%s\n' shared.example.test allowed.example.test > "$modes_dir/sources/wl-a"
+    : > "$modes_dir/sources/wl-b"
+    for modes_number in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+        printf 'unused-%s.example.test\n' "$modes_number" >> "$modes_dir/sources/wl-b"
+    done
+    : > "$modes_dir/sources/empty"
+    {
+        printf '%s\n' '# blacklist sources' ''
+        printf 'file://%s\n' "$modes_dir/sources/bl-a" "$modes_dir/sources/bl-b"
+    } > "$modes_dir/lists/blacklist.sources"
+    {
+        printf '%s\n' '# whitelist sources' ''
+        printf 'file://%s\n' "$modes_dir/sources/wl-a" "$modes_dir/sources/wl-b"
+    } > "$modes_dir/lists/whitelist.sources"
+
+    log "-- lookup across blacklists and whitelists --"
+    lookup_output="$LOG_DIR/lookup-lists.out"
+    "$modes_hosty" -l -- shared.example.test ads.example.test \
+        allowed.example.test nowhere.example.test > "$lookup_output" 2>&1 || {
+        cat "$lookup_output"
+        die "offline list lookup failed"
+    }
+    assert_file_contains "$lookup_output" "status: WHITELISTED (overrides 2 blacklists)"
+    assert_file_contains "$lookup_output" "status: BLOCKED (by 1 blacklist)"
+    assert_file_contains "$lookup_output" "status: WHITELISTED (not blocked by any blacklist)"
+    assert_file_contains "$lookup_output" "not found in any list."
+    assert_file_contains "$lookup_output" "found in 1 whitelist:"
+    assert_file_contains "$lookup_output" "      - file://$modes_dir/sources/bl-b"
+
+    log "-- whitelist audit with active and inactive sources --"
+    audit_output="$LOG_DIR/audit-lists.out"
+    "$modes_hosty" -w > "$audit_output" 2>&1 || {
+        cat "$audit_output"
+        die "offline whitelist audit failed"
+    }
+    assert_file_contains "$audit_output" "total unique whitelisted domains: 18 (1 active, 17 inactive)"
+    assert_file_contains "$audit_output" "- shared.example.test (unblocks from 2 blacklists)"
+    assert_file_contains "$audit_output" "    allowed.example.test"
+    assert_file_contains "$audit_output" "(16 domains not blocked by any blacklist)"
+
+    log "-- whitelist audit without whitelists --"
+    : > "$modes_dir/lists/whitelist.sources"
+    "$modes_hosty" -w > "$LOG_DIR/audit-empty.out" 2>&1 || {
+        cat "$LOG_DIR/audit-empty.out"
+        die "audit without whitelists failed"
+    }
+    assert_file_contains "$LOG_DIR/audit-empty.out" "no whitelisted domains found to audit"
+
+    printf 'file://%s\n' "$modes_dir/sources/missing" > "$modes_dir/lists/whitelist.sources"
+    expect_failure "$LOG_DIR/audit-missing-whitelist.out" "whitelist audit incomplete" \
+        "$modes_hosty" -w
+
+    log "-- whitelist source cleanup --"
+    {
+        printf '%s\n' '# whitelist sources' ''
+        printf 'file://%s\n' "$modes_dir/sources/wl-a" "$modes_dir/sources/wl-b" \
+            "$modes_dir/sources/missing"
+    } > "$modes_dir/lists/whitelist.sources"
+    expect_failure "$LOG_DIR/clean-sources-partial.out" "completed with skipped items" \
+        "$modes_hosty" -c
+    assert_file_contains "$LOG_DIR/clean-sources-partial.out" \
+        "Removed inactive source: file://$modes_dir/sources/wl-b"
+    assert_file_contains "$modes_dir/lists/whitelist.sources" "# whitelist sources"
+    assert_file_contains "$modes_dir/lists/whitelist.sources" "file://$modes_dir/sources/wl-a"
+    assert_file_contains "$modes_dir/lists/whitelist.sources" "file://$modes_dir/sources/missing"
+    assert_file_not_contains "$modes_dir/lists/whitelist.sources" "file://$modes_dir/sources/wl-b"
+
+    printf 'file://%s\n' "$modes_dir/sources/wl-a" > "$modes_dir/lists/whitelist.sources"
+    "$modes_hosty" -c > "$LOG_DIR/clean-sources-none.out" 2>&1 || {
+        cat "$LOG_DIR/clean-sources-none.out"
+        die "cleanup with only active sources failed"
+    }
+    assert_file_contains "$LOG_DIR/clean-sources-none.out" "no inactive whitelists"
+
+    for modes_number in 1 2 3 4; do
+        printf 'unused-%s.example.test\n' "$modes_number" > "$modes_dir/sources/inactive-$modes_number"
+        printf 'file://%s\n' "$modes_dir/sources/inactive-$modes_number"
+    done > "$modes_dir/lists/whitelist.sources"
+    expect_failure "$LOG_DIR/clean-sources-guard.out" "refusing to empty" \
+        "$modes_hosty" -c
+    assert_file_contains "$modes_dir/lists/whitelist.sources" "inactive-4"
+
+    log "-- cleanup refuses an empty compiled blacklist --"
+    printf '%s\n' '# nothing here' > "$modes_dir/lists/blacklist.sources"
+    expect_failure "$LOG_DIR/clean-empty-blacklist.out" "compiled blacklist is empty" \
+        "$modes_hosty" -c
+
+    log "-- cleanup reports blacklist sources without domains --"
+    printf 'file://%s\n' "$modes_dir/sources/empty" > "$modes_dir/lists/blacklist.sources"
+    expect_failure "$LOG_DIR/clean-no-domains.out" "no domains found in file://" \
+        "$modes_hosty" -c
+
+    log "-- default sources through a stand-in curl --"
+    default_dir="$LOG_DIR/default-test"
+    rm -rf "$default_dir"
+    mkdir -p "$default_dir/lists" "$default_dir/bin"
+    cp "$HOSTY" "$default_dir/hosty"
+    chmod 755 "$default_dir/hosty"
+    printf '%s\n' local-only.example.test > "$default_dir/lists/blacklist"
+    write_fake_curl "$default_dir/bin/curl" \
+        "$modes_dir/sources/bl-a" "$modes_dir/sources/wl-a"
+    default_output="$LOG_DIR/default-sources.out"
+    env "PATH=$default_dir/bin:$PATH" "$default_dir/hosty" --debug > "$default_output" 2>&1 || {
+        cat "$default_output"
+        die "debug build with default sources failed"
+    }
+    assert_file_contains "$default_output" "downloading default sources..."
+    assert_file_contains "$default_output" "applying local blacklist..."
+    default_built=$(awk '/^building / { print $2 }' "$default_output" | tail -n 1)
+    assert_file_contains "$default_built" "0.0.0.0 ads.example.test"
+    assert_file_contains "$default_built" "0.0.0.0 local-only.example.test"
+    assert_file_not_contains "$default_built" "shared.example.test"
+    rm -f "$default_built"
+
+    expect_failure "$LOG_DIR/default-sources-fail.out" \
+        "error downloading https://4st.li/hosty/lists/blacklist.sources" \
+        env "PATH=$default_dir/bin:$PATH" HOSTY_FAKE_CURL_FAIL=1 "$default_dir/hosty" -d
+
+    setup_direct_fixtures
+}
+
+run_uninstall_and_autorun_offline() {
+    log "-- uninstall answers --"
+    setup_direct_fixtures
+    printf 'maybe\n' | expect_failure "$LOG_DIR/uninstall-bad.out" "bad answer." \
+        as_root "$HOSTY" -u
+    if ! has_terminal; then
+        expect_failure "$LOG_DIR/uninstall-no-input.out" "failed to read input." \
+            as_root "$HOSTY" -u < /dev/null
+    fi
+
+    if [ -d /etc/cron.daily ]; then
+        as_root sh -c "printf '%s\n' '#!/bin/sh' > /etc/cron.daily/hosty"
+    fi
+    printf 'y\n' | as_root "$HOSTY" -u > "$LOG_DIR/uninstall-yes.out" 2>&1 || {
+        cat "$LOG_DIR/uninstall-yes.out"
+        die "uninstall answering y failed"
+    }
+    assert_file_contains "$LOG_DIR/uninstall-yes.out" "removing hosty configs directory"
+    [ ! -d /etc/hosty ] || die "/etc/hosty should be removed after answering y"
+    if [ -d /etc/cron.daily ]; then
+        assert_file_contains "$LOG_DIR/uninstall-yes.out" "removing /etc/cron.daily/hosty"
+        [ ! -f /etc/cron.daily/hosty ] || die "legacy cron script should be removed"
+    fi
+
+    if ! command -v crontab > /dev/null 2>&1; then
+        log "crontab not present; skip autorun schedule tests"
+        setup_direct_fixtures
+        return 0
+    fi
+
+    log "-- autorun schedules --"
+    as_root mkdir -p /var/spool/cron/crontabs 2> /dev/null || true
+    printf 'weekly\n' | as_root "$HOSTY" -ai > "$LOG_DIR/autorun-weekly.out" 2>&1 || {
+        cat "$LOG_DIR/autorun-weekly.out"
+        die "autorun weekly failed"
+    }
+    assert_file_contains "$LOG_DIR/autorun-weekly.out" "autorunning with --ignore-default-sources"
+    assert_contains "$(as_root crontab -l)" "0 0 * * 0 /usr/local/bin/hosty -i" \
+        "weekly autorun should be scheduled"
+
+    printf 'monthly\n' | as_root "$HOSTY" -a > "$LOG_DIR/autorun-monthly.out" 2>&1 || {
+        cat "$LOG_DIR/autorun-monthly.out"
+        die "autorun monthly failed"
+    }
+    assert_contains "$(as_root crontab -l)" "0 0 1 * * /usr/local/bin/hosty" \
+        "monthly autorun should be scheduled"
+
+    printf 'hourly\n' | expect_failure "$LOG_DIR/autorun-bad.out" "bad answer." \
+        as_root "$HOSTY" -a
+
+    printf 'never\n' | as_root "$HOSTY" -a > "$LOG_DIR/autorun-never.out" 2>&1 || {
+        cat "$LOG_DIR/autorun-never.out"
+        die "autorun never failed"
+    }
+    if as_root crontab -l 2> /dev/null | grep -qF -e /usr/local/bin/hosty; then
+        die "never should remove the hosty schedule"
+    fi
+
+    setup_direct_fixtures
+}
+
 # --- network ------------------------------------------------------------------
 
 run_debug_network() {
@@ -535,6 +817,62 @@ EOF_DOAS
     assert_no_hosty_staging "staging left after uninstall"
 }
 
+run_install_privilege_tests() {
+    [ "$(id -u)" -eq 0 ] || return 0
+
+    log "-- installer privilege selection (simulated user) --"
+    privilege_shim=$(mktemp -d) || die "mktemp -d failed"
+    real_id=$(command -v id)
+    cat > "$privilege_shim/id" << EOF_ID
+#!/bin/sh
+if [ "\$#" -eq 1 ] && [ "\$1" = -u ]; then
+    printf '%s\n' 1000
+    exit 0
+fi
+exec "$real_id" "\$@"
+EOF_ID
+    cat > "$privilege_shim/sudo" << 'EOF_SUDO'
+#!/bin/sh
+[ "$1" != -n ] || shift
+exec "$@"
+EOF_SUDO
+    cat > "$privilege_shim/curl" << 'EOF_CURL'
+#!/bin/sh
+output=""
+while [ "$#" -gt 0 ]; do
+    case $1 in
+        -o)
+            shift
+            output=$1
+            ;;
+    esac
+    shift
+done
+cp "$HOSTY_FIXTURE" "$output"
+EOF_CURL
+    chmod +x "$privilege_shim/id" "$privilege_shim/sudo" "$privilege_shim/curl"
+
+    env "PATH=$privilege_shim:$PATH" HOSTY_FIXTURE="$HOSTY" \
+        HOSTY_URL=https://example.invalid/hosty.sh "$INSTALL" < /dev/null \
+        > "$LOG_DIR/install-simulated-sudo.out" 2>&1 || {
+        cat "$LOG_DIR/install-simulated-sudo.out"
+        rm -rf "$privilege_shim"
+        die "install through simulated sudo failed"
+    }
+    assert_file_contains "$LOG_DIR/install-simulated-sudo.out" "using sudo for privileged operations."
+    assert_installed_workspace "simulated sudo install"
+    as_root rm -f "$DEST_BIN"
+
+    printf '%s\n' '#!/bin/sh' 'exit 1' > "$privilege_shim/sudo"
+    cp "$privilege_shim/sudo" "$privilege_shim/doas"
+    chmod +x "$privilege_shim/sudo" "$privilege_shim/doas"
+    if ! has_terminal; then
+        expect_failure "$LOG_DIR/install-no-privilege.out" "configure sudo or doas" \
+            env "PATH=$privilege_shim:$PATH" HOSTY_URL="$HOSTY" "$INSTALL"
+    fi
+    rm -rf "$privilege_shim"
+}
+
 assert_bad_payload_rejected() {
     bad_payload=$1
     bad_payload_label=$2
@@ -590,6 +928,24 @@ EOF_PAYLOAD
     assert_bad_payload_rejected "$unrelated_payload" "unrelated-program"
     rm -f "$unrelated_payload"
 
+    for bad_version in 1.2.3.4 1.x.3 1.2; do
+        version_payload=$(mktemp) || die "mktemp failed"
+        printf '%s\n' '#!/bin/sh' "printf '%s\\n' '$bad_version'" > "$version_payload"
+        chmod 755 "$version_payload"
+        assert_bad_payload_rejected "$version_payload" "version-$bad_version"
+        rm -f "$version_payload"
+    done
+
+    failing_help_payload=$(mktemp) || die "mktemp failed"
+    cat > "$failing_help_payload" << 'EOF_PAYLOAD'
+#!/bin/sh
+[ "$1" = -v ] || exit 1
+printf '%s\n' '1.2.3'
+EOF_PAYLOAD
+    chmod 755 "$failing_help_payload"
+    assert_bad_payload_rejected "$failing_help_payload" "failing-help"
+    rm -f "$failing_help_payload"
+
     as_root rm -f "$DEST_BIN"
 }
 
@@ -627,7 +983,11 @@ trap cleanup 0
 run_debug_offline
 run_clean_offline
 run_system_offline
+run_option_edge_cases
+run_list_modes_offline
+run_uninstall_and_autorun_offline
 run_install_tests
+run_install_privilege_tests
 run_install_negative_tests
 
 if [ "$RUN_NETWORK" = 1 ]; then
