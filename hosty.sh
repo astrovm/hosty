@@ -183,10 +183,13 @@ install_hosts_file() {
         install_hosts_staged=$(mktemp) || exit 1
 
     cat "$install_hosts_source" > "$install_hosts_staged"
+    install_hosts_existing=0
+    if [ -f "$install_hosts_destination" ]; then
+        install_hosts_existing=1
+    fi
 
     if [ -f "$install_hosts_destination" ] &&
         cat "$install_hosts_staged" > "$install_hosts_destination" 2> /dev/null; then
-        chmod 644 "$install_hosts_destination" 2> /dev/null || true
         rm -f "$install_hosts_staged"
         return 0
     fi
@@ -198,7 +201,9 @@ install_hosts_file() {
 
     # A busy mount may reject rename while still permitting an in-place write.
     if cat "$install_hosts_staged" > "$install_hosts_destination" 2> /dev/null; then
-        chmod 644 "$install_hosts_destination" 2> /dev/null || true
+        if [ "$install_hosts_existing" -eq 0 ]; then
+            chmod 644 "$install_hosts_destination" 2> /dev/null || true
+        fi
         rm -f "$install_hosts_staged"
         return 0
     fi
