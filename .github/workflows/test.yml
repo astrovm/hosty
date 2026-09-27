@@ -1,7 +1,7 @@
+name: CI
+
 permissions:
   contents: read
-
-name: CI
 
 on:
   push:
@@ -45,18 +45,20 @@ jobs:
         run: shfmt -i 4 -ci -sr -d hosty.sh install.sh ci/*.sh ci/smoke-core
 
       - name: ShellCheck (POSIX sh)
-        run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh ci/test-coverage.sh
+        run: shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh ci/test-coverage.sh ci/test-hosts-write.sh
 
       - name: dash syntax and runtime
         run: |
-          for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh ci/test-coverage.sh; do
+          for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh ci/test-coverage.sh ci/test-hosts-write.sh; do
             dash -n "$script"
           done
           dash hosty.sh --help >/dev/null
           dash hosty.sh --version >/dev/null
 
-      - name: Test coverage report validation
-        run: ./ci/test-coverage.sh
+      - name: Test coverage validation and hosts-file writes
+        run: |
+          ./ci/test-coverage.sh
+          ./ci/test-hosts-write.sh
 
   smoke:
     name: Smoke (${{ matrix.name }})
@@ -141,7 +143,7 @@ jobs:
     needs: lint
     runs-on: ubuntu-26.04
     timeout-minutes: 20
-    container: alpine:latest
+    container: alpine:3.24
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
