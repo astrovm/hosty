@@ -633,13 +633,23 @@ setup_clean_lists() {
     cp "$clean_lists_dir/lists/whitelist.sources" "$clean_lists_dir/whitelist.sources.orig"
 }
 
+# Fail if hosty left whitelist backups in the isolated TMPDIR, when mktemp uses it.
+assert_no_backups() {
+    case $failures_probe in
+        "$failures_tmp"/*) assert_no_extra_files "$failures_tmp" "" "$1" ;;
+    esac
+}
+
 run_clean_write_failures_offline() {
     log "-- whitelist cleanup write failures --"
     as_root rm -rf /etc/hosty
     failures_dir="$LOG_DIR/modes-test"
     failures_bin=$(mktemp -d) || die "mktemp -d failed"
-    # hosty keeps whitelist backups in TMPDIR; an isolated one exposes leftovers.
+    # hosty keeps whitelist backups in mktemp's directory; an isolated TMPDIR
+    # exposes leftovers where mktemp honors it (macOS uses a per-user directory).
     failures_tmp=$(mktemp -d) || die "mktemp -d failed"
+    failures_probe=$(TMPDIR="$failures_tmp" mktemp) || die "mktemp failed"
+    rm -f "$failures_probe"
     real_cat=$(command -v cat)
     # Fail cat for arguments matching any glob in HOSTY_FAKE_CAT_FAIL, or whose
     # file name matches HOSTY_FAKE_CAT_FAIL_NAME; a failed "cat src > dst"
@@ -671,7 +681,7 @@ EOF_CAT
     assert_file_contains "$LOG_DIR/clean-write-whitelist.out" "whitelist cleanup completed with skipped items."
     assert_file_not_contains "$failures_dir/lists/whitelist.sources" "wl-inactive" \
         "other whitelist files should still be cleaned"
-    assert_no_extra_files "$failures_tmp" "" "restored whitelist backups should be removed"
+    assert_no_backups "restored whitelist backups should be removed"
 
     setup_clean_lists "$failures_dir"
     expect_failure "$LOG_DIR/clean-write-sources.out" \
@@ -682,7 +692,7 @@ EOF_CAT
         die "failed source list write should restore the original contents"
     assert_file_not_contains "$failures_dir/lists/whitelist" "inactive.example.test" \
         "other whitelist files should still be cleaned"
-    assert_no_extra_files "$failures_tmp" "" "successful whitelist backups should be removed"
+    assert_no_backups "successful whitelist backups should be removed"
 
     setup_clean_lists "$failures_dir"
     expect_failure "$LOG_DIR/clean-write-backup.out" \
@@ -691,7 +701,7 @@ EOF_CAT
         "$failures_dir/hosty" -c
     cmp "$failures_dir/whitelist.orig" "$failures_dir/lists/whitelist" ||
         die "a whitelist that cannot be backed up should not be written"
-    assert_no_extra_files "$failures_tmp" "" "incomplete whitelist backups should be removed"
+    assert_no_backups "incomplete whitelist backups should be removed"
 
     setup_clean_lists "$failures_dir"
     expect_failure "$LOG_DIR/clean-write-restore.out" \
@@ -701,13 +711,10 @@ EOF_CAT
     assert_file_not_contains "$LOG_DIR/clean-write-restore.out" "left unchanged" \
         "an unrestored file must not be reported as unchanged"
     failures_backup=$(sed -n 's/.*original contents kept at //p' "$LOG_DIR/clean-write-restore.out")
-    case $failures_backup in
-        "$failures_tmp"/*) ;;
-        *) die "the whitelist backup should be kept in TMPDIR, not $failures_backup" ;;
-    esac
     cmp "$failures_dir/whitelist.orig" "$failures_backup" ||
         die "the kept backup should hold the original whitelist"
 
+    rm -f "$failures_backup"
     rm -rf "$failures_bin" "$failures_tmp"
     setup_direct_fixtures
 }
