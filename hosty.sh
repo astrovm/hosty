@@ -285,17 +285,23 @@ count_lines() {
 # Replace an existing writable file while preserving its metadata and symlink.
 # The caller has already built the complete replacement in a work file.
 # A failed write truncates the file, so restore the original before returning 1.
+# The backup lives outside $WORK_DIR so it survives if the restore fails too.
 replace_file() {
     replace_src=$1
     replace_dst=$2
-    replace_backup="$WORK_DIR/replace.backup"
+    replace_backup=$(mktemp) || return 1
 
-    cat "$replace_dst" > "$replace_backup" || return 1
+    if ! cat "$replace_dst" > "$replace_backup"; then
+        rm -f "$replace_backup"
+        return 1
+    fi
     if cat "$replace_src" > "$replace_dst" 2> /dev/null; then
+        rm -f "$replace_backup"
         return 0
     fi
     cat "$replace_backup" > "$replace_dst" 2> /dev/null ||
-        fail "failed to write $replace_dst and could not restore its original contents."
+        fail "failed to write $replace_dst; original contents kept at $replace_backup"
+    rm -f "$replace_backup"
     return 1
 }
 

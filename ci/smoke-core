@@ -638,13 +638,19 @@ run_clean_write_failures_offline() {
     as_root rm -rf /etc/hosty
     failures_dir="$LOG_DIR/modes-test"
     failures_bin=$(mktemp -d) || die "mktemp -d failed"
+    # hosty keeps whitelist backups in TMPDIR; an isolated one exposes leftovers.
+    failures_tmp=$(mktemp -d) || die "mktemp -d failed"
     real_cat=$(command -v cat)
-    # Fail cat for arguments matching any glob in HOSTY_FAKE_CAT_FAIL; a failed
-    # "cat src > dst" truncates dst like a real mid-write failure would.
+    # Fail cat for arguments matching any glob in HOSTY_FAKE_CAT_FAIL or directly
+    # inside HOSTY_FAKE_CAT_FAIL_DIR; a failed "cat src > dst" truncates dst like
+    # a real mid-write failure would.
     cat > "$failures_bin/cat" << EOF_CAT
 #!/bin/sh
 set -f
 for cat_arg in "\$@"; do
+    if [ -n "\${HOSTY_FAKE_CAT_FAIL_DIR:-}" ] && [ "\${cat_arg%/*}" = "\$HOSTY_FAKE_CAT_FAIL_DIR" ]; then
+        exit 1
+    fi
     for cat_pattern in \${HOSTY_FAKE_CAT_FAIL:-}; do
         case \$cat_arg in
             \$cat_pattern) exit 1 ;;
@@ -658,31 +664,47 @@ EOF_CAT
     setup_clean_lists "$failures_dir"
     expect_failure "$LOG_DIR/clean-write-whitelist.out" \
         "failed to write $failures_dir/lists/whitelist; left unchanged." \
-        env "PATH=$failures_bin:$PATH" HOSTY_FAKE_CAT_FAIL='*/wl_clean_tmp' "$failures_dir/hosty" -c
+        env "PATH=$failures_bin:$PATH" TMPDIR="$failures_tmp" HOSTY_FAKE_CAT_FAIL='*/wl_clean_tmp' \
+        "$failures_dir/hosty" -c
     cmp "$failures_dir/whitelist.orig" "$failures_dir/lists/whitelist" ||
         die "failed whitelist write should restore the original contents"
     assert_file_contains "$LOG_DIR/clean-write-whitelist.out" "whitelist cleanup completed with skipped items."
     assert_file_not_contains "$failures_dir/lists/whitelist.sources" "wl-inactive" \
         "other whitelist files should still be cleaned"
+    assert_no_extra_files "$failures_tmp" "" "restored whitelist backups should be removed"
 
     setup_clean_lists "$failures_dir"
     expect_failure "$LOG_DIR/clean-write-sources.out" \
         "failed to write $failures_dir/lists/whitelist.sources; left unchanged." \
-        env "PATH=$failures_bin:$PATH" HOSTY_FAKE_CAT_FAIL='*/src_clean_tmp' "$failures_dir/hosty" -c
+        env "PATH=$failures_bin:$PATH" TMPDIR="$failures_tmp" HOSTY_FAKE_CAT_FAIL='*/src_clean_tmp' \
+        "$failures_dir/hosty" -c
     cmp "$failures_dir/whitelist.sources.orig" "$failures_dir/lists/whitelist.sources" ||
         die "failed source list write should restore the original contents"
     assert_file_not_contains "$failures_dir/lists/whitelist" "inactive.example.test" \
         "other whitelist files should still be cleaned"
+    assert_no_extra_files "$failures_tmp" "" "successful whitelist backups should be removed"
+
+    setup_clean_lists "$failures_dir"
+    expect_failure "$LOG_DIR/clean-write-backup.out" \
+        "failed to write $failures_dir/lists/whitelist; left unchanged." \
+        env "PATH=$failures_bin:$PATH" TMPDIR="$failures_tmp" HOSTY_FAKE_CAT_FAIL='*/lists/whitelist' \
+        "$failures_dir/hosty" -c
+    cmp "$failures_dir/whitelist.orig" "$failures_dir/lists/whitelist" ||
+        die "a whitelist that cannot be backed up should not be written"
+    assert_no_extra_files "$failures_tmp" "" "incomplete whitelist backups should be removed"
 
     setup_clean_lists "$failures_dir"
     expect_failure "$LOG_DIR/clean-write-restore.out" \
-        "failed to write $failures_dir/lists/whitelist and could not restore its original contents." \
-        env "PATH=$failures_bin:$PATH" HOSTY_FAKE_CAT_FAIL='*/wl_clean_tmp */replace.backup' \
-        "$failures_dir/hosty" -c
+        "failed to write $failures_dir/lists/whitelist; original contents kept at $failures_tmp/" \
+        env "PATH=$failures_bin:$PATH" TMPDIR="$failures_tmp" HOSTY_FAKE_CAT_FAIL='*/wl_clean_tmp' \
+        HOSTY_FAKE_CAT_FAIL_DIR="$failures_tmp" "$failures_dir/hosty" -c
     assert_file_not_contains "$LOG_DIR/clean-write-restore.out" "left unchanged" \
         "an unrestored file must not be reported as unchanged"
+    failures_backup=$(sed -n 's/.*original contents kept at //p' "$LOG_DIR/clean-write-restore.out")
+    cmp "$failures_dir/whitelist.orig" "$failures_backup" ||
+        die "the kept backup should hold the original whitelist"
 
-    rm -rf "$failures_bin"
+    rm -rf "$failures_bin" "$failures_tmp"
     setup_direct_fixtures
 }
 
