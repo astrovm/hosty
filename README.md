@@ -153,15 +153,20 @@ Before submitting changes, run the same checks used by CI:
 shfmt -i 4 -ci -sr -w hosty.sh install.sh ci/*.sh ci/smoke-core
 
 # POSIX-oriented lint and syntax checks
-shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh
-for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh; do
+shellcheck --shell=sh hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh ci/test-coverage.sh ci/test-hosts-write.sh
+for script in hosty.sh install.sh ci/lib.sh ci/smoke.sh ci/smoke-core ci/check-sources.sh ci/coverage.sh ci/test-coverage.sh ci/test-hosts-write.sh; do
     dash -n "$script"
 done
+
+# Coverage report and hosts-file writer tests; no root needed
+./ci/test-coverage.sh
+./ci/test-hosts-write.sh
 
 # Offline functional tests; requires root or passwordless sudo/doas
 ./ci/smoke.sh
 
-# Line coverage of the offline suite; requires root, kcov, bash, and python3
+# Line coverage of the offline suite; must stay at 100%
+# Requires root, kcov, bash, and python3
 sudo ./ci/coverage.sh
 
 # Optional network and production-install checks

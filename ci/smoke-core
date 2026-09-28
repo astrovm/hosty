@@ -137,8 +137,9 @@ setup_source_fixtures() {
     log "-- installing file:// source fixtures into /etc/hosty --"
     blacklist_source_list="$LOG_DIR/blacklist.sources.fixture"
     whitelist_source_list="$LOG_DIR/whitelist.sources.fixture"
-    printf 'file://%s\n' "$FIXTURE_BLACKLIST" > "$blacklist_source_list"
-    printf 'file://%s\n' "$FIXTURE_WHITELIST" > "$whitelist_source_list"
+    # Comments and blank lines must be skipped, not downloaded.
+    printf '# blacklist fixture\n\nfile://%s\n' "$FIXTURE_BLACKLIST" > "$blacklist_source_list"
+    printf '# whitelist fixture\n\nfile://%s\n' "$FIXTURE_WHITELIST" > "$whitelist_source_list"
 
     as_root mkdir -p /etc/hosty
     as_root rm -f /etc/hosty/blacklist /etc/hosty/whitelist
@@ -230,6 +231,10 @@ run_debug_offline() {
 
     setup_source_fixtures
     run_debug_fixture "debug-sources" "$LOG_DIR/debug-sources.out"
+    assert_file_not_contains "$LOG_DIR/debug-sources.out" "downloading #" \
+        "source list comments should not be downloaded"
+    assert_file_not_contains "$LOG_DIR/debug-sources.out" "error downloading" \
+        "source list blank lines should not be downloaded"
 
     setup_direct_fixtures
 }
@@ -609,6 +614,180 @@ run_list_modes_offline() {
     setup_direct_fixtures
 }
 
+# Build a hosty copy whose whitelist and whitelist sources each hold one active
+# and one inactive entry against the blacklist source.
+setup_clean_lists() {
+    clean_lists_dir=$1
+    rm -rf "$clean_lists_dir"
+    mkdir -p "$clean_lists_dir/lists" "$clean_lists_dir/sources"
+    cp "$HOSTY" "$clean_lists_dir/hosty"
+    chmod 755 "$clean_lists_dir/hosty"
+    printf '%s\n' ads.example.test shared.example.test > "$clean_lists_dir/sources/bl"
+    printf '%s\n' shared.example.test > "$clean_lists_dir/sources/wl-active"
+    printf '%s\n' unused.example.test > "$clean_lists_dir/sources/wl-inactive"
+    printf 'file://%s\n' "$clean_lists_dir/sources/bl" > "$clean_lists_dir/lists/blacklist.sources"
+    printf '%s\n' shared.example.test inactive.example.test > "$clean_lists_dir/lists/whitelist"
+    printf 'file://%s\n' "$clean_lists_dir/sources/wl-active" "$clean_lists_dir/sources/wl-inactive" \
+        > "$clean_lists_dir/lists/whitelist.sources"
+    cp "$clean_lists_dir/lists/whitelist" "$clean_lists_dir/whitelist.orig"
+    cp "$clean_lists_dir/lists/whitelist.sources" "$clean_lists_dir/whitelist.sources.orig"
+}
+
+# Fail if hosty left whitelist backups in the isolated TMPDIR, when mktemp uses it.
+assert_no_backups() {
+    case $failures_probe in
+        "$failures_tmp"/*) assert_no_extra_files "$failures_tmp" "" "$1" ;;
+    esac
+}
+
+run_clean_write_failures_offline() {
+    log "-- whitelist cleanup write failures --"
+    as_root rm -rf /etc/hosty
+    failures_dir="$LOG_DIR/modes-test"
+    failures_bin=$(mktemp -d) || die "mktemp -d failed"
+    # hosty keeps whitelist backups in mktemp's directory; an isolated TMPDIR
+    # exposes leftovers where mktemp honors it (macOS uses a per-user directory).
+    failures_tmp=$(mktemp -d) || die "mktemp -d failed"
+    failures_probe=$(TMPDIR="$failures_tmp" mktemp) || die "mktemp failed"
+    rm -f "$failures_probe"
+    real_cat=$(command -v cat)
+    # Fail cat for arguments matching any glob in HOSTY_FAKE_CAT_FAIL, or whose
+    # file name matches HOSTY_FAKE_CAT_FAIL_NAME; a failed "cat src > dst"
+    # truncates dst like a real mid-write failure would.
+    cat > "$failures_bin/cat" << EOF_CAT
+#!/bin/sh
+set -f
+for cat_arg in "\$@"; do
+    case \${cat_arg##*/} in
+        \${HOSTY_FAKE_CAT_FAIL_NAME:-/}) exit 1 ;;
+    esac
+    for cat_pattern in \${HOSTY_FAKE_CAT_FAIL:-}; do
+        case \$cat_arg in
+            \$cat_pattern) exit 1 ;;
+        esac
+    done
+done
+exec "$real_cat" "\$@"
+EOF_CAT
+    chmod +x "$failures_bin/cat"
+
+    setup_clean_lists "$failures_dir"
+    expect_failure "$LOG_DIR/clean-write-whitelist.out" \
+        "failed to write $failures_dir/lists/whitelist; left unchanged." \
+        env "PATH=$failures_bin:$PATH" TMPDIR="$failures_tmp" HOSTY_FAKE_CAT_FAIL='*/wl_clean_tmp' \
+        "$failures_dir/hosty" -c
+    cmp "$failures_dir/whitelist.orig" "$failures_dir/lists/whitelist" ||
+        die "failed whitelist write should restore the original contents"
+    assert_file_contains "$LOG_DIR/clean-write-whitelist.out" "whitelist cleanup completed with skipped items."
+    assert_file_not_contains "$failures_dir/lists/whitelist.sources" "wl-inactive" \
+        "other whitelist files should still be cleaned"
+    assert_no_backups "restored whitelist backups should be removed"
+
+    setup_clean_lists "$failures_dir"
+    expect_failure "$LOG_DIR/clean-write-sources.out" \
+        "failed to write $failures_dir/lists/whitelist.sources; left unchanged." \
+        env "PATH=$failures_bin:$PATH" TMPDIR="$failures_tmp" HOSTY_FAKE_CAT_FAIL='*/src_clean_tmp' \
+        "$failures_dir/hosty" -c
+    cmp "$failures_dir/whitelist.sources.orig" "$failures_dir/lists/whitelist.sources" ||
+        die "failed source list write should restore the original contents"
+    assert_file_not_contains "$failures_dir/lists/whitelist" "inactive.example.test" \
+        "other whitelist files should still be cleaned"
+    assert_no_backups "successful whitelist backups should be removed"
+
+    setup_clean_lists "$failures_dir"
+    expect_failure "$LOG_DIR/clean-write-backup.out" \
+        "failed to write $failures_dir/lists/whitelist; left unchanged." \
+        env "PATH=$failures_bin:$PATH" TMPDIR="$failures_tmp" HOSTY_FAKE_CAT_FAIL='*/lists/whitelist' \
+        "$failures_dir/hosty" -c
+    cmp "$failures_dir/whitelist.orig" "$failures_dir/lists/whitelist" ||
+        die "a whitelist that cannot be backed up should not be written"
+    assert_no_backups "incomplete whitelist backups should be removed"
+
+    setup_clean_lists "$failures_dir"
+    expect_failure "$LOG_DIR/clean-write-restore.out" \
+        "failed to write $failures_dir/lists/whitelist; original contents kept at " \
+        env "PATH=$failures_bin:$PATH" TMPDIR="$failures_tmp" HOSTY_FAKE_CAT_FAIL='*/wl_clean_tmp' \
+        HOSTY_FAKE_CAT_FAIL_NAME='tmp.*' "$failures_dir/hosty" -c
+    assert_file_not_contains "$LOG_DIR/clean-write-restore.out" "left unchanged" \
+        "an unrestored file must not be reported as unchanged"
+    failures_backup=$(sed -n 's/.*original contents kept at //p' "$LOG_DIR/clean-write-restore.out")
+    cmp "$failures_dir/whitelist.orig" "$failures_backup" ||
+        die "the kept backup should hold the original whitelist"
+
+    rm -f "$failures_backup"
+    rm -rf "$failures_bin" "$failures_tmp"
+    setup_direct_fixtures
+}
+
+# Run a command as an unprivileged user so file permissions apply. As root,
+# use util-linux setpriv, or su where setpriv lacks --reuid (BusyBox).
+UNPRIVILEGED_TOOL=""
+
+can_run_unprivileged() {
+    if [ "$(id -u)" -ne 0 ]; then
+        UNPRIVILEGED_TOOL=none
+    elif setpriv --reuid=65534 --regid=65534 --clear-groups true > /dev/null 2>&1; then
+        UNPRIVILEGED_TOOL=setpriv
+    elif su -s /bin/sh nobody -c true > /dev/null 2>&1; then
+        UNPRIVILEGED_TOOL=su
+    else
+        return 1
+    fi
+}
+
+run_unprivileged() {
+    case $UNPRIVILEGED_TOOL in
+        none) "$@" ;;
+        setpriv) setpriv --reuid=65534 --regid=65534 --clear-groups "$@" ;;
+        su)
+            # BusyBox su parses options after -c, so pass one quoted command.
+            run_unprivileged_command='exec'
+            for run_unprivileged_arg in "$@"; do
+                run_unprivileged_arg=$(printf '%s' "$run_unprivileged_arg" | sed "s/'/'\\\\''/g")
+                run_unprivileged_command="$run_unprivileged_command '$run_unprivileged_arg'"
+            done
+            su -s /bin/sh nobody -c "$run_unprivileged_command"
+            ;;
+        *) die "can_run_unprivileged must succeed before run_unprivileged" ;;
+    esac
+}
+
+run_unwritable_whitelists_offline() {
+    if ! can_run_unprivileged; then
+        log "no way to drop root privileges; skip unwritable whitelist tests"
+        return 0
+    fi
+
+    log "-- whitelist cleanup skips unwritable files --"
+    as_root rm -rf /etc/hosty
+    unwritable_root=$(mktemp -d) || die "mktemp -d failed"
+    unwritable_dir="$unwritable_root/unprivileged-test"
+    setup_clean_lists "$unwritable_dir"
+    # The unprivileged user must reach the fixtures whatever the umask.
+    chmod -R a+rX "$unwritable_root"
+    chmod 444 "$unwritable_dir/lists/whitelist" "$unwritable_dir/lists/whitelist.sources"
+    unwritable_output="$unwritable_root/clean.out"
+    if run_unprivileged "$unwritable_dir/hosty" -c > "$unwritable_output" 2>&1; then
+        cat "$unwritable_output"
+        rm -rf "$unwritable_root"
+        die "cleanup of unwritable whitelists should report failure"
+    fi
+    cp "$unwritable_output" "$LOG_DIR/clean-unwritable.out"
+    if ! cmp "$unwritable_dir/whitelist.orig" "$unwritable_dir/lists/whitelist" ||
+        ! cmp "$unwritable_dir/whitelist.sources.orig" "$unwritable_dir/lists/whitelist.sources"; then
+        rm -rf "$unwritable_root"
+        die "unwritable whitelists should be left unchanged"
+    fi
+    rm -rf "$unwritable_root"
+    assert_file_contains "$LOG_DIR/clean-unwritable.out" \
+        "skipping $unwritable_dir/lists/whitelist (not writable)"
+    assert_file_contains "$LOG_DIR/clean-unwritable.out" \
+        "skipping $unwritable_dir/lists/whitelist.sources (not writable)"
+    assert_file_contains "$LOG_DIR/clean-unwritable.out" "whitelist cleanup incomplete; no files changed."
+
+    setup_direct_fixtures
+}
+
 run_uninstall_and_autorun_offline() {
     log "-- uninstall answers --"
     setup_direct_fixtures
@@ -617,6 +796,17 @@ run_uninstall_and_autorun_offline() {
     if ! has_terminal; then
         expect_failure "$LOG_DIR/uninstall-no-input.out" "failed to read input." \
             as_root "$HOSTY" -u < /dev/null
+    fi
+    if command -v expect > /dev/null 2>&1; then
+        log "-- uninstall reads the answer from the terminal when stdin is closed --"
+        # shellcheck disable=SC2016
+        as_root expect "$ROOT/ci/expect/answer.exp" 'y/n' n -- \
+            sh -c 'exec "$0" -u < /dev/null' "$HOSTY" > "$LOG_DIR/uninstall-tty.out" 2>&1 || {
+            cat "$LOG_DIR/uninstall-tty.out"
+            die "uninstall answering n on the terminal failed"
+        }
+        assert_file_contains "$LOG_DIR/uninstall-tty.out" "hosty uninstalled"
+        [ -d /etc/hosty ] || die "answering n on the terminal should keep /etc/hosty"
     fi
 
     if [ -d /etc/cron.daily ]; then
@@ -736,6 +926,16 @@ run_install_tests() {
     assert_installed_workspace "install-n"
     assert_no_hosty_staging "staging left after install-n"
     as_root rm -f "$DEST_BIN"
+
+    if command -v crontab > /dev/null 2>&1; then
+        log "install rejects an invalid autorun answer"
+        expect_failure "$LOG_DIR/install-bad-answer.out" "bad answer." \
+            expect "$ROOT/ci/expect/answer.exp" 'y/n' maybe -- "$INSTALL"
+        assert_installed_workspace "install with an invalid autorun answer"
+        assert_file_not_contains "$LOG_DIR/install-bad-answer.out" "done." \
+            "an invalid autorun answer should not finish the installer"
+        as_root rm -f "$DEST_BIN"
+    fi
 
     log "install via cat | sh answering y/daily"
     expect "$ROOT/ci/expect/install-yes.exp" sh -c "cat '$INSTALL' | sh" \
@@ -863,6 +1063,60 @@ EOF_CURL
     assert_installed_workspace "simulated sudo install"
     as_root rm -f "$DEST_BIN"
 
+    log "-- installer asks for the sudo password on the terminal --"
+    privilege_stamp="$privilege_shim/authenticated"
+    cat > "$privilege_shim/sudo" << EOF_SUDO
+#!/bin/sh
+if [ "\$1" = -n ]; then
+    shift
+    [ -f "$privilege_stamp" ] || exit 1
+elif [ ! -f "$privilege_stamp" ]; then
+    printf 'password for hosty: ' >&2
+    IFS= read -r password || exit 1
+    [ "\$password" = letmein ] || exit 1
+    : > "$privilege_stamp"
+fi
+exec "\$@"
+EOF_SUDO
+    printf '%s\n' '#!/bin/sh' 'exit 1' > "$privilege_shim/doas"
+    chmod +x "$privilege_shim/sudo" "$privilege_shim/doas"
+    expect "$ROOT/ci/expect/answer.exp" 'password for hosty: ' letmein 'y/n' n -- \
+        env "PATH=$privilege_shim:$PATH" HOSTY_FIXTURE="$HOSTY" \
+        HOSTY_URL=https://example.invalid/hosty.sh "$INSTALL" \
+        > "$LOG_DIR/install-sudo-password.out" 2>&1 || {
+        cat "$LOG_DIR/install-sudo-password.out"
+        rm -rf "$privilege_shim"
+        die "install after entering the sudo password failed"
+    }
+    assert_file_contains "$LOG_DIR/install-sudo-password.out" "using sudo for privileged operations."
+    assert_installed_workspace "sudo password install"
+    as_root rm -f "$DEST_BIN"
+
+    rm -f "$privilege_stamp"
+    expect_failure "$LOG_DIR/install-sudo-wrong-password.out" "configure sudo or doas" \
+        expect "$ROOT/ci/expect/answer.exp" 'password for hosty: ' wrong -- \
+        env "PATH=$privilege_shim:$PATH" HOSTY_FIXTURE="$HOSTY" \
+        HOSTY_URL=https://example.invalid/hosty.sh "$INSTALL"
+    [ ! -f "$DEST_BIN" ] || die "a rejected sudo password should not install hosty"
+
+    log "-- failed install keeps the previous binary and removes staging --"
+    cat > "$privilege_shim/sudo" << 'EOF_SUDO'
+#!/bin/sh
+[ "$1" != -n ] || shift
+[ "$1" != mv ] || exit 1
+exec "$@"
+EOF_SUDO
+    printf '%s\n' '#!/bin/sh' 'echo previous' > "$DEST_BIN"
+    chmod 755 "$DEST_BIN"
+    expect_failure "$LOG_DIR/install-move-failure.out" "installing hosty..." \
+        env "PATH=$privilege_shim:$PATH" HOSTY_FIXTURE="$HOSTY" \
+        HOSTY_URL=https://example.invalid/hosty.sh "$INSTALL" < /dev/null
+    assert_file_not_contains "$LOG_DIR/install-move-failure.out" "installed hosty v" \
+        "a failed move should not report success"
+    assert_eq "$("$DEST_BIN")" previous "a failed install should keep the previous binary"
+    assert_no_hosty_staging "staging left after a failed install"
+    as_root rm -f "$DEST_BIN"
+
     printf '%s\n' '#!/bin/sh' 'exit 1' > "$privilege_shim/sudo"
     cp "$privilege_shim/sudo" "$privilege_shim/doas"
     chmod +x "$privilege_shim/sudo" "$privilege_shim/doas"
@@ -985,6 +1239,8 @@ run_clean_offline
 run_system_offline
 run_option_edge_cases
 run_list_modes_offline
+run_clean_write_failures_offline
+run_unwritable_whitelists_offline
 run_uninstall_and_autorun_offline
 run_install_tests
 run_install_privilege_tests
