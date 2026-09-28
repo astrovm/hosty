@@ -641,16 +641,16 @@ run_clean_write_failures_offline() {
     # hosty keeps whitelist backups in TMPDIR; an isolated one exposes leftovers.
     failures_tmp=$(mktemp -d) || die "mktemp -d failed"
     real_cat=$(command -v cat)
-    # Fail cat for arguments matching any glob in HOSTY_FAKE_CAT_FAIL or directly
-    # inside HOSTY_FAKE_CAT_FAIL_DIR; a failed "cat src > dst" truncates dst like
-    # a real mid-write failure would.
+    # Fail cat for arguments matching any glob in HOSTY_FAKE_CAT_FAIL, or whose
+    # file name matches HOSTY_FAKE_CAT_FAIL_NAME; a failed "cat src > dst"
+    # truncates dst like a real mid-write failure would.
     cat > "$failures_bin/cat" << EOF_CAT
 #!/bin/sh
 set -f
 for cat_arg in "\$@"; do
-    if [ -n "\${HOSTY_FAKE_CAT_FAIL_DIR:-}" ] && [ "\${cat_arg%/*}" = "\$HOSTY_FAKE_CAT_FAIL_DIR" ]; then
-        exit 1
-    fi
+    case \${cat_arg##*/} in
+        \${HOSTY_FAKE_CAT_FAIL_NAME:-/}) exit 1 ;;
+    esac
     for cat_pattern in \${HOSTY_FAKE_CAT_FAIL:-}; do
         case \$cat_arg in
             \$cat_pattern) exit 1 ;;
@@ -695,12 +695,16 @@ EOF_CAT
 
     setup_clean_lists "$failures_dir"
     expect_failure "$LOG_DIR/clean-write-restore.out" \
-        "failed to write $failures_dir/lists/whitelist; original contents kept at $failures_tmp/" \
+        "failed to write $failures_dir/lists/whitelist; original contents kept at " \
         env "PATH=$failures_bin:$PATH" TMPDIR="$failures_tmp" HOSTY_FAKE_CAT_FAIL='*/wl_clean_tmp' \
-        HOSTY_FAKE_CAT_FAIL_DIR="$failures_tmp" "$failures_dir/hosty" -c
+        HOSTY_FAKE_CAT_FAIL_NAME='tmp.*' "$failures_dir/hosty" -c
     assert_file_not_contains "$LOG_DIR/clean-write-restore.out" "left unchanged" \
         "an unrestored file must not be reported as unchanged"
     failures_backup=$(sed -n 's/.*original contents kept at //p' "$LOG_DIR/clean-write-restore.out")
+    case $failures_backup in
+        "$failures_tmp"/*) ;;
+        *) die "the whitelist backup should be kept in TMPDIR, not $failures_backup" ;;
+    esac
     cmp "$failures_dir/whitelist.orig" "$failures_backup" ||
         die "the kept backup should hold the original whitelist"
 
@@ -752,7 +756,8 @@ run_unwritable_whitelists_offline() {
     unwritable_root=$(mktemp -d) || die "mktemp -d failed"
     unwritable_dir="$unwritable_root/unprivileged-test"
     setup_clean_lists "$unwritable_dir"
-    chmod 755 "$unwritable_root"
+    # The unprivileged user must reach the fixtures whatever the umask.
+    chmod -R a+rX "$unwritable_root"
     chmod 444 "$unwritable_dir/lists/whitelist" "$unwritable_dir/lists/whitelist.sources"
     unwritable_output="$unwritable_root/clean.out"
     if run_unprivileged "$unwritable_dir/hosty" -c > "$unwritable_output" 2>&1; then

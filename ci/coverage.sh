@@ -55,6 +55,7 @@ HOSTY_COVERAGE_NEWLINE='
 trap 'printf "kcov@%s@%s@\n" "$BASH_SOURCE" "$LINENO" >&"$KCOV_BASH_XTRACEFD"; case $BASH_COMMAND in *"$HOSTY_COVERAGE_NEWLINE"*) printf "%s:%s\n" "$BASH_SOURCE" "$LINENO" >> "$HOSTY_COVERAGE_MULTILINE" ;; esac' DEBUG
 EOF_TRACE
 : > "$HOSTY_COVERAGE_MULTILINE"
+chmod 644 "$HOSTY_COVERAGE_HELPER"
 chmod 666 "$HOSTY_COVERAGE_MULTILINE"
 for coverage_script in hosty.sh install.sh; do
     [ -z "$(sed -n '2p' "$ROOT/$coverage_script")" ] ||
