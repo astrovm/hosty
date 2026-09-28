@@ -284,19 +284,19 @@ count_lines() {
 
 # Replace an existing writable file while preserving its metadata and symlink.
 # The caller has already built the complete replacement in a work file.
+# A failed write truncates the file, so restore the original before returning 1.
 replace_file() {
     replace_src=$1
     replace_dst=$2
+    replace_backup="$WORK_DIR/replace.backup"
 
-    if [ ! -f "$replace_dst" ]; then
-        return 1
+    cat "$replace_dst" > "$replace_backup" || return 1
+    if cat "$replace_src" > "$replace_dst" 2> /dev/null; then
+        return 0
     fi
-    if [ ! -w "$replace_dst" ]; then
-        printf 'skipping %s (not writable)\n' "$replace_dst" >&2
-        return 1
-    fi
-
-    cat "$replace_src" > "$replace_dst" 2> /dev/null
+    cat "$replace_backup" > "$replace_dst" 2> /dev/null ||
+        fail "failed to write $replace_dst and could not restore its original contents."
+    return 1
 }
 
 # Return 0 if any non-empty line of $1 exists in set-file $2 (one entry per line).

@@ -1,0 +1,28 @@
+#!/usr/bin/expect -f
+# Run a command on a terminal, answering every prompt that matches a pattern.
+# Exits with the command's exit status.
+# Usage: answer.exp <pattern> <answer> [<pattern> <answer> ...] -- <command> [args...]
+set timeout 180
+
+set separator [lsearch -exact $argv --]
+if {$separator < 2 || $separator % 2 != 0 || $separator == [llength $argv] - 1} {
+    puts stderr "usage: answer.exp <pattern> <answer> \[...\] -- <command> \[args...\]"
+    exit 2
+}
+set command [lrange $argv [expr {$separator + 1}] end]
+
+log_user 1
+eval spawn $command
+
+set cases {}
+foreach {pattern answer} [lrange $argv 0 [expr {$separator - 1}]] {
+    lappend cases -re $pattern "send -- [list "$answer\r"]; exp_continue"
+}
+lappend cases timeout {
+    puts stderr "timeout waiting for the command"
+    exit 1
+} eof {}
+eval expect $cases
+
+catch wait result
+exit [lindex $result 3]
