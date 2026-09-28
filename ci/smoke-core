@@ -686,17 +686,37 @@ EOF_CAT
     setup_direct_fixtures
 }
 
-# Run a command as an unprivileged user so file permissions apply.
+# Run a command as an unprivileged user so file permissions apply. As root,
+# use util-linux setpriv, or su where setpriv lacks --reuid (BusyBox).
+UNPRIVILEGED_TOOL=""
+
 can_run_unprivileged() {
-    [ "$(id -u)" -ne 0 ] || command -v setpriv > /dev/null 2>&1
+    if [ "$(id -u)" -ne 0 ]; then
+        UNPRIVILEGED_TOOL=none
+    elif setpriv --reuid=65534 --regid=65534 --clear-groups true > /dev/null 2>&1; then
+        UNPRIVILEGED_TOOL=setpriv
+    elif su -s /bin/sh nobody -c true > /dev/null 2>&1; then
+        UNPRIVILEGED_TOOL=su
+    else
+        return 1
+    fi
 }
 
 run_unprivileged() {
-    if [ "$(id -u)" -ne 0 ]; then
-        "$@"
-    else
-        setpriv --reuid=65534 --regid=65534 --clear-groups "$@"
-    fi
+    case $UNPRIVILEGED_TOOL in
+        none) "$@" ;;
+        setpriv) setpriv --reuid=65534 --regid=65534 --clear-groups "$@" ;;
+        su)
+            # BusyBox su parses options after -c, so pass one quoted command.
+            run_unprivileged_command='exec'
+            for run_unprivileged_arg in "$@"; do
+                run_unprivileged_arg=$(printf '%s' "$run_unprivileged_arg" | sed "s/'/'\\\\''/g")
+                run_unprivileged_command="$run_unprivileged_command '$run_unprivileged_arg'"
+            done
+            su -s /bin/sh nobody -c "$run_unprivileged_command"
+            ;;
+        *) die "can_run_unprivileged must succeed before run_unprivileged" ;;
+    esac
 }
 
 run_unwritable_whitelists_offline() {
