@@ -11,9 +11,6 @@ on:
       - "LICENSE"
   pull_request:
     branches: ["main"]
-    paths-ignore:
-      - "**.md"
-      - "LICENSE"
   schedule:
     # Weekly full network + source health (UTC Sunday midnight)
     - cron: "0 0 * * 0"

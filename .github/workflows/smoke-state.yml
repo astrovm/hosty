@@ -6,11 +6,6 @@ name: Smoke state preservation
 on:
   pull_request:
     branches: ["main"]
-    paths:
-      - "ci/**"
-      - "hosty.sh"
-      - "install.sh"
-      - ".github/workflows/smoke-state.yml"
   workflow_dispatch:
 
 # New commits supersede older runs for the same pull request.
