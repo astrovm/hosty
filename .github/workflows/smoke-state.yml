@@ -13,6 +13,11 @@ on:
       - ".github/workflows/smoke-state.yml"
   workflow_dispatch:
 
+# New commits supersede older runs for the same pull request.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   preserve-state:
     name: Preserve existing Hosty state
