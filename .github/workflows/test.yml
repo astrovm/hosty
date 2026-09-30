@@ -35,8 +35,8 @@ jobs:
 
       - name: Install tools
         run: |
-          sudo apt -qq update
-          sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
+          sudo apt-get -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq -o Dpkg::Use-Pty=0 install -y \
             shellcheck shfmt dash
 
       - name: Format
@@ -78,8 +78,8 @@ jobs:
       - name: Install dependencies (Ubuntu)
         if: runner.os == 'Linux'
         run: |
-          sudo apt -qq update
-          sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
+          sudo apt-get -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq -o Dpkg::Use-Pty=0 install -y \
             expect dash cron
 
       - name: Install dependencies (macOS)
@@ -110,8 +110,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt -qq update
-          sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
+          sudo apt-get -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq -o Dpkg::Use-Pty=0 install -y \
             kcov expect dash cron python3
 
       - name: Measure offline smoke coverage
@@ -213,8 +213,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt -qq update
-          sudo DEBIAN_FRONTEND=noninteractive apt -qq -o Dpkg::Use-Pty=0 install -y \
+          sudo apt-get -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qq -o Dpkg::Use-Pty=0 install -y \
             expect dash cron
 
       - name: Run smoke with network + production install
