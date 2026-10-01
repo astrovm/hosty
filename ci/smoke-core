@@ -137,9 +137,9 @@ setup_source_fixtures() {
     log "-- installing file:// source fixtures into /etc/hosty --"
     blacklist_source_list="$LOG_DIR/blacklist.sources.fixture"
     whitelist_source_list="$LOG_DIR/whitelist.sources.fixture"
-    # Comments and blank lines must be skipped, not downloaded.
-    printf '# blacklist fixture\n\nfile://%s\n' "$FIXTURE_BLACKLIST" > "$blacklist_source_list"
-    printf '# whitelist fixture\n\nfile://%s\n' "$FIXTURE_WHITELIST" > "$whitelist_source_list"
+    # Comments, blank lines, spaces and CRLF endings must be skipped, not downloaded.
+    printf '# blacklist fixture\n\n  # indented\nfile://%s\n' "$FIXTURE_BLACKLIST" > "$blacklist_source_list"
+    printf '# whitelist fixture\n\nfile://%s # note\r\n' "$FIXTURE_WHITELIST" > "$whitelist_source_list"
 
     as_root mkdir -p /etc/hosty
     as_root rm -f /etc/hosty/blacklist /etc/hosty/whitelist
@@ -547,7 +547,7 @@ run_list_modes_offline() {
 
     log "-- whitelist source cleanup --"
     {
-        printf '%s\n' '# whitelist sources' ''
+        printf '%s\n' '# whitelist sources' '' '  # indented note'
         printf 'file://%s\n' "$modes_dir/sources/wl-a" "$modes_dir/sources/wl-b" \
             "$modes_dir/sources/missing"
     } > "$modes_dir/lists/whitelist.sources"
@@ -556,6 +556,7 @@ run_list_modes_offline() {
     assert_file_contains "$LOG_DIR/clean-sources-partial.out" \
         "Removed inactive source: file://$modes_dir/sources/wl-b"
     assert_file_contains "$modes_dir/lists/whitelist.sources" "# whitelist sources"
+    assert_file_contains "$modes_dir/lists/whitelist.sources" "  # indented note"
     assert_file_contains "$modes_dir/lists/whitelist.sources" "file://$modes_dir/sources/wl-a"
     assert_file_contains "$modes_dir/lists/whitelist.sources" "file://$modes_dir/sources/missing"
     assert_file_not_contains "$modes_dir/lists/whitelist.sources" "file://$modes_dir/sources/wl-b"
