@@ -188,7 +188,7 @@ install_hosts_file() {
         install_hosts_existing=1
     fi
 
-    if [ -f "$install_hosts_destination" ] &&
+    if [ "$install_hosts_existing" -eq 1 ] &&
         cat "$install_hosts_staged" > "$install_hosts_destination" 2> /dev/null; then
         rm -f "$install_hosts_staged"
         return 0
@@ -231,19 +231,23 @@ download_optional() {
     fi
 }
 
+# Print the URLs in a sources file (or stdin), without comments or whitespace.
+source_urls() {
+    awk '{ sub(/#.*/, ""); gsub(/[[:space:]]/, ""); if ($0 != "") print }' "$@"
+}
+
 download_sources_into() {
     download_sources_file=$1
     download_sources_target=$2
     download_sources_temp="$WORK_DIR/download"
+    download_sources_urls="$WORK_DIR/download.urls"
 
-    while IFS= read -r download_sources_url || [ -n "$download_sources_url" ]; do
-        case $download_sources_url in
-            '' | \#*) continue ;;
-        esac
+    source_urls "$download_sources_file" > "$download_sources_urls"
+    while IFS= read -r download_sources_url; do
         if download_optional "$download_sources_url" "$download_sources_temp"; then
             cat "$download_sources_temp" >> "$download_sources_target"
         fi
-    done < "$download_sources_file"
+    done < "$download_sources_urls"
 }
 
 # Parse hostnames from hosts-style files and plain domain lists into one-per-line output.
@@ -425,13 +429,12 @@ compile_all_blacklists() {
 
     printf '\ndownloading and building unified blacklist database...\n'
     compile_raw="$WORK_DIR/compile_raw.txt"
+    compile_urls="$WORK_DIR/compile.urls"
     compile_failed=0
     : > "$compile_raw"
 
-    while IFS= read -r compile_url || [ -n "$compile_url" ]; do
-        case $compile_url in
-            '' | \#*) continue ;;
-        esac
+    source_urls "$compile_bl_sources" > "$compile_urls"
+    while IFS= read -r compile_url; do
         compile_dl="$WORK_DIR/compile_dl"
         compile_domains="$WORK_DIR/compile_domains"
         if download_optional "$compile_url" "$compile_dl"; then
@@ -445,7 +448,7 @@ compile_all_blacklists() {
         else
             compile_failed=1
         fi
-    done < "$compile_bl_sources"
+    done < "$compile_urls"
 
     if [ -f "$LISTS_DIR/blacklist" ] && [ -s "$LISTS_DIR/blacklist" ]; then
         extract_domains_from "$LISTS_DIR/blacklist" >> "$compile_raw"
@@ -466,7 +469,7 @@ compile_all_blacklists() {
 
 parse_args "$@"
 
-for dependency in curl awk head cat mktemp sort grep dirname chmod mv rm id date tr; do
+for dependency in curl awk head cat mktemp sort grep dirname chmod mv rm id date; do
     check_dep "$dependency"
 done
 
@@ -585,13 +588,13 @@ if [ "$LOOKUP" -eq 1 ]; then
         done
     }
 
+    lookup_urls="$WORK_DIR/lookup.urls"
+
     printf '\ndownloading and searching blacklists...\n'
-    while IFS= read -r lookup_source_url || [ -n "$lookup_source_url" ]; do
-        case $lookup_source_url in
-            '' | \#*) continue ;;
-        esac
+    source_urls "$blacklist_sources" > "$lookup_urls"
+    while IFS= read -r lookup_source_url; do
         lookup_in_list "blacklist" "$lookup_source_url"
-    done < "$blacklist_sources"
+    done < "$lookup_urls"
 
     if [ -f "$LISTS_DIR/blacklist" ] && [ -s "$LISTS_DIR/blacklist" ]; then
         printf 'searching %s...\n' "$LISTS_DIR/blacklist"
@@ -604,12 +607,10 @@ if [ "$LOOKUP" -eq 1 ]; then
     fi
 
     printf 'downloading and searching whitelists...\n'
-    while IFS= read -r lookup_source_url || [ -n "$lookup_source_url" ]; do
-        case $lookup_source_url in
-            '' | \#*) continue ;;
-        esac
+    source_urls "$whitelist_sources" > "$lookup_urls"
+    while IFS= read -r lookup_source_url; do
         lookup_in_list "whitelist" "$lookup_source_url"
-    done < "$whitelist_sources"
+    done < "$lookup_urls"
 
     if [ -f "$LISTS_DIR/whitelist" ] && [ -s "$LISTS_DIR/whitelist" ]; then
         printf 'searching %s...\n' "$LISTS_DIR/whitelist"
@@ -730,6 +731,7 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
     wl_domain_sources="$WORK_DIR/wl_domain_sources.tsv"
     wl_domains_file="$WORK_DIR/wl_domains.txt"
     audit_results="$WORK_DIR/audit.results"
+    audit_urls="$WORK_DIR/audit.urls"
     audit_incomplete=0
     : > "$wl_domain_sources"
     : > "$wl_domains_file"
@@ -752,17 +754,15 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
         done < "$temp_parsed"
     }
 
-    while IFS= read -r wl_url || [ -n "$wl_url" ]; do
-        case $wl_url in
-            '' | \#*) continue ;;
-        esac
+    source_urls "$whitelist_sources" > "$audit_urls"
+    while IFS= read -r wl_url; do
         wl_dl="$WORK_DIR/wl_dl"
         if download_optional "$wl_url" "$wl_dl"; then
             add_wl_domains_from_file "$wl_url" "$wl_dl"
         else
             audit_incomplete=1
         fi
-    done < "$whitelist_sources"
+    done < "$audit_urls"
 
     if [ -f "$LISTS_DIR/whitelist" ] && [ -s "$LISTS_DIR/whitelist" ]; then
         printf 'processing %s...\n' "$LISTS_DIR/whitelist"
@@ -807,17 +807,15 @@ if [ "$CHECK_WHITELISTS" -eq 1 ]; then
         ' "$bl_parsed" >> "$audit_results"
     }
 
-    while IFS= read -r bl_url || [ -n "$bl_url" ]; do
-        case $bl_url in
-            '' | \#*) continue ;;
-        esac
+    source_urls "$blacklist_sources" > "$audit_urls"
+    while IFS= read -r bl_url; do
         bl_dl="$WORK_DIR/bl_dl"
         if download_optional "$bl_url" "$bl_dl"; then
             check_bl_file "$bl_url" "$bl_dl"
         else
             audit_incomplete=1
         fi
-    done < "$blacklist_sources"
+    done < "$audit_urls"
 
     if [ -f "$LISTS_DIR/blacklist" ] && [ -s "$LISTS_DIR/blacklist" ]; then
         printf 'checking %s...\n' "$LISTS_DIR/blacklist"
@@ -1069,15 +1067,11 @@ if [ "$CLEAN_WHITELISTS" -eq 1 ]; then
         printf '\nChecking whitelist sources in %s...\n' "$src_file"
 
         while IFS= read -r line || [ -n "$line" ]; do
-            case $line in
-                '' | \#*)
-                    printf '%s\n' "$line" >> "$src_temp_clean"
-                    continue
-                    ;;
-            esac
-            src_url=${line%%#*}
-            src_url=$(printf '%s' "$src_url" | tr -d ' \t\r')
-            [ -n "$src_url" ] || continue
+            src_url=$(printf '%s\n' "$line" | source_urls)
+            if [ -z "$src_url" ]; then
+                printf '%s\n' "$line" >> "$src_temp_clean"
+                continue
+            fi
 
             src_dl="$WORK_DIR/src_dl"
             src_doms="$WORK_DIR/src_doms"

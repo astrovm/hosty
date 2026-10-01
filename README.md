@@ -22,7 +22,7 @@ Hosty needs a POSIX `/bin/sh`, `curl`, `awk` and common Unix tools, which most s
 <details>
 <summary><b>Missing something?</b></summary>
 
-Hosty uses `cat`, `chmod`, `cp`, `date`, `dirname`, `grep`, `head`, `id`, `mkdir`, `mktemp`, `mv`, `rm`, `sort` and `tr`. `crontab` is optional, for automatic updates, and so are `sudo` or `doas`, for running from a non-root account.
+Hosty uses `cat`, `chmod`, `cp`, `date`, `dirname`, `grep`, `head`, `id`, `mkdir`, `mktemp`, `mv`, `rm` and `sort`. `crontab` is optional, for automatic updates, and so are `sudo` or `doas`, for running from a non-root account.
 
 | Platform | Command |
 | --- | --- |
