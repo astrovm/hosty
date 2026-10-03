@@ -1,0 +1,32 @@
+name: Invalidate Cloudflare cache
+
+# Runs after GitHub Pages publishes a new build of this site.
+on:
+  workflow_run:
+    workflows: [pages-build-deployment]
+    types: [completed]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: cloudflare-cache
+  cancel-in-progress: false
+
+jobs:
+  invalidate:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - name: Invalidate Cloudflare cache
+        env:
+          CLOUDFLARE_CACHE_TOKEN: ${{ secrets.CLOUDFLARE_CACHE_TOKEN }}
+        # Marks cached copies stale so the edge revalidates them against the new deploy.
+        run: |
+          curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
+            --request POST \
+            --header "Authorization: Bearer $CLOUDFLARE_CACHE_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data '{"prefixes":["4st.li/hosty/"]}' \
+            "https://api.cloudflare.com/client/v4/zones/2da89ffd98b154334e04add0a5034e9b/invalidate_cache"
