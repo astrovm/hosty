@@ -1,8 +1,5 @@
 # hosty
 
-[![GitHub last commit](https://img.shields.io/github/last-commit/astrovm/hosty.svg)](https://github.com/astrovm/hosty)
-[![GitHub license](https://img.shields.io/github/license/astrovm/hosty.svg)](https://github.com/astrovm/hosty)
-
 **Block ads, trackers and malware on your whole system.**
 
 Hosty downloads blocklists, adds your own rules and updates `/etc/hosts`, keeping the entries already there. It runs on Linux, macOS and BSD.
