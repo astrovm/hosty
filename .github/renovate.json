@@ -1,4 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "group:all"]
+  "extends": ["config:recommended", "group:all", "schedule:daily"],
+  "timezone": "America/Argentina/Buenos_Aires",
+  "minimumReleaseAge": "3 days",
+  "minimumReleaseAgeBehaviour": "timestamp-optional"
 }
