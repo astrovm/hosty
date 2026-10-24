@@ -3,5 +3,6 @@
   "extends": ["config:recommended", "group:all", "schedule:daily"],
   "timezone": "America/Argentina/Buenos_Aires",
   "minimumReleaseAge": "3 days",
-  "minimumReleaseAgeBehaviour": "timestamp-optional"
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
+  "lockFileMaintenance": { "enabled": true }
 }
