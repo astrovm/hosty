@@ -1,8 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "group:all", "schedule:daily"],
+  "extends": ["config:recommended", "group:all"],
+  "schedule": ["* 0-3 */3 * *"],
   "timezone": "America/Argentina/Buenos_Aires",
   "minimumReleaseAge": "3 days",
   "minimumReleaseAgeBehaviour": "timestamp-optional",
-  "lockFileMaintenance": { "enabled": true }
+  "lockFileMaintenance": { "enabled": true, "schedule": ["* 0-3 */3 * *"] }
 }
