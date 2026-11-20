@@ -5,5 +5,6 @@
   "timezone": "America/Argentina/Buenos_Aires",
   "minimumReleaseAge": "3 days",
   "minimumReleaseAgeBehaviour": "timestamp-optional",
-  "groupSingleUpdates": true
+  "groupSingleUpdates": true,
+  "semanticCommits": "enabled"
 }
